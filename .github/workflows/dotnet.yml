@@ -1,4 +1,4 @@
-name: .NET
+name: Build
 
 on:
   push:
@@ -22,11 +22,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: $(DotNetVersion)
+        dotnet-version: ${DotNetVersion}
 
     - run: |
-        & dotnet tool update --global uno.check --version $(UnoCheck_Version) --add-source https://api.nuget.org/v3/index.json
-        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest $(UnoCheck_Manifest)
+        & dotnet tool update --global uno.check --version ${UnoCheck_Version} --add-source https://api.nuget.org/v3/index.json
+        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest ${UnoCheck_Manifest}
 
     - name: Build
       run: dotnet build src\Uno.UI.RuntimeTests.Engine.sln
