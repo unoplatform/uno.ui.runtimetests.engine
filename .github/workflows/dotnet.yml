@@ -1,0 +1,32 @@
+name: .NET
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    
+env:
+  DotNetVersion: '6.0.401'
+  UnoCheck_Version: '1.5.4'
+  UnoCheck_Manifest: 'https://raw.githubusercontent.com/unoplatform/uno.check/34b1a60f5c1c51604b47362781969dde46979fd5/manifests/uno.ui.manifest.json'
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: $(DotNetVersion)
+
+    - run: |
+        & dotnet tool update --global uno.check --version $(UnoCheck_Version) --add-source https://api.nuget.org/v3/index.json
+        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest $(UnoCheck_Manifest)
+
+    - name: Build
+      run: dotnet build src\Uno.UI.RuntimeTests.Engine.sln
