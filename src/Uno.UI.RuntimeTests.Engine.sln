@@ -191,13 +191,19 @@ Global
 		SolutionGuid = {7B2C19BA-4A4D-4602-A2A3-0CBCF1480B0C}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{590d1894-d9db-4287-946e-61870673c828}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{590d1894-d9db-4287-946e-61870673c828}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{6279c845-92f8-4333-ab99-3d213163593c}*SharedItemsImports = 13
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{7bd72040-d89a-4de8-8713-5a08068adbce}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{7bd72040-d89a-4de8-8713-5a08068adbce}*SharedItemsImports = 5
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{dec0dfbd-2926-492b-be22-2158438556e3}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{dec0dfbd-2926-492b-be22-2158438556e3}*SharedItemsImports = 5
-		Uno.UI.RuntimeTests.Engine.Library\Uno.Ui.RuntimeRests.Engine.Library.projitems*{e3f4af60-8456-4ed6-9992-303cdad44e0d}*SharedItemsImports = 13
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{e3f4af60-8456-4ed6-9992-303cdad44e0d}*SharedItemsImports = 13
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{ecdcc981-f372-449b-89d2-e0f741ad6718}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{ecdcc981-f372-449b-89d2-e0f741ad6718}*SharedItemsImports = 5
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{f12b912a-0036-4a64-9a17-3ea88217caad}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{f12b912a-0036-4a64-9a17-3ea88217caad}*SharedItemsImports = 5
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{f84c4601-9e48-4d51-bca1-733bfeda7edd}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine\Uno.UI.RuntimeTests.Engine.Shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{f84c4601-9e48-4d51-bca1-733bfeda7edd}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

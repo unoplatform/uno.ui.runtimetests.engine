@@ -6,7 +6,7 @@
     <SharedGUID>e3f4af60-8456-4ed6-9992-303cdad44e0d</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>Uno.Ui.RuntimeRests.Engine.Library</Import_RootNamespace>
+    <Import_RootNamespace>Uno.UI.RuntimeTests.Engine.Library</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)InjectedPointerAttribute.cs" />
@@ -28,4 +28,15 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
+
+	<ItemGroup>
+
+		<!-- Mark the files from this folder as being part of WinUI -->
+		<Page Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
+		<ApplicationDefinition Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
+
+		<!-- Make sure XAML files force reevaluation of up-to-date checks -->
+		<UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
+
+	</ItemGroup>
 </Project>
