@@ -21,7 +21,7 @@ This package is built as a source package. It includes XAML files and cs files i
         <runtimetests:UnitTestsControl />
     </Page>
     ```
-- On Windows add the following:
+- In the uwp/winui head project, add the following:
     ```xml
     <PropertyGroup>
     	<DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
@@ -57,7 +57,7 @@ Placing this attribute on a test or test class will force the tests to run on th
 _TBD_
 
 ## Placing tests in a separate assembly
-- In your separate assembly, add the following attributes code:
+- In a separate assembly, add the following attributes code:
     ```csharp
     namespace Uno.UI.RuntimeTests;
     public sealed class RequiresFullWindowAttribute : Attribute { }
