@@ -36,6 +36,7 @@
 
 		You can safely remove this ItemGroup completely.
 		-->
+		<None Include="..\..\.editorconfig" Link=".editorconfig" />
 		<None Include="Program.cs" />
 		<None Include="LinkerConfig.xml" />
 		<None Include="wwwroot\web.config" />

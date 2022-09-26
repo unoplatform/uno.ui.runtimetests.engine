@@ -21,7 +21,7 @@ using Windows.Devices.Input;
 /// </remarks>
 /// <remarks>You can add this attributes multiple times to run the test with multiple pointer types.</remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-public class InjectedPointerAttribute : Attribute
+public sealed class InjectedPointerAttribute : Attribute
 {
     public PointerDeviceType Type { get; }
 

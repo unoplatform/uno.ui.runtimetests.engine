@@ -54,6 +54,7 @@ namespace Uno.UI.RuntimeTests
 			public TextWriterDuplicator(TextWriter inner)
 			{
 				_inner = inner;
+				Encoding = Encoding.UTF8;
 			}
 
 			internal string GetContentAndReset()

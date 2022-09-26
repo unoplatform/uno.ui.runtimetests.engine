@@ -55,8 +55,6 @@ public sealed partial class UnitTestsControl : UserControl
 #pragma warning disable CS0109
 #if HAS_UNO
 	private new readonly ILogger _log = Uno.Extensions.LogExtensionPoint.Log(typeof(UnitTestsControl));
-#else
-    private static readonly ILogger _log = Uno.Extensions.LogExtensionPoint.Log(typeof(UserControl));
 #endif
 #pragma warning restore CS0109
 
@@ -69,7 +67,9 @@ public sealed partial class UnitTestsControl : UserControl
 	private readonly TimeSpan DefaultUnitTestTimeout = TimeSpan.FromSeconds(60);
 #endif
 
+#pragma warning disable CS0649 // Unused field
     private ApplicationView? _applicationView;
+#pragma warning restore CS0649 // Unused field
 
     private List<TestCaseResult> _testCases = new List<TestCaseResult>();
     private TestRun? _currentRun;
@@ -365,7 +365,7 @@ public sealed partial class UnitTestsControl : UserControl
             {
                 Text = GetTestResultIcon(testResult) + ' ' + testName + retriesText,
                 FontSize = 13.5d,
-                Foreground = new SolidColorBrush(GetTestResultColor(testResult)),
+                Foreground = new SolidColorBrush(UnitTestsControl.GetTestResultColor(testResult)),
                 FontWeight = FontWeights.ExtraBold
             });
 
@@ -557,7 +557,7 @@ public sealed partial class UnitTestsControl : UserControl
         };
     }
 
-    private string GetTestResultIcon(TestResult testResult)
+    private static string GetTestResultIcon(TestResult testResult)
     {
         switch (testResult)
         {
@@ -574,7 +574,7 @@ public sealed partial class UnitTestsControl : UserControl
         }
     }
 
-    private Color GetTestResultColor(TestResult testResult)
+    private static Color GetTestResultColor(TestResult testResult)
     {
         switch (testResult)
         {
@@ -683,7 +683,7 @@ public sealed partial class UnitTestsControl : UserControl
         await GenerateTestResults();
     }
 
-    private IEnumerable<MethodInfo> FilterTests(UnitTestClassInfo testClassInfo, string[]? filters)
+    private static IEnumerable<MethodInfo> FilterTests(UnitTestClassInfo testClassInfo, string[]? filters)
     {
         var testClassNameContainsFilters = filters?.Any(f => testClassInfo.Type?.FullName?.Contains(f, StrComp) ?? false) ?? false;
         return testClassInfo.Tests?.
@@ -704,7 +704,7 @@ public sealed partial class UnitTestsControl : UserControl
             ? ConsoleOutputRecorder.Start()
             : default;
 
-        var tests = FilterTests(testClassInfo, config.Filters)
+        var tests = UnitTestsControl.FilterTests(testClassInfo, config.Filters)
             .Select(method => new UnitTestMethodInfo(instance, method))
             .ToArray();
 
@@ -831,7 +831,7 @@ public sealed partial class UnitTestsControl : UserControl
                                 // }
 
                                 sw.Start();
-                                testClassInfo.Initialize?.Invoke(instance, new object[0]);
+                                testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>());
                                 returnValue = test.Method.Invoke(instance, testCase.Parameters);
                                 sw.Stop();
                             });
@@ -846,7 +846,7 @@ public sealed partial class UnitTestsControl : UserControl
                             // }
 
                             sw.Start();
-                            testClassInfo.Initialize?.Invoke(instance, new object[0]);
+                            testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>());
                             returnValue = test.Method.Invoke(instance, testCase.Parameters);
                             sw.Stop();
                         }
@@ -953,7 +953,7 @@ public sealed partial class UnitTestsControl : UserControl
             {
                 try
                 {
-                    testClassInfo.Cleanup?.Invoke(instance, new object[0]);
+                    testClassInfo.Cleanup?.Invoke(instance, Array.Empty<object>());
                 }
                 catch (Exception e)
                 {
@@ -993,7 +993,7 @@ public sealed partial class UnitTestsControl : UserControl
 
         return from type in types
                where type.GetTypeInfo().GetCustomAttribute(typeof(TestClassAttribute)) != null
-               where _ciTestsGroupCountCache == -1 || (_ciTestsGroupCountCache != -1 && (GetTypeTestGroup(type) % _ciTestsGroupCountCache) == _ciTestGroupCache)
+               where _ciTestsGroupCountCache == -1 || (_ciTestsGroupCountCache != -1 && (UnitTestsControl.GetTypeTestGroup(type) % _ciTestsGroupCountCache) == _ciTestGroupCache)
                orderby type.Name
                let info = BuildType(type)
                where info.Type is { }
@@ -1002,7 +1002,7 @@ public sealed partial class UnitTestsControl : UserControl
 
     private static SHA1 _sha1 = SHA1.Create();
 
-    private int GetTypeTestGroup(Type type)
+    private static int GetTypeTestGroup(Type type)
     {
         // Compute a stable hash of the full metadata name
         var buffer = Encoding.UTF8.GetBytes(type.FullName ?? "");

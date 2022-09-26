@@ -3,6 +3,7 @@
     <OutputType Condition="'$(Configuration)'=='Release'">WinExe</OutputType>
     <OutputType Condition="'$(Configuration)'=='Debug'">Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
+	  <NoWarn>$(NoWarn);Uno0001</NoWarn>
   </PropertyGroup>
   <ItemGroup Condition="exists('..\Uno.UI.RuntimeTests.Engine.Windows')">
     <EmbeddedResource Include="..\Uno.UI.RuntimeTests.Engine.Windows\Package.appxmanifest" LogicalName="Package.appxmanifest" />
