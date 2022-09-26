@@ -9,6 +9,10 @@ This engine uses the MSTest attributes to perform the discovery of tests.
 - Running tests full screen
 - Generating an nunit report for CI publishing
 
+### Structure of the package
+
+This package is built as a source package. It includes XAML files and cs files into the referencing project, making it independent from the Uno.UI version used by your project. It is built in such a way that Uno.UI itself can use this package while not referencing itself through nuget packages dependencies.
+
 ## Using the Runtime Tests Engine
 - Add the Uno.UI.RuntimeTests.Engine nuget package to your application
 - Add the following xaml to your application:
