@@ -8,6 +8,7 @@
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<LangVersion>10.0</LangVersion>
 		<ContentTargetFolders>contentFiles</ContentTargetFolders>
+		<IsPackable>true</IsPackable>
 	</PropertyGroup>
 
 	<ItemGroup>
