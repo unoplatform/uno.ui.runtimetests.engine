@@ -20,13 +20,16 @@ namespace Uno.UI.RuntimeTests.Engine
                     // which dispatch keyboard input, and close the application as a result.
                     // This block can be moved to App.xaml.cs if it does not interfere with other
                     // platforms that may use the same keys.
-                    CoreWindow.GetForCurrentThread().KeyDown += (s, e) =>
+                    if (CoreWindow.GetForCurrentThread() is { } window)
                     {
-                        if (e.VirtualKey == Windows.System.VirtualKey.F12)
+                        window.KeyDown += (s, e) =>
                         {
-                            Application.Current.Exit();
-                        }
-                    };
+                            if (e.VirtualKey == Windows.System.VirtualKey.F12)
+                            {
+                                Application.Current.Exit();
+                            }
+                        };
+                    }
 
                     return new App();
                 });

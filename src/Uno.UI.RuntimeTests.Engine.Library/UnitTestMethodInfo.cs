@@ -17,7 +17,7 @@ internal record UnitTestMethodInfo
 	public UnitTestMethodInfo(object testClassInstance, MethodInfo method)
 	{
 		Method = method;
-		RunsOnUIThread = 
+		RunsOnUIThread =
 			HasCustomAttribute<RunsOnUIThreadAttribute>(method) ||
 			HasCustomAttribute<RunsOnUIThreadAttribute>(method.DeclaringType);
 		RequiresFullWindow =
@@ -58,7 +58,7 @@ internal record UnitTestMethodInfo
 
 	public bool RunsOnUIThread { get; }
 
-	private bool HasCustomAttribute<T>(MemberInfo? testMethod)
+	private static bool HasCustomAttribute<T>(MemberInfo? testMethod)
 		=> testMethod?.GetCustomAttribute(typeof(T)) != null;
 
 	public bool IsIgnored(out string ignoreMessage)

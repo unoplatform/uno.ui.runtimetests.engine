@@ -13,20 +13,83 @@ env:
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v3
+      name: Checkout sources
+      with:
+        fetch-depth: 0
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: ${{ env.DotNetVersion }}
 
+    - name: Setup GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.9
+      with:
+        versionSpec: '5.x'
+
+    - name: GitVersion
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0.9.9
+      with:
+        useConfigFile: true
+        configFilePath: build/gitversion.yml
+
+    - run: |
+        npm install -g conventional-changelog-cli@2.2.2
+        conventional-changelog -p angular -u -r 1 -o "build/changelog.md"
+      name: 'Generate changelog.md'
+
     - run: |
         & dotnet tool update --global uno.check --version $env:UnoCheck_Version --add-source https://api.nuget.org/v3/index.json
         & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest $env:UnoCheck_Manifest
 
     - name: Build
-      run: dotnet build src\Uno.UI.RuntimeTests.Engine.sln
+      run: |
+        $adjustedPackageVersion="${{ steps.gitversion.outputs.semVer }}".ToLower();
+        dotnet build src\Uno.UI.RuntimeTests.Engine.sln "/t:Build;Pack" /p:PackageVersion=$adjustedPackageVersion /p:Version=${{ steps.gitversion.outputs.assemblySemVer }} "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: NuGet
+        path: .\artifacts
+
+  publish:
+    name: Publish
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
+    runs-on: windows-latest
+    needs:
+      - build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: NuGet
+          path: artifacts
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ env.DotNetVersion }}
+
+      - name: Setup SignClient
+        run: |
+          dotnet tool install --tool-path build SignClient
+
+      - name: SignClient
+        run: |
+          if ("${{ secrets.SIGN_CLIENT_USER }}" -ne "")
+          {
+            build\SignClient sign -i artifacts\*.nupkg -c build\SignClient.json -r "${{ secrets.SIGN_CLIENT_USER }}" -s "${{ secrets.SIGN_CLIENT_SECRET }}" -n "Uno.UI.RuntimeTests.Engine" -d "Uno.UI.RuntimeTests.Engine" -u "https://github.com/unoplatform/uno.check"
+          }
+
+      - name: NuGet Push
+        run: |
+          dotnet nuget push artifacts\*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }}

@@ -1,0 +1,11 @@
+﻿<Project>
+	<ItemGroup>
+		<Compile Include="$(MSBuildThisFileDirectory)/../src/**/*.cs"
+				 Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
+				 Visible="False" />
+		<Page Include="$(MSBuildThisFileDirectory)/../src/**/*.xaml"
+			  Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
+			  Visible="False"
+			  XamlRuntime="WinUI" />
+	</ItemGroup>
+</Project>

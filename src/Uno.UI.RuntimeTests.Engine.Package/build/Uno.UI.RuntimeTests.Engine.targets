@@ -1,0 +1,9 @@
+﻿<Project>
+	<Target Name="_UnoUIRuntimeTestEngine_ValidateUno" 
+			BeforeTargets="BeforeBuild"
+			Condition="'$(TargetPlatformIdentifier)'!='Windows' and '$(UnoUIRuntimeTestEngine_DisableValidateUno)'==''">
+
+		<Error Text="The Uno.UI or Uno.WinUI packages must be referenced in order to use the Uno.UI.RuntimeTests.Engine package"
+			   Condition="'$(PkgUno_WinUI)'=='' and '$(PkgUno_UI)'==''"/>
+	</Target>
+</Project>
