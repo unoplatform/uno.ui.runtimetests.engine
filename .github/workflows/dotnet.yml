@@ -40,8 +40,19 @@ jobs:
         configFilePath: build/gitversion.yml
 
     - run: |
+        npm install -g conventional-changelog-cli@2.2.2
+        conventional-changelog -p angular -u -r 1 -o "build/changelog.md"
+      name: 'Generate changelog.md'
+
+    - run: |
         & dotnet tool update --global uno.check --version $env:UnoCheck_Version --add-source https://api.nuget.org/v3/index.json
         & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest $env:UnoCheck_Manifest
 
     - name: Build
-      run: dotnet build src\Uno.UI.RuntimeTests.Engine.sln
+      run: dotnet build src\Uno.UI.RuntimeTests.Engine.sln "/t:Build;Pack" /p:PackageVersion=$adjustedPackageVersion /p:Version=${{ steps.gitversion.outputs.assemblySemVer }} "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: NuGet
+        path: .\artifacts
