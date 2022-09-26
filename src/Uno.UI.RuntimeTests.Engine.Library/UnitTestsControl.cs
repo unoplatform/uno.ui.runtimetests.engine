@@ -17,8 +17,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
-using Uno.Foundation.Logging;
 using Newtonsoft.Json;
+
+#if HAS_UNO
+using Uno.Foundation.Logging;
+using Uno.Logging;
+#endif
 
 #if HAS_UNO_WINUI || WINDOWS
 using Windows.UI;
@@ -30,7 +34,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Uno.Logging;
 using Microsoft.UI.Text;
 using Microsoft.UI;
 #else
