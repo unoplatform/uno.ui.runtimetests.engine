@@ -45,12 +45,13 @@ jobs:
       name: 'Generate changelog.md'
 
     - run: |
-        $adjustedPackageVersion="${{ steps.gitversion.outputs.semVer }}".ToLower();
         & dotnet tool update --global uno.check --version $env:UnoCheck_Version --add-source https://api.nuget.org/v3/index.json
         & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest $env:UnoCheck_Manifest
 
     - name: Build
-      run: dotnet build src\Uno.UI.RuntimeTests.Engine.sln "/t:Build;Pack" /p:PackageVersion=$adjustedPackageVersion /p:Version=${{ steps.gitversion.outputs.assemblySemVer }} "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
+      run: |
+        $adjustedPackageVersion="${{ steps.gitversion.outputs.semVer }}".ToLower();
+        dotnet build src\Uno.UI.RuntimeTests.Engine.sln "/t:Build;Pack" /p:PackageVersion=$adjustedPackageVersion /p:Version=${{ steps.gitversion.outputs.assemblySemVer }} "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
