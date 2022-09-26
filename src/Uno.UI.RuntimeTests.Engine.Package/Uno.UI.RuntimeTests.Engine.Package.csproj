@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard1.0</TargetFramework>
@@ -23,17 +23,19 @@
 			<Pack>true</Pack>
 			<PackagePath>lib/$(TargetFramework)</PackagePath>
 		</Content>
+		<Content Include="build\*.*">
+			<Pack>true</Pack>
+			<PackagePath>build</PackagePath>
+		</Content>
 		<Content Include="..\Uno.UI.RuntimeTests.Engine.Library\**\*.cs">
-			<!-- Ensure that the content's build action in the target project is Compile -->
-			<BuildAction>Compile</BuildAction>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
+			<PackagePath>src</PackagePath>
 		</Content>
 		<Content Include="..\Uno.UI.RuntimeTests.Engine.Library\**\*.xaml">
-			<!-- Ensure that the content's build action in the target project is Compile -->
-			<BuildAction>Page</BuildAction>
 			<Pack>true</Pack>
 			<Visible>false</Visible>
+			<PackagePath>src</PackagePath>
 		</Content>
 	</ItemGroup>
 </Project>

@@ -1,0 +1,9 @@
+﻿<Project>
+	<ItemGroup>
+		<Compile Include="$(MSBuildThisFileDirectory)/**/*.cs" 
+				 Visible="False" />
+		<Page Include="$(MSBuildThisFileDirectory)/**/*.cs"
+			  Visible="False"
+			  XamlRuntime="WinUI" />
+	</ItemGroup>
+</Project>

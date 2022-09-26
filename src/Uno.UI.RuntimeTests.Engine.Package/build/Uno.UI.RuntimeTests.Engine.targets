@@ -1,0 +1,5 @@
+﻿<Project>
+	<Target Name="_UnoUIRuntimeTestEngine_ValidateUno" BeforeTargets="BeforeBuild">
+		
+	</Target>
+</Project>
