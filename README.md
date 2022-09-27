@@ -54,7 +54,7 @@ Placing this attribute on a test will switch the rendering of the test render zo
 Placing this attribute on a test or test class will force the tests to run on the dispatcher. By default, tests run off of the dispatcher.
 
 ### InjectedPointerAttribute
-_TBD_
+This attribute configures the type of the pointer that is simulated when using helpers like `App.TapCoordinates()`. You can define the attribute more than once, the test will then be run for each configured type. When not defined, the test engine will use the common pointer type of the platfrom (touch for mobile OS like iOS and Android, mouse for browsers, skia and other desktop platforms).
 
 ## Placing tests in a separate assembly
 - In a separate assembly, add the following attributes code:
