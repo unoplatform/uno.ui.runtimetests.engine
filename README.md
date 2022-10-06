@@ -14,21 +14,22 @@ This engine uses the MSTest attributes to perform the discovery of tests.
 This package is built as a source package. It includes XAML files and cs files into the referencing project, making it independent from the Uno.UI version used by your project. It is built in such a way that Uno.UI itself can use this package while not referencing itself through nuget packages dependencies.
 
 ## Using the Runtime Tests Engine
-- Add the Uno.UI.RuntimeTests.Engine nuget package to your application
-- Add the following xaml to your application:
-    ```xaml
-    <Page .... xmlns:runtimetests="using:Uno.UI.RuntimeTests">
+- Add the [`Uno.UI.RuntimeTests.Engine`](https://www.nuget.org/packages/Uno.UI.RuntimeTests.Engine/) nuget package to the head projects.
+- Add the following xaml to a page in your application:
+    ```xml
+    <Page xmlns:runtimetests="using:Uno.UI.RuntimeTests" ...>
         <runtimetests:UnitTestsControl />
     </Page>
     ```
-- In the uwp/winui head project, add the following:
+- For `unoapp` (WinUI) solution only, add the following to the Windows head project:
     ```xml
     <PropertyGroup>
-    	<DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+        <DefineConstants>$(DefineConstants);WINDOWS_WINUI</DefineConstants>
     </PropertyGroup>
     ```
+    note: This should not be added to the Windows head project of an `unoapp-uwp` (UWP) solution.
 
-The test control will appear on your screen.
+The test control will appear on that page.
 
 Write your tests as follows:
 ```csharp
@@ -54,12 +55,16 @@ Placing this attribute on a test will switch the rendering of the test render zo
 Placing this attribute on a test or test class will force the tests to run on the dispatcher. By default, tests run off of the dispatcher.
 
 ### InjectedPointerAttribute
-This attribute configures the type of the pointer that is simulated when using helpers like `App.TapCoordinates()`. You can define the attribute more than once, the test will then be run for each configured type. When not defined, the test engine will use the common pointer type of the platfrom (touch for mobile OS like iOS and Android, mouse for browsers, skia and other desktop platforms).
+This attribute configures the type of the pointer that is simulated when using helpers like `App.TapCoordinates()`. You can define the attribute more than once, the test will then be run for each configured type. When not defined, the test engine will use the common pointer type of the platform (touch for mobile OS like iOS and Android, mouse for browsers, skia and other desktop platforms).
 
 ## Placing tests in a separate assembly
 - In a separate assembly, add the following attributes code:
     ```csharp
+    using System;
+    using Windows.Devices.Input;
+
     namespace Uno.UI.RuntimeTests;
+
     public sealed class RequiresFullWindowAttribute : Attribute { }
 
     public sealed class RunsOnUIThreadAttribute : Attribute { }
@@ -78,9 +83,9 @@ This attribute configures the type of the pointer that is simulated when using h
 - Then define the following in your `csproj`:
    ```xml
     <PropertyGroup>
-    	<DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_INJECTEDPOINTERATTRIBUTE</DefineConstants>
-    	<DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_REQUIRESFULLWINDOWATTRIBUTE</DefineConstants>
-    	<DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_RUNSONUITHREADATTRIBUTE</DefineConstants>
+        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_INJECTEDPOINTERATTRIBUTE</DefineConstants>
+        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_REQUIRESFULLWINDOWATTRIBUTE</DefineConstants>
+        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_RUNSONUITHREADATTRIBUTE</DefineConstants>
     </PropertyGroup>
    ```
 

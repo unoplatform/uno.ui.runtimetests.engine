@@ -10,7 +10,8 @@
 		<PublishProfile>win10-$(Platform).pubxml</PublishProfile>
 		<UseWinUI>true</UseWinUI>
 		<EnablePreviewMsixTooling>true</EnablePreviewMsixTooling>
-		<DefineConstants>WINDOWS</DefineConstants>
+
+		<DefineConstants>WINDOWS_WINUI</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>

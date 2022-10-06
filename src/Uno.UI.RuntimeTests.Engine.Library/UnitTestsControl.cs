@@ -2,21 +2,21 @@
 
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Extensions.Logging;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Text;
-using System.Security.Cryptography;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 #if HAS_UNO
@@ -24,18 +24,20 @@ using Uno.Foundation.Logging;
 using Uno.Logging;
 #endif
 
-#if HAS_UNO_WINUI || WINDOWS
+#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Text;
 using Windows.UI.ViewManagement;
+using Microsoft.UI.Text;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Text;
-using Microsoft.UI;
+
+using _DispatcherQueueHandler = Microsoft.UI.Dispatching.DispatcherQueueHandler;
 #else
 using Windows.UI;
 using Windows.UI.Core;
@@ -46,6 +48,8 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Documents;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
+
+using _DispatcherQueueHandler = Windows.UI.Core.DispatchedHandler;
 #endif
 
 namespace Uno.UI.RuntimeTests;
@@ -273,7 +277,7 @@ public sealed partial class UnitTestsControl : UserControl
             }
         }
 
-        await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, Setter);
+        await RunOnDispatcherAsync(Setter);
     }
 
     private void ReportTestsResults()
@@ -286,7 +290,7 @@ public sealed partial class UnitTestsControl : UserControl
             FailedTestCountForUITest = failedTestCount.Text = _currentRun?.Failed.ToString() ?? "<no current run>";
         }
 
-        var t = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, Update);
+        RunOnDispatcher(Update);
     }
 
     private async Task GenerateTestResults()
@@ -301,30 +305,27 @@ public sealed partial class UnitTestsControl : UserControl
             }
         }
 
-        await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, Update);
+        await RunOnDispatcherAsync(Update);
     }
 
     private void ReportTestClass(TypeInfo testClass)
     {
-        var t = Dispatcher.RunAsync(
-            Windows.UI.Core.CoreDispatcherPriority.Normal,
-            () =>
+        RunOnDispatcher(() =>
+        {
+            if (!IsRunningOnCI)
             {
-                if (!IsRunningOnCI)
+                var testResultBlock = new TextBlock()
                 {
-                    var testResultBlock = new TextBlock()
-                    {
-                        Text = $"{testClass.Name} ({testClass.Assembly.GetName().Name})",
-                        Foreground = new SolidColorBrush(Colors.White),
-                        FontSize = 16d,
-                        IsTextSelectionEnabled = true
-                    };
+                    Text = $"{testClass.Name} ({testClass.Assembly.GetName().Name})",
+                    Foreground = new SolidColorBrush(Colors.White),
+                    FontSize = 16d,
+                    IsTextSelectionEnabled = true
+                };
 
-                    testResults.Children.Add(testResultBlock);
-                    testResultBlock.StartBringIntoView();
-                }
+                testResults.Children.Add(testResultBlock);
+                testResultBlock.StartBringIntoView();
             }
-        );
+        });
     }
 
     private void ReportTestResult(string testName, TimeSpan duration, TestResult testResult, Exception? error = null, string? message = null, string? console = null)
@@ -408,9 +409,7 @@ public sealed partial class UnitTestsControl : UserControl
             }
         }
 
-        var t = Dispatcher.RunAsync(
-            Windows.UI.Core.CoreDispatcherPriority.Normal,
-            Update);
+        RunOnDispatcher(Update);
     }
 
     private static string GenerateNUnitTestResults(List<TestCaseResult> testCases, TestRun testRun)
@@ -620,7 +619,7 @@ public sealed partial class UnitTestsControl : UserControl
         }
         finally
         {
-            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            await RunOnDispatcherAsync(() =>
             {
                 testFilter.IsEnabled = runButton.IsEnabled = true; // Disable the testFilter to avoid SIP to re-open
                 testResults.Visibility = Visibility.Visible;
@@ -669,7 +668,7 @@ public sealed partial class UnitTestsControl : UserControl
         }
         finally
         {
-            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            await RunOnDispatcherAsync(() =>
             {
                 testFilter.IsEnabled = runButton.IsEnabled = true; // Disable the testFilter to avoid SIP to re-open
                 if (!IsRunningOnCI)
@@ -786,7 +785,7 @@ public sealed partial class UnitTestsControl : UserControl
                     {
                         if (test.RequiresFullWindow)
                         {
-                            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                            await RunOnDispatcherAsync(() =>
                             {
 #if __ANDROID__
 								// Hide the systray!
@@ -799,7 +798,7 @@ public sealed partial class UnitTestsControl : UserControl
                             });
                             cleanupActions.Add(async _ =>
                             {
-                                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                                await RunOnDispatcherAsync(() =>
                                 {
 #if __ANDROID__
 									// Restore the systray!
@@ -815,7 +814,7 @@ public sealed partial class UnitTestsControl : UserControl
                         object? returnValue = null;
                         if (test.RunsOnUIThread)
                         {
-                            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                            await RunOnDispatcherAsync(() =>
                             {
                                 // UNO MOVE
                                 // if (instance is IInjectPointers pointersInjector)
@@ -967,7 +966,7 @@ public sealed partial class UnitTestsControl : UserControl
 
             if (runsOnUIThread)
             {
-                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, Run);
+                await RunOnDispatcherAsync(Run);
             }
             else
             {
@@ -1055,5 +1054,33 @@ public sealed partial class UnitTestsControl : UserControl
         data.SetText(NUnitTestResultsDocument);
 
         Clipboard.SetContent(data);
+    }
+
+    private Task RunOnDispatcherAsync(_DispatcherQueueHandler callback)
+    {
+        var tcs = new TaskCompletionSource<object>();
+        RunOnDispatcher(() =>
+        {
+            try
+            {
+                callback();
+                tcs.TrySetResult(default!);
+            }
+            catch(Exception e)
+            {
+                tcs.TrySetException(e);
+            }
+        });
+
+        return tcs.Task;
+    }
+
+    private void RunOnDispatcher(_DispatcherQueueHandler callback)
+    {
+#if HAS_UNO_WINUI || WINDOWS_WINUI
+        this.DispatcherQueue.TryEnqueue(callback);
+#else
+        _ = this.Dispatcher.RunAsync(global::Windows.UI.Core.CoreDispatcherPriority.Normal, callback);
+#endif
     }
 }
