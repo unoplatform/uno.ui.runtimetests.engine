@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -24,7 +24,7 @@ using Uno.Foundation.Logging;
 using Uno.Logging;
 #endif
 
-#if HAS_UNO_WINUI || WINDOWS
+#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Text;

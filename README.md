@@ -21,12 +21,13 @@ This package is built as a source package. It includes XAML files and cs files i
         <runtimetests:UnitTestsControl />
     </Page>
     ```
-- In the uwp/winui head project, add the following:
+- For `unoapp` (WinUI) solution only, add the following to the Windows head project:
     ```xml
     <PropertyGroup>
-    	<DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+        <DefineConstants>$(DefineConstants);WINDOWS_WINUI</DefineConstants>
     </PropertyGroup>
     ```
+    note: This should not be added to the Windows head project of an `unoapp-uwp` (UWP) solution.
 
 The test control will appear on your screen.
 
