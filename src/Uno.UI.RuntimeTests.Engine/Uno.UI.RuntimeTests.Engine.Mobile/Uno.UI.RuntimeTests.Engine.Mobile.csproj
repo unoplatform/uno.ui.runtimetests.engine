@@ -20,7 +20,7 @@
   <ItemGroup>
     <PackageReference Include="Uno.WinUI" Version="4.6.0-dev.395" />
     <PackageReference Include="Uno.WinUI.RemoteControl" Version="4.6.0-dev.395" Condition="'$(Configuration)'=='Debug'" />
-    <PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="4.6.0-dev.395" />
+    <PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="4.6.0-dev.933" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
 
 	  <PackageReference Include="MSTest.TestFramework" Version="2.1.2" />
