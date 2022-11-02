@@ -98,7 +98,7 @@ public sealed partial class UnitTestsControl : UserControl
             }
         );
 
-        UnitTestsUIContentHelper.CurrentTestWindow = Window.Current;
+        UnitTestsUIContentHelper.CurrentTestWindow = GetCurrentWindow();
 
         DataContext = null;
 
@@ -109,6 +109,10 @@ public sealed partial class UnitTestsControl : UserControl
         _applicationView = ApplicationView.GetForCurrentView();
 #endif
     }
+
+    // Required to avoid using UIWindow on iOS.
+    private static Window GetCurrentWindow()
+        => Window.Current;
 
     private static void OverrideDebugProviderAsserts()
     {
