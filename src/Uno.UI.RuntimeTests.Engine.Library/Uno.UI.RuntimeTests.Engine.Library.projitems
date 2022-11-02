@@ -21,6 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestMethodInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestsControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestsControl.CustomConsoleOutput.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UnitTestsUIContentHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)UnitTestsControl.xaml">
@@ -28,15 +29,11 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
-
-	<ItemGroup>
-
-		<!-- Mark the files from this folder as being part of WinUI -->
-		<Page Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
-		<ApplicationDefinition Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
-
-		<!-- Make sure XAML files force reevaluation of up-to-date checks -->
-		<UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
-
-	</ItemGroup>
+  <ItemGroup>
+    <!-- Mark the files from this folder as being part of WinUI -->
+    <Page Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
+    <ApplicationDefinition Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
+    <!-- Make sure XAML files force reevaluation of up-to-date checks -->
+    <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
+  </ItemGroup>
 </Project>
