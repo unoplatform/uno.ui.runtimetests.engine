@@ -57,12 +57,11 @@ public class Given_MyClass
     {
         var SUT  = new TextBlock(); 
         UnitTestsUIContentHelper.Content = SUT;
-		
-		await UnitTestsUIContentHelper.WaitForIdle();
-		
+        
+        await UnitTestsUIContentHelper.WaitForIdle();
         // or await UnitTestsUIContentHelper.WaitForLoaded(SUT);
-
-		// Use MSTests asserts or any other assertion frameworks
+		
+        // Use MSTests asserts or any other assertion frameworks
     }
 }
 ```
