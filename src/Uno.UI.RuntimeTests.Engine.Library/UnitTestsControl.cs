@@ -38,6 +38,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
 using _DispatcherQueueHandler = Microsoft.UI.Dispatching.DispatcherQueueHandler;
+using _Window = Microsoft.UI.Xaml.Window;
 #else
 using Windows.UI;
 using Windows.UI.Core;
@@ -50,6 +51,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 
 using _DispatcherQueueHandler = Windows.UI.Core.DispatchedHandler;
+using _Window = Windows.UI.Xaml.Window;
 #endif
 
 namespace Uno.UI.RuntimeTests;
@@ -111,8 +113,8 @@ public sealed partial class UnitTestsControl : UserControl
     }
 
     // Required to avoid using UIWindow on iOS.
-    private static Window GetCurrentWindow()
-        => Window.Current;
+    private static _Window GetCurrentWindow()
+        => _Window.Current;
 
     private static void OverrideDebugProviderAsserts()
     {
