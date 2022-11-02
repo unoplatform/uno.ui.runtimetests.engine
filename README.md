@@ -44,6 +44,58 @@ public class Given_MyClass
 }
 ```
 
+## Interacting with content in a test
+The right side of the Runtime Tests control can display actual controls created by tests.
+
+To set content here, use the `UnitTestsUIContentHelper.Content` property:
+```csharp
+[TestClass]
+public class Given_MyClass
+{
+    [TestMethod]
+    public async Task When_Condition()
+    {
+        var SUT  = new TextBlock(); 
+        UnitTestsUIContentHelper.Content = SUT;
+		
+		await UnitTestsUIContentHelper.WaitForIdle();
+		
+        // or await UnitTestsUIContentHelper.WaitForLoaded(SUT);
+
+		// Use MSTests asserts or any other assertion frameworks
+    }
+}
+```
+
+### Using UnitTestsUIContentHelper in a separate assembly
+If you want to use the `UnitTestsUIContentHelper` in a separate assembly, you will need to add the following clas to the separate project:
+
+```csharp
+public static class UnitTestsUIContentHelperProxy
+{
+	public static Action<UIElement?>? ContentSetter { get; set; }
+	public static Func<UIElement?>? ContentGetter { get; set; }
+
+	public static UIElement? Content 
+    { 
+        get => ContentGetter?.Invoke();
+        set => ContentSetter?.Invoke(value);
+    }
+}
+```
+
+Then in the page that defines the `UnitTestsControl`, add the following:
+```csharp
+public MyPage()
+{
+    InitializeComponent();
+
+	// Initialize the UnitTestsUIContentHelperProxy for the test assembly
+    UnitTestsUIContentHelperProxy.ContentSetter = e => UnitTestsUIContentHelper.Content = e;
+	UnitTestsUIContentHelperProxy.ContentGetter = () => UnitTestsUIContentHelper.Content;
+}
+```
+
 ## Attributes for handling UI specific behavior
 
 The behavior of the test engine regarding tests can be altered using attributes.

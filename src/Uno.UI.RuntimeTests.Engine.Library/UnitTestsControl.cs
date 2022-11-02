@@ -88,25 +88,19 @@ public sealed partial class UnitTestsControl : UserControl
     {
         this.InitializeComponent();
 
-        // UNO MOVE
-        //Private.Infrastructure.TestServices.WindowHelper.EmbeddedTestRoot =
-        //(
-        //	control: unitTestContentRoot,
-        //	getContent: () => unitTestContentRoot.Content as UIElement,
-        //	setContent: elt =>
-        //	{
-        //		unitTestContentRoot.Content = elt;
-        //	}
-        //);
+        UnitTestsUIContentHelper.EmbeddedTestRoot =
+        (
+            control: unitTestContentRoot,
+            getContent: () => unitTestContentRoot.Content as UIElement,
+            setContent: elt =>
+            {
+                unitTestContentRoot.Content = elt;
+            }
+        );
 
-        // UNO MOVE
-        //Private.Infrastructure.TestServices.WindowHelper.CurrentTestWindow =
-        //	Windows.UI.Xaml.Window.Current;
+        UnitTestsUIContentHelper.CurrentTestWindow = Window.Current;
 
         DataContext = null;
-
-        // UNO MOVE
-        //SampleChooserViewModel.Instance.SampleChanging += OnSampleChanging;
 
         EnableConfigPersistence();
         OverrideDebugProviderAsserts();
@@ -131,14 +125,7 @@ public sealed partial class UnitTestsControl : UserControl
 
     static void FailCore(string stackTrace, string message, string detailMessage, string errorSource)
         => throw new Exception($"{message} ({detailMessage}) {stackTrace}");
-
-    // UNO MOVE
-    // private void OnSampleChanging(object sender, EventArgs e)
-    // {
-    // 	StopRunningTests();
-    // 	SampleChooserViewModel.Instance.SampleChanging -= OnSampleChanging;
-    // }
-
+    
     public bool IsRunningOnCI
     {
         get { return (bool)GetValue(IsRunningOnCIProperty); }
@@ -504,10 +491,13 @@ public sealed partial class UnitTestsControl : UserControl
             {
                 var config = JsonConvert.DeserializeObject<UnitTestEngineConfig>(configStr);
 
-                consoleOutput.IsChecked = config.IsConsoleOutputEnabled;
-                runIgnored.IsChecked = config.IsRunningIgnored;
-                retry.IsChecked = config.Attempts > 1;
-                testFilter.Text = string.Join(";", config.Filters ?? Array.Empty<string>());
+                if (config is not null)
+                {
+                    consoleOutput.IsChecked = config.IsConsoleOutputEnabled;
+                    runIgnored.IsChecked = config.IsRunningIgnored;
+                    retry.IsChecked = config.Attempts > 1;
+                    testFilter.Text = string.Join(";", config.Filters ?? Array.Empty<string>());
+                }
             }
             catch (Exception)
             {
@@ -792,9 +782,8 @@ public sealed partial class UnitTestsControl : UserControl
 								ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
 #endif
 
-                                // UNO MOVE
-                                // Private.Infrastructure.TestServices.WindowHelper.UseActualWindowRoot = true;
-                                // Private.Infrastructure.TestServices.WindowHelper.SaveOriginalWindowContent();
+                                UnitTestsUIContentHelper.UseActualWindowRoot = true;
+                                UnitTestsUIContentHelper.SaveOriginalContent();
                             });
                             cleanupActions.Add(async _ =>
                             {
@@ -804,9 +793,8 @@ public sealed partial class UnitTestsControl : UserControl
 									// Restore the systray!
 									ApplicationView.GetForCurrentView().ExitFullScreenMode();
 #endif
-                                    // UNO MOVE
-                                    // Private.Infrastructure.TestServices.WindowHelper.RestoreOriginalWindowContent();
-                                    // Private.Infrastructure.TestServices.WindowHelper.UseActualWindowRoot = false;
+                                    UnitTestsUIContentHelper.RestoreOriginalContent();
+                                    UnitTestsUIContentHelper.UseActualWindowRoot = false;
                                 });
                             });
                         }

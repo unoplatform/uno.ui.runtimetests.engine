@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Uno.UI.RuntimeTests.Engine
@@ -20,8 +21,20 @@ namespace Uno.UI.RuntimeTests.Engine
 			await Task.Delay(2000);
 		}
 
-#if DEBUG
 		[TestMethod]
+		[RunsOnUIThread]
+		public async Task When_Test_ContentHelper()
+		{
+            var SUT = new TextBlock() { Text = "Hello" };
+            UnitTestsUIContentHelper.Content = SUT;
+
+            await UnitTestsUIContentHelper.WaitForIdle();
+
+            await UnitTestsUIContentHelper.WaitForLoaded(SUT);
+        }
+
+#if DEBUG
+        [TestMethod]
 		public async Task No_Longer_Sane() // expected to fail
 		{
 			await Task.Delay(2000);
