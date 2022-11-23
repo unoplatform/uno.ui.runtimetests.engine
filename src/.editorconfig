@@ -1,4 +1,9 @@
-﻿[*.cs]
+﻿[{*.csproj, *.targets, *.props}]
+indent_style = tab
+tab_width = 4
+indent_size = 4
+
+[*.cs]
 
 # CA1819: Properties should not return arrays
 dotnet_diagnostic.CA1819.severity = none

@@ -30,19 +30,19 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 		<PackageReference Include="Uno.Core.Extensions.Logging.Singleton" Version="4.0.1" />
-		
+
 		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
 
 		<Manifest Include="$(ApplicationManifest)" />
 	</ItemGroup>
 
 	<!-- Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
-       Tools extension to be activated for this project even if the Windows App SDK Nuget
-       package has not yet been restored -->
+		Tools extension to be activated for this project even if the Windows App SDK Nuget
+		package has not yet been restored -->
 	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnablePreviewMsixTooling)'=='true'">
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<!--
 		If you encounter this error message:
