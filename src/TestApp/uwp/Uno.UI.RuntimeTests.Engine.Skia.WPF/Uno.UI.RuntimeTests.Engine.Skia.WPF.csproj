@@ -21,6 +21,12 @@
 		<PackageReference Include="Uno.UI.Skia.Wpf" Version="4.6.19" />
 		<PackageReference Include="Uno.UI.RemoteControl" Version="4.6.19" Condition="'$(Configuration)'=='Debug'" />
 		<PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="4.6.19" />
+
+		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+	</ItemGroup>
+	<ItemGroup>
+		<UpToDateCheckInput Include="..\..\shared\**\*.xaml" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Assets\Fonts\uno-fluentui-assets.ttf" />

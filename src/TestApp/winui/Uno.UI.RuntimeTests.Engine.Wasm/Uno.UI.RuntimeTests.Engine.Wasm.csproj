@@ -20,7 +20,7 @@
 		<Content Include="Assets\SplashScreen.png" />
 	</ItemGroup>
 	<ItemGroup>
-		<UpToDateCheckInput Include="..\Uno.UI.RuntimeTests.Engine.Shared\**\*.xaml" />
+		<UpToDateCheckInput Include="..\..\shared\**\*.xaml" />
 	</ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="WasmCSS\Fonts.css" />

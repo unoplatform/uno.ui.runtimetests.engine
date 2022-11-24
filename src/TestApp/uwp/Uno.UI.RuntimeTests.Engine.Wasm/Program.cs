@@ -5,7 +5,7 @@ namespace Uno.UI.RuntimeTests.Engine.Wasm
 {
 	public class Program
 	{
-		private static App _app;
+		private static App? _app;
 
 		static int Main(string[] args)
 		{

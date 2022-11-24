@@ -26,7 +26,7 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 	</ItemGroup>
 	<ItemGroup>
-		<UpToDateCheckInput Include="..\Uno.UI.RuntimeTests.Engine.Shared\**\*.xaml" />
+		<UpToDateCheckInput Include="..\..\shared\**\*.xaml" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Assets\Fonts\uno-fluentui-assets.ttf" />

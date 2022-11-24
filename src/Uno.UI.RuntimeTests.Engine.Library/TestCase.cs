@@ -2,10 +2,7 @@
 
 using System;
 using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using Windows.Devices.Input;
-using Uno.Extensions;
 
 namespace Uno.UI.RuntimeTests;
 

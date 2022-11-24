@@ -2,8 +2,15 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+#if HAS_UNO_WINUI || WINDOWS_WINUI
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+#else
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+#endif
 
 namespace Uno.UI.RuntimeTests.Engine
 {
@@ -25,16 +32,15 @@ namespace Uno.UI.RuntimeTests.Engine
 		[RunsOnUIThread]
 		public async Task When_Test_ContentHelper()
 		{
-            var SUT = new TextBlock() { Text = "Hello" };
-            UnitTestsUIContentHelper.Content = SUT;
+			var SUT = new TextBlock() { Text = "Hello" };
+			UnitTestsUIContentHelper.Content = SUT;
 
-            await UnitTestsUIContentHelper.WaitForIdle();
-
-            await UnitTestsUIContentHelper.WaitForLoaded(SUT);
-        }
+			await UnitTestsUIContentHelper.WaitForIdle();
+			await UnitTestsUIContentHelper.WaitForLoaded(SUT);
+		}
 
 #if DEBUG
-        [TestMethod]
+		[TestMethod]
 		public async Task No_Longer_Sane() // expected to fail
 		{
 			await Task.Delay(2000);
