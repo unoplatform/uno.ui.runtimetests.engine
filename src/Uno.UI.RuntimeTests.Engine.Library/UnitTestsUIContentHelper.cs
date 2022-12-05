@@ -151,7 +151,7 @@ public static class UnitTestsUIContentHelper
 		}
 		else
 		{
-			await dispatcher.RunAsync(UnitTestDispatcherCompat.Priority.Normal, () => { });
+			await dispatcher.RunAsync(UnitTestDispatcherCompat.Priority.Normal, async () => await Do());
 		}
 #endif
 	}
