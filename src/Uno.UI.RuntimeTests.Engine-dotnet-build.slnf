@@ -1,0 +1,20 @@
+{
+  "solution": {
+    "path": "Uno.UI.RuntimeTests.Engine.sln",
+    "projects": [
+      "TestApp\\shared\\Uno.UI.RuntimeTests.Engine.Shared.shproj",
+      "TestApp\\uwp\\Uno.UI.RuntimeTests.Engine.Mobile\\Uno.UI.RuntimeTests.Engine.Mobile.csproj",
+      "TestApp\\uwp\\Uno.UI.RuntimeTests.Engine.Skia.Gtk\\Uno.UI.RuntimeTests.Engine.Skia.Gtk.csproj",
+      "TestApp\\uwp\\Uno.UI.RuntimeTests.Engine.Skia.Linux.FrameBuffer\\Uno.UI.RuntimeTests.Engine.Skia.Linux.FrameBuffer.csproj",
+      "TestApp\\uwp\\Uno.UI.RuntimeTests.Engine.Skia.WPF\\Uno.UI.RuntimeTests.Engine.Skia.WPF.csproj",
+      "TestApp\\uwp\\Uno.UI.RuntimeTests.Engine.Wasm\\Uno.UI.RuntimeTests.Engine.Wasm.csproj",
+      "TestApp\\winui\\Uno.UI.RuntimeTests.Engine.Mobile\\Uno.UI.RuntimeTests.Engine.Mobile.csproj",
+      "TestApp\\winui\\Uno.UI.RuntimeTests.Engine.Skia.Gtk\\Uno.UI.RuntimeTests.Engine.Skia.Gtk.csproj",
+      "TestApp\\winui\\Uno.UI.RuntimeTests.Engine.Skia.Linux.FrameBuffer\\Uno.UI.RuntimeTests.Engine.Skia.Linux.FrameBuffer.csproj",
+      "TestApp\\winui\\Uno.UI.RuntimeTests.Engine.Skia.Wpf\\Uno.UI.RuntimeTests.Engine.Skia.Wpf.csproj",
+      "TestApp\\winui\\Uno.UI.RuntimeTests.Engine.Wasm\\Uno.UI.RuntimeTests.Engine.Wasm.csproj",
+      "Uno.UI.RuntimeTests.Engine.Library\\Uno.UI.RuntimeTests.Engine.Library.shproj",
+      "Uno.UI.RuntimeTests.Engine.Package\\Uno.UI.RuntimeTests.Engine.Package.csproj"
+    ]
+  }
+}

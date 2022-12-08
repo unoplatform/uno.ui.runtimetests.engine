@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)TestResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestRun.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestClassInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UnitTestDispatcherCompat.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestEngineConfig.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestMethodInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UnitTestsControl.cs" />
