@@ -966,13 +966,11 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private IEnumerable<UnitTestClassInfo> InitializeTests()
 	{
-		var testAssembliesTypes =
-			from asm in AppDomain.CurrentDomain.GetAssemblies()
-			where asm.GetName()?.Name?.EndsWith("tests", StringComparison.OrdinalIgnoreCase) ?? false
-			from type in asm.GetTypes()
-			select type;
-
-		var types = GetType().GetTypeInfo().Assembly.GetTypes().Concat(testAssembliesTypes);
+		var testAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)
+			.Concat(new[] { GetType().GetTypeInfo().Assembly })
+			.Distinct();
+		var types = testAssemblies.SelectMany(x => x.GetTypes());
 
 		if (_ciTestGroupCache != -1)
 		{
