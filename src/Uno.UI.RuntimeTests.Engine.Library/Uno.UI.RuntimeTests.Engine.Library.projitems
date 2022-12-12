@@ -25,6 +25,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.CustomConsoleOutput.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsUIContentHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestDispatcherCompat.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.xaml">
