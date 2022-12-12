@@ -109,38 +109,56 @@ Placing this attribute on a test or test class will force the tests to run on th
 This attribute configures the type of the pointer that is simulated when using helpers like `App.TapCoordinates()`. You can define the attribute more than once, the test will then be run for each configured type. When not defined, the test engine will use the common pointer type of the platform (touch for mobile OS like iOS and Android, mouse for browsers, skia and other desktop platforms).
 
 ## Placing tests in a separate assembly
-- In a separate assembly, add the following attributes code:
-    ```csharp
-    using System;
-    using Windows.Devices.Input;
+- In your separated test assembly
+	- Add a reference to the "Uno.UI.RuntimeTests.Engine" package
+	- Then define the following in your `csproj`:
+	   ```xml
+		<PropertyGroup>
+			<DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_UI</DefineConstants>
+		</PropertyGroup>
+	   ```
 
-    namespace Uno.UI.RuntimeTests;
+- In your test application
+	- Add a reference to the "Uno.UI.RuntimeTests.Engine" package
+	- Then define the following in your `csproj`:
+	   ```xml
+		<PropertyGroup>
+			<DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_LIBRARY</DefineConstants>
+		</PropertyGroup>
+	   ```
 
-    public sealed class RequiresFullWindowAttribute : Attribute { }
-
-    public sealed class RunsOnUIThreadAttribute : Attribute { }
-
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    public sealed class InjectedPointerAttribute : Attribute
-    {
-        public PointerDeviceType Type { get; }
-
-        public InjectedPointerAttribute(PointerDeviceType type)
-        {
-            Type = type;
-        }
-    }
-    ```
-- Then define the following in your `csproj`:
-   ```xml
-    <PropertyGroup>
-        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_INJECTEDPOINTERATTRIBUTE</DefineConstants>
-        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_REQUIRESFULLWINDOWATTRIBUTE</DefineConstants>
-        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_RUNSONUITHREADATTRIBUTE</DefineConstants>
-    </PropertyGroup>
-   ```
-
-These attributes will ask for the runtime test engine to replace the ones defined by the `Uno.UI.RuntimeTests.Engine` package.
+> Alternatively, if you have only limited needs, in your separated test assembly, add the following attributes code:
+>    ```csharp
+>    using System;
+>    using Windows.Devices.Input;
+>
+>    namespace Uno.UI.RuntimeTests;
+>
+>    public sealed class RequiresFullWindowAttribute : Attribute { }
+>
+>    public sealed class RunsOnUIThreadAttribute : Attribute { }
+>
+>    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+>    public sealed class InjectedPointerAttribute : Attribute
+>    {
+>        public PointerDeviceType Type { get; }
+>
+>        public InjectedPointerAttribute(PointerDeviceType type)
+>        {
+>            Type = type;
+>        }
+>    }
+>    ```
+> and define the following in your `csproj`:
+>   ```xml
+>    <PropertyGroup>
+>		<DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_UI</DefineConstants>
+>        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_INJECTEDPOINTERATTRIBUTE</DefineConstants>
+>        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_REQUIRESFULLWINDOWATTRIBUTE</DefineConstants>
+>        <DefineConstants>$(DefineConstants);UNO_RUNTIMETESTS_DISABLE_RUNSONUITHREADATTRIBUTE</DefineConstants>
+>    </PropertyGroup>
+>   ```
+> These attributes will ask for the runtime test engine to replace the ones defined by the `Uno.UI.RuntimeTests.Engine` package.
 
 ## Running the tests automatically during CI
 _TBD_
