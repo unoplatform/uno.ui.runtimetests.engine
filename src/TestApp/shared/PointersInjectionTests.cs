@@ -29,7 +29,7 @@ public class PointersInjectionTests
 
 		await UnitTestsUIContentHelper.WaitForLoaded(elt);
 
-		Pointers.Instance.Tap(elt);
+		InputInjectorHelper.Current.Tap(elt);
 
 		Assert.IsTrue(clicked);
 	}
