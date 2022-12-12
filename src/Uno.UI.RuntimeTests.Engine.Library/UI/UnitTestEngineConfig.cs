@@ -2,6 +2,8 @@
 
 namespace Uno.UI.RuntimeTests;
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
+
 public class UnitTestEngineConfig
 {
 	public const int DefaultRepeatCount = 3;
@@ -16,3 +18,5 @@ public class UnitTestEngineConfig
 
 	public bool IsRunningIgnored { get; set; }
 }
+
+#endif

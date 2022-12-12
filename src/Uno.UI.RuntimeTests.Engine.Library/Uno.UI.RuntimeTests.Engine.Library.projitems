@@ -9,25 +9,25 @@
     <Import_RootNamespace>Uno.UI.RuntimeTests.Engine.Library</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)InjectedPointerAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PointerInjectorExtensions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)RequiresFullWindowAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)RunsOnUIThreadAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)TestCaseResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Pointers.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)TestResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)TestRun.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestClassInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestDispatcherCompat.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestEngineConfig.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestMethodInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestsControl.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestsControl.CustomConsoleOutput.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UnitTestsUIContentHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\InjectedPointerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.MouseHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelperExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\RequiresFullWindowAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\RunsOnUIThreadAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\TestCase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\TestCaseResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\TestResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\TestRun.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestClassInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestEngineConfig.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestMethodInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.CustomConsoleOutput.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsUIContentHelper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="$(MSBuildThisFileDirectory)UnitTestsControl.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -38,5 +38,9 @@
     <ApplicationDefinition Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
     <!-- Make sure XAML files force reevaluation of up-to-date checks -->
     <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Library\" />
+    <Folder Include="$(MSBuildThisFileDirectory)UI\" />
   </ItemGroup>
 </Project>

@@ -6,6 +6,8 @@ using Windows.Devices.Input;
 
 namespace Uno.UI.RuntimeTests;
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
+
 internal record TestCase
 {
 	public object[] Parameters { get; init; } = Array.Empty<object>();
@@ -25,3 +27,5 @@ internal record TestCase
 		return result;
 	}
 }
+
+#endif

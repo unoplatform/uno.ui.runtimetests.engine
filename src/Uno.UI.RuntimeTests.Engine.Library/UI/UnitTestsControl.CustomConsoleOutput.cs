@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -76,3 +78,5 @@ namespace Uno.UI.RuntimeTests
 		}
 	}
 }
+
+#endif

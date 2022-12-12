@@ -1,4 +1,6 @@
-﻿#nullable enable
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -805,23 +807,23 @@ public sealed partial class UnitTestsControl : UserControl
 						{
 							await _dispatcher.RunAsync(() =>
 							{
-								if (Pointers.TryGetInstance() is not null)
+								if (InputInjectorHelper.TryGetCurrent() is not null)
 								{
-									Pointers.Instance.CleanupPointers();
+									InputInjectorHelper.Current.CleanupPointers();
 								}
 
 								if (testCase.Pointer is { } pt)
 								{
-									var ptSubscription = Pointers.Instance.SetPointerType(pt);
+									var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
 #pragma warning disable CS1998
 									cleanupActions.Add(async _ => ptSubscription.Dispose());
 #pragma warning restore CS1998
 								}
 
 								if (instance.GetType().GetProperty("Pointers", BindingFlags.Instance | BindingFlags.Public) is { SetMethod: not null } pointerProp
-									&& pointerProp.PropertyType == typeof(Pointers))
+									&& pointerProp.PropertyType == typeof(InputInjectorHelper))
 								{
-									pointerProp.SetMethod.Invoke(instance, new[] { Pointers.Instance });
+									pointerProp.SetMethod.Invoke(instance, new[] { InputInjectorHelper.Current });
 								}
 
 
@@ -835,16 +837,10 @@ public sealed partial class UnitTestsControl : UserControl
 						{
 							if (testCase.Pointer is { } pt)
 							{
-								var ptSubscription = Pointers.Instance.SetPointerType(pt);
+								var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
 #pragma warning disable CS1998
 								cleanupActions.Add(async _ => ptSubscription.Dispose());
 #pragma warning restore CS1998
-							}
-
-							if (instance.GetType().GetProperty("Pointers", BindingFlags.Instance | BindingFlags.Public) is { SetMethod: not null } pointerProp
-								&& pointerProp.PropertyType == typeof(Pointers))
-							{
-								pointerProp.SetMethod.Invoke(instance, new[] { Pointers.Instance });
 							}
 
 							sw.Start();
@@ -1057,3 +1053,6 @@ public sealed partial class UnitTestsControl : UserControl
 		Clipboard.SetContent(data);
 	}
 }
+
+
+#endif
