@@ -37,7 +37,7 @@ using Windows.UI.Xaml.Controls;
 
 namespace Uno.UI.RuntimeTests;
 
-public static class UnitTestsUIContentHelper
+public static partial class UnitTestsUIContentHelper
 {
 	private static Window? _currentTestWindow;
 	private static UIElement? _originalWindowContent;
@@ -98,7 +98,6 @@ public static class UnitTestsUIContentHelper
 			}
 		}
 	}
-
 
 	/// <summary>
 	/// Waits for the dispatcher to finish processing pending requests
@@ -180,5 +179,13 @@ public static class UnitTestsUIContentHelper
 		message ??= $"{callerMemberName}():{lineNumber}";
 
 		throw new AssertFailedException("Timed out waiting for condition to be met. " + message);
+	}
+
+	public static async Task SetContentAndWait(FrameworkElement element)
+	{
+		Content = element;
+
+		await WaitForIdle();
+		await WaitForLoaded(element);
 	}
 }
