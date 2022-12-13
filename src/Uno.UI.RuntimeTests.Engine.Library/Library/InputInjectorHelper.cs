@@ -16,12 +16,15 @@ namespace Uno.UI.RuntimeTests;
 public partial class InputInjectorHelper
 {
 	private static InputInjectorHelper? _current;
+
+	/// <summary>
+	/// Gets the singleton input injector that can be used to simulate pointers interaction on the application.
+	/// </summary>
 	public static InputInjectorHelper Current => _current ??= new();
 
 	/// <summary>
 	/// Returns the <see cref="Current"/> or `null` if it has not yet been initialized.
 	/// </summary>
-	/// <returns></returns>
 	public static InputInjectorHelper? TryGetCurrent() => _current;
 
 	private InputInjectorHelper()
@@ -81,15 +84,27 @@ public partial class InputInjectorHelper
 		InjectMouseInput(Mouse.MoveTo(0, 0));
 	}
 
+	/// <summary>
+	/// Injects some touch infos to simulate finger interaction on the application
+	/// </summary>
 	public void InjectTouchInput(IEnumerable<InjectedInputTouchInfo?> input)
 		=> Injector.InjectTouchInput(input.Where(i => i is not null).Cast<InjectedInputTouchInfo>());
 
+	/// <summary>
+	/// Injects some touch infos to simulate finger interaction on the application
+	/// </summary>
 	public void InjectTouchInput(params InjectedInputTouchInfo?[] input)
 		=> Injector.InjectTouchInput(input.Where(i => i is not null).Cast<InjectedInputTouchInfo>());
 
+	/// <summary>
+	/// Injects some mouse infos to simulate mouse interaction on the application
+	/// </summary>
 	public void InjectMouseInput(IEnumerable<InjectedInputMouseInfo?> input)
 		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>());
 
+	/// <summary>
+	/// Injects some mouse infos to simulate mouse interaction on the application
+	/// </summary>
 	public void InjectMouseInput(params InjectedInputMouseInfo?[] input)
 		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>());
 

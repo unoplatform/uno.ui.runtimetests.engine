@@ -43,6 +43,9 @@ public partial class InputInjectorHelper
 			=> CoreWindow.GetForCurrentThread().PointerPosition;
 #endif
 
+		/// <summary>
+		/// Create an injected pointer info which presses the left button
+		/// </summary>
 		public InjectedInputMouseInfo Press()
 			=> new()
 			{
@@ -50,6 +53,9 @@ public partial class InputInjectorHelper
 				MouseOptions = InjectedInputMouseOptions.LeftDown,
 			};
 
+		/// <summary>
+		/// Create an injected pointer info which release the left button
+		/// </summary>
 		public InjectedInputMouseInfo Release()
 			=> new()
 			{
@@ -57,6 +63,9 @@ public partial class InputInjectorHelper
 				MouseOptions = InjectedInputMouseOptions.LeftUp,
 			};
 
+		/// <summary>
+		/// Create an injected pointer info which releases any pressed button
+		/// </summary>
 		public InjectedInputMouseInfo? ReleaseAny()
 		{
 			var options = default(InjectedInputMouseOptions);
@@ -98,6 +107,9 @@ public partial class InputInjectorHelper
 				};
 		}
 
+		/// <summary>
+		/// Create an injected pointer info which moves the mouse by the given offests
+		/// </summary>
 		public InjectedInputMouseInfo MoveBy(int deltaX, int deltaY)
 			=> new()
 			{
@@ -107,6 +119,12 @@ public partial class InputInjectorHelper
 				MouseOptions = InjectedInputMouseOptions.MoveNoCoalesce,
 			};
 
+		/// <summary>
+		/// Create some injected pointer infos which moves the mouse to the given coordinates
+		/// </summary>
+		/// <param name="x">The target x position</param>
+		/// <param name="y">The traget y position</param>
+		/// <param name="steps">Number injected pointer infos to generate to simutale a smooth manipulation.</param>
 		public IEnumerable<InjectedInputMouseInfo> MoveTo(double x, double y, int? steps = null)
 		{
 			var deltaX = x - CurrentPosition().X;
