@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Devices.Input;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Uno.UI.RuntimeTests.Engine;
