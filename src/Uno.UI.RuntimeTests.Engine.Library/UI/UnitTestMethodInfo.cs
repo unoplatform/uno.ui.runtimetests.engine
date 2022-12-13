@@ -1,4 +1,6 @@
-﻿#nullable enable
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -92,3 +94,6 @@ internal record UnitTestMethodInfo
 		return cases;
 	}
 }
+
+
+#endif

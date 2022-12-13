@@ -1,4 +1,6 @@
-﻿#nullable enable
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -805,18 +807,25 @@ public sealed partial class UnitTestsControl : UserControl
 						{
 							await _dispatcher.RunAsync(() =>
 							{
-								//UNO MOVE
-								//if (instance is IInjectPointers pointersInjector)
-								//{
-								//	pointersInjector.CleanupPointers();
-								//}
-								//
-								//if (testCase.Pointer is { } pt)
-								//{
-								//	var ptSubscription = (instance as IInjectPointers ?? throw new InvalidOperationException("test class does not supports pointer selection.")).SetPointer(pt);
-								//
-								//	cleanupActions.Add(async _ => ptSubscription.Dispose());
-								//}
+								if (InputInjectorHelper.TryGetCurrent() is not null)
+								{
+									InputInjectorHelper.Current.CleanupPointers();
+								}
+
+								if (testCase.Pointer is { } pt)
+								{
+									var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
+#pragma warning disable CS1998
+									cleanupActions.Add(async _ => ptSubscription.Dispose());
+#pragma warning restore CS1998
+								}
+
+								if (instance.GetType().GetProperty("Pointers", BindingFlags.Instance | BindingFlags.Public) is { SetMethod: not null } pointerProp
+									&& pointerProp.PropertyType == typeof(InputInjectorHelper))
+								{
+									pointerProp.SetMethod.Invoke(instance, new[] { InputInjectorHelper.Current });
+								}
+
 
 								sw.Start();
 								testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>());
@@ -826,12 +835,13 @@ public sealed partial class UnitTestsControl : UserControl
 						}
 						else
 						{
-							//UNO MOVE
-							//if (testCase.Pointer is { } pt)
-							//{
-							//	var ptSubscription = (instance as IInjectPointers ?? throw new InvalidOperationException("test class does not supports pointer selection.")).SetPointer(pt);
-							//	cleanupActions.Add(async _ => ptSubscription.Dispose());
-							//}
+							if (testCase.Pointer is { } pt)
+							{
+								var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
+#pragma warning disable CS1998
+								cleanupActions.Add(async _ => ptSubscription.Dispose());
+#pragma warning restore CS1998
+							}
 
 							sw.Start();
 							testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>());
@@ -1043,3 +1053,6 @@ public sealed partial class UnitTestsControl : UserControl
 		Clipboard.SetContent(data);
 	}
 }
+
+
+#endif

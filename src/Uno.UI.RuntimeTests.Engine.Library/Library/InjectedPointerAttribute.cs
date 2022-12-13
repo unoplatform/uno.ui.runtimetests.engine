@@ -6,7 +6,7 @@ namespace Uno.UI.RuntimeTests;
 
 using Windows.Devices.Input;
 
-#if !UNO_RUNTIMETESTS_DISABLE_INJECTEDPOINTERATTRIBUTE
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && !UNO_RUNTIMETESTS_DISABLE_INJECTEDPOINTERATTRIBUTE
 /// <summary>
 /// Specify the type of pointer to use for that test.
 /// WARNING: This has no effects on UI tests, cf. remarks.

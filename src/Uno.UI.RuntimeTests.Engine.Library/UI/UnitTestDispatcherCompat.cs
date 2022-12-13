@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -123,3 +125,5 @@ public partial class UnitTestDispatcherCompat
 		}
 	}
 }
+
+#endif

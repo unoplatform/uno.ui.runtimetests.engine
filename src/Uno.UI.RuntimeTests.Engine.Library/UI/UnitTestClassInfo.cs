@@ -6,6 +6,8 @@ using System.Reflection;
 
 namespace Uno.UI.RuntimeTests;
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
+
 public class UnitTestClassInfo
 {
 	public UnitTestClassInfo(
@@ -33,3 +35,5 @@ public class UnitTestClassInfo
 
 	public override string ToString() => TestClassName;
 }
+
+#endif

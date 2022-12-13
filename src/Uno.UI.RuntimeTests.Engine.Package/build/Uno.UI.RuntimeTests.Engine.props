@@ -7,5 +7,13 @@
 			  Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
 			  Visible="False"
 			  XamlRuntime="WinUI" />
+
+		<Compile Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
+				Remove="$(MSBuildThisFileDirectory)/../src/UI/**/*.cs" />
+		<Page Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
+			  Remove="$(MSBuildThisFileDirectory)/../src/UI/**/*.cs" />
+
+		<Compile Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_LIBRARY'))"
+				 Remove="$(MSBuildThisFileDirectory)/../src/Library/**/*.cs" />
 	</ItemGroup>
 </Project>
