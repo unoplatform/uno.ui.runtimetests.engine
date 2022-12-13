@@ -40,7 +40,7 @@ public partial class InputInjectorHelper
 		}
 
 		private Point CurrentPosition()
-			=> CoreWindow.GetForCurrentThread().PointerPosition;
+			=> Windows.UI.Core.CoreWindow.GetForCurrentThread().PointerPosition;
 #endif
 
 		/// <summary>
