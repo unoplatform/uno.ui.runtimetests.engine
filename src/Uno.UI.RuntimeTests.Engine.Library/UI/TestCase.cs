@@ -12,6 +12,8 @@ internal record TestCase
 {
 	public object[] Parameters { get; init; } = Array.Empty<object>();
 
+	public string? DisplayName { get; init; }
+
 	public PointerDeviceType? Pointer { get; init; }
 
 	/// <inheritdoc />
