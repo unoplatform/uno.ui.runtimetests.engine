@@ -13,7 +13,7 @@ namespace Uno.UI.RuntimeTests;
 
 internal record UnitTestMethodInfo
 {
-	private readonly List<object[]> _casesParameters;
+	private readonly List<ITestDataSource> _casesParameters;
 	private readonly IList<PointerDeviceType> _injectedPointerTypes;
 
 	public UnitTestMethodInfo(object testClassInstance, MethodInfo method)
@@ -30,18 +30,11 @@ internal record UnitTestMethodInfo
 			.SingleOrDefault()
 			?.ExceptionType;
 
-		_casesParameters = method
-			.GetCustomAttributes<DataRowAttribute>()
-			.Select(d => d.Data)
+		_casesParameters  = method
+			.GetCustomAttributes()
+			.Where(x => x is ITestDataSource)
+			.Cast<ITestDataSource>()
 			.ToList();
-		if (method.GetCustomAttribute<DynamicDataAttribute>() is {} dynamicData)
-		{
-			_casesParameters.AddRange(dynamicData.GetData(method));
-		}
-		if (_casesParameters is { Count: 0 })
-		{
-			_casesParameters.Add(Array.Empty<object>());
-		}
 
 		_injectedPointerTypes = method
 			.GetCustomAttributes<InjectedPointerAttribute>()
@@ -83,17 +76,32 @@ internal record UnitTestMethodInfo
 
 	public IEnumerable<TestCase> GetCases()
 	{
-		var cases = _casesParameters.Select(parameters => new TestCase { Parameters = parameters });
+		List<TestCase> cases = Enumerable.Empty<TestCase>().ToList();
+
+		if (_casesParameters is { Count: 0 })
+		{
+			cases.Add(new TestCase());
+		}
+
+		foreach (var testCaseSource in _casesParameters)
+		{
+			foreach (var caseData in testCaseSource.GetData(Method))
+			{
+				var data = testCaseSource.GetData(Method)
+					.SelectMany(x => x)
+					.ToArray();
+
+				cases.Add(new TestCase { Parameters = data, DisplayName = testCaseSource.GetDisplayName(Method, data) });
+			}
+		}
 
 		if (_injectedPointerTypes.Any())
 		{
-			var currentCases = cases.ToList();
-			cases = _injectedPointerTypes.SelectMany(pointer => currentCases.Select(testCase => testCase with { Pointer = pointer }));
+			var currentCases = cases;
+			cases = _injectedPointerTypes.SelectMany(pointer => currentCases.Select(testCase => testCase with { Pointer = pointer })).ToList();
 		}
 
 		return cases;
 	}
 }
-
-
 #endif

@@ -750,7 +750,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 			async Task InvokeTestMethod(TestCase testCase)
 			{
-				var fullTestName = testName + testCase.ToString();
+				var fullTestName = string.IsNullOrWhiteSpace(testCase.DisplayName) ? testName + testCase.ToString() : testCase.DisplayName!;
 
 				if (_currentRun is null)
 				{

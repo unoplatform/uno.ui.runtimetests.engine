@@ -39,6 +39,13 @@ namespace Uno.UI.RuntimeTests.Engine
 			await UnitTestsUIContentHelper.WaitForLoaded(SUT);
 		}
 
+		[TestMethod]
+		[DataRow("hello", DisplayName = "hello test")]
+		[DataRow("goodbye", DisplayName = "goodbye test")]
+		public void Is_Sane_With_Cases(string text)
+		{
+		}
+
 #if DEBUG
 		[TestMethod]
 		public async Task No_Longer_Sane() // expected to fail
