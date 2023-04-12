@@ -10,7 +10,7 @@ public class UnitTestEngineConfig
 
 	public static UnitTestEngineConfig Default { get; } = new UnitTestEngineConfig();
 
-	public string[]? Filters { get; set; }
+	public string? Query { get; set; }
 
 	public int Attempts { get; set; } = DefaultRepeatCount;
 

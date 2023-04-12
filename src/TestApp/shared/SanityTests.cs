@@ -14,6 +14,9 @@ using Windows.UI.Xaml.Controls;
 
 namespace Uno.UI.RuntimeTests.Engine
 {
+	/// <summary>
+	/// Contains sanity/smoke tests used to assert basic scenarios.
+	/// </summary>
 	[TestClass]
 	public class SanityTests
 	{
@@ -26,24 +29,6 @@ namespace Uno.UI.RuntimeTests.Engine
 		public async Task Is_Still_Sane()
 		{
 			await Task.Delay(2000);
-		}
-
-		[TestMethod]
-		[RunsOnUIThread]
-		public async Task When_Test_ContentHelper()
-		{
-			var SUT = new TextBlock() { Text = "Hello" };
-			UnitTestsUIContentHelper.Content = SUT;
-
-			await UnitTestsUIContentHelper.WaitForIdle();
-			await UnitTestsUIContentHelper.WaitForLoaded(SUT);
-		}
-
-		[TestMethod]
-		[DataRow("hello", DisplayName = "hello test")]
-		[DataRow("goodbye", DisplayName = "goodbye test")]
-		public void Is_Sane_With_Cases(string text)
-		{
 		}
 
 #if DEBUG

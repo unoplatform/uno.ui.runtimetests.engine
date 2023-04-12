@@ -11,6 +11,8 @@
   <Import Project="Uno.UI.RuntimeTests.Engine.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\CodeSharing\Microsoft.CodeSharing.CSharp.targets" />
   <ItemGroup>
+    <_Globbed_Compile Remove="Extensions\AssertExtensions.cs" />
     <_Globbed_Compile Remove="MetaAttributes.cs" />
+    <_Globbed_Compile Remove="SearchQueryTests.cs" />
   </ItemGroup>
 </Project>

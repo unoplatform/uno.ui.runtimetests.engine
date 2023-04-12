@@ -65,7 +65,6 @@ public sealed partial class UnitTestsControl : UserControl
 #endif
 #pragma warning restore CS0109
 
-	private const StringComparison StrComp = StringComparison.InvariantCultureIgnoreCase;
 	private Task? _runner;
 	private CancellationTokenSource? _cts = new CancellationTokenSource();
 #if DEBUG
@@ -499,7 +498,7 @@ public sealed partial class UnitTestsControl : UserControl
 					consoleOutput.IsChecked = config.IsConsoleOutputEnabled;
 					runIgnored.IsChecked = config.IsRunningIgnored;
 					retry.IsChecked = config.Attempts > 1;
-					testFilter.Text = string.Join(";", config.Filters ?? Array.Empty<string>());
+					testFilter.Text = config.Query ?? string.Empty;
 				}
 			}
 			catch (Exception)
@@ -534,15 +533,11 @@ public sealed partial class UnitTestsControl : UserControl
 		var isConsoleOutput = consoleOutput.IsChecked ?? false;
 		var isRunningIgnored = runIgnored.IsChecked ?? false;
 		var attempts = (retry.IsChecked ?? true) ? UnitTestEngineConfig.DefaultRepeatCount : 1;
-		var filter = testFilter.Text.Trim();
-		if (string.IsNullOrEmpty(filter))
-		{
-			filter = null;
-		}
+		var query = testFilter.Text.Trim() is { Length: >0 } text ? text : null;
 
 		return new UnitTestEngineConfig
 		{
-			Filters = filter?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>(),
+			Query = query,
 			IsConsoleOutputEnabled = isConsoleOutput,
 			IsRunningIgnored = isRunningIgnored,
 			Attempts = attempts,
@@ -583,56 +578,23 @@ public sealed partial class UnitTestsControl : UserControl
 		}
 	}
 
-	public async Task RunTestsForInstance(object testClassInstance)
-	{
-		Interlocked.Exchange(ref _cts, new CancellationTokenSource())?.Cancel(); // cancel any previous CTS
-
-		testResults.Children.Clear();
-
-		try
-		{
-			try
-			{
-				var testTypeInfo = BuildType(testClassInstance.GetType());
-				var engineConfig = BuildConfig();
-
-				await ExecuteTestsForInstance(_cts!.Token, testClassInstance, testTypeInfo, engineConfig);
-			}
-			catch (Exception e)
-			{
-				if (_currentRun is not null)
-				{
-					_currentRun.Failed = -1;
-				}
-
-				_ = ReportMessage($"Tests runner failed {e}");
-				ReportTestResult("Runtime exception", TimeSpan.Zero, TestResult.Failed, e);
-				ReportTestsResults();
-			}
-		}
-		finally
-		{
-			await _dispatcher.RunAsync(() =>
-			{
-				testFilter.IsEnabled = runButton.IsEnabled = true; // Disable the testFilter to avoid SIP to re-open
-				testResults.Visibility = Visibility.Visible;
-				stopButton.IsEnabled = false;
-			});
-		}
-	}
-
 	public async Task RunTests(CancellationToken ct, UnitTestEngineConfig config)
 	{
 		_currentRun = new TestRun();
 
 		try
 		{
-			_ = ReportMessage("Enumerating tests");
+			SearchPredicateCollection? filters = null;
+			if (!string.IsNullOrWhiteSpace(config.Query))
+			{
+				_ = ReportMessage("Processing search query");
+				filters = SearchPredicate.ParseQuery(config.Query);
+			}
 
-			var testTypes = InitializeTests();
+			_ = ReportMessage("Enumerating tests");
+			var testTypes = GetTestClasses(filters);
 
 			_ = ReportMessage("Running tests...");
-
 			foreach (var type in testTypes)
 			{
 				if (ct.IsCancellationRequested)
@@ -641,12 +603,9 @@ public sealed partial class UnitTestsControl : UserControl
 					break;
 				}
 
-				if (type.Type is not null)
-				{
-					var instance = Activator.CreateInstance(type: type.Type);
+				var instance = Activator.CreateInstance(type: type.Type);
 
-					await ExecuteTestsForInstance(ct, instance!, type, config);
-				}
+				await ExecuteTestsForInstance(ct, instance!, type, config, filters);
 			}
 
 			_ = ReportMessage("Tests finished running.", isRunning: false);
@@ -675,32 +634,22 @@ public sealed partial class UnitTestsControl : UserControl
 		await GenerateTestResults();
 	}
 
-	private static IEnumerable<MethodInfo> FilterTests(UnitTestClassInfo testClassInfo, string[]? filters)
-	{
-		var testClassNameContainsFilters = filters?.Any(f => testClassInfo.Type?.FullName?.Contains(f, StrComp) ?? false) ?? false;
-		return testClassInfo.Tests?.
-			Where(t => ((!filters?.Any()) ?? true)
-				|| testClassNameContainsFilters
-				|| (filters?.Any(f => t.DeclaringType?.FullName?.Contains(f, StrComp) ?? false) ?? false)
-				|| (filters?.Any(f => t.Name.Contains(f, StrComp)) ?? false))
-			?? Array.Empty<MethodInfo>();
-	}
-
 	private async Task ExecuteTestsForInstance(
 		CancellationToken ct,
 		object instance,
 		UnitTestClassInfo testClassInfo,
-		UnitTestEngineConfig config)
+		UnitTestEngineConfig config,
+		SearchPredicateCollection? filters)
 	{
 		using var consoleRecorder = config.IsConsoleOutputEnabled
 			? ConsoleOutputRecorder.Start()
 			: default;
 
-		var tests = UnitTestsControl.FilterTests(testClassInfo, config.Filters)
+		var tests = GetTestMethods(testClassInfo, filters)
 			.Select(method => new UnitTestMethodInfo(instance, method))
 			.ToArray();
 
-		if (!tests.Any() || testClassInfo.Type == null)
+		if (!tests.Any())
 		{
 			return;
 		}
@@ -737,7 +686,7 @@ public sealed partial class UnitTestsControl : UserControl
 				}
 			}
 
-			foreach (var testCase in test.GetCases())
+			foreach (var testCase in GetTestCases(test, filters))
 			{
 				if (ct.IsCancellationRequested)
 				{
@@ -750,7 +699,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 			async Task InvokeTestMethod(TestCase testCase)
 			{
-				var fullTestName = string.IsNullOrWhiteSpace(testCase.DisplayName) ? testName + testCase.ToString() : testCase.DisplayName!;
+				var fullTestName = string.IsNullOrWhiteSpace(testCase.DisplayName) ? $"{testName}{testCase}" : testCase.DisplayName!;
 
 				if (_currentRun is null)
 				{
@@ -974,28 +923,6 @@ public sealed partial class UnitTestsControl : UserControl
 		}
 	}
 
-	private IEnumerable<UnitTestClassInfo> InitializeTests()
-	{
-		var testAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)
-			.Concat(new[] { GetType().GetTypeInfo().Assembly })
-			.Distinct();
-		var types = testAssemblies.SelectMany(x => x.GetTypes());
-
-		if (_ciTestGroupCache != -1)
-		{
-			Console.WriteLine($"Filtering with group #{_ciTestGroupCache} (Groups {_ciTestsGroupCountCache})");
-		}
-
-		return from type in types
-			   where type.GetTypeInfo().GetCustomAttribute(typeof(TestClassAttribute)) != null
-			   where _ciTestsGroupCountCache == -1 || (_ciTestsGroupCountCache != -1 && (UnitTestsControl.GetTypeTestGroup(type) % _ciTestsGroupCountCache) == _ciTestGroupCache)
-			   orderby type.Name
-			   let info = BuildType(type)
-			   where info.Type is { }
-			   select info;
-	}
-
 	private static SHA1 _sha1 = SHA1.Create();
 
 	private static int GetTypeTestGroup(Type type)
@@ -1007,20 +934,20 @@ public sealed partial class UnitTestsControl : UserControl
 		return (int)BitConverter.ToUInt64(hash, 0);
 	}
 
-	private static UnitTestClassInfo BuildType(Type type)
+	private static UnitTestClassInfo? BuildType(Type type)
 	{
 		try
 		{
 			return new UnitTestClassInfo(
 				type: type,
-				tests: GetMethodsWithAttribute(type, typeof(Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute)),
-				initialize: GetMethodsWithAttribute(type, typeof(Microsoft.VisualStudio.TestTools.UnitTesting.TestInitializeAttribute)).FirstOrDefault(),
-				cleanup: GetMethodsWithAttribute(type, typeof(Microsoft.VisualStudio.TestTools.UnitTesting.TestCleanupAttribute)).FirstOrDefault()
+				tests: GetMethodsWithAttribute(type, typeof(TestMethodAttribute)),
+				initialize: GetMethodsWithAttribute(type, typeof(TestInitializeAttribute)).FirstOrDefault(),
+				cleanup: GetMethodsWithAttribute(type, typeof(TestCleanupAttribute)).FirstOrDefault()
 			);
 		}
 		catch (Exception)
 		{
-			return new UnitTestClassInfo(null, null, null, null);
+			return null;
 		}
 	}
 
