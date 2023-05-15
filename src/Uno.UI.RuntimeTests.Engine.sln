@@ -32,7 +32,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.UI.RuntimeTests.Engine.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UWP", "UWP", "{D31D49DA-BFBD-420C-9F8E-12D77DDF3070}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.UI.RuntimeTests.Engine.Mobile", "TestApp\uwp\Uno.UI.RuntimeTests.Engine.Mobile\Uno.UI.RuntimeTests.Engine.Mobile.csproj", "{C72C5858-9953-4DEB-A551-E25BC5E7AD51}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.UI.RuntimeTests.Engine.Mobile", "TestApp\uwp\Uno.UI.RuntimeTests.Engine.Mobile\Uno.UI.RuntimeTests.Engine.Mobile.csproj", "{C72C5858-9953-4DEB-A551-E25BC5E7AD51}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.UI.RuntimeTests.Engine.Uwp", "TestApp\uwp\Uno.UI.RuntimeTests.Engine.UWP\Uno.UI.RuntimeTests.Engine.Uwp.csproj", "{9804C1B9-A958-4A09-B975-AAECF08CFEE1}"
 EndProject
@@ -192,6 +192,22 @@ Global
 		{7BD72040-D89A-4DE8-8713-5A08068ADBCE}.Release|x64.Build.0 = Release|Any CPU
 		{7BD72040-D89A-4DE8-8713-5A08068ADBCE}.Release|x86.ActiveCfg = Release|Any CPU
 		{7BD72040-D89A-4DE8-8713-5A08068ADBCE}.Release|x86.Build.0 = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|arm64.ActiveCfg = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|arm64.Build.0 = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|x64.Build.0 = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Debug|x86.Build.0 = Debug|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|arm64.ActiveCfg = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|arm64.Build.0 = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|x64.ActiveCfg = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|x64.Build.0 = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|x86.ActiveCfg = Release|Any CPU
+		{C72C5858-9953-4DEB-A551-E25BC5E7AD51}.Release|x86.Build.0 = Release|Any CPU
 		{9804C1B9-A958-4A09-B975-AAECF08CFEE1}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{9804C1B9-A958-4A09-B975-AAECF08CFEE1}.Debug|Any CPU.Build.0 = Debug|x64
 		{9804C1B9-A958-4A09-B975-AAECF08CFEE1}.Debug|Any CPU.Deploy.0 = Debug|x64
@@ -318,6 +334,8 @@ Global
 		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{9804c1b9-a958-4a09-b975-aaecf08cfee1}*SharedItemsImports = 4
 		TestApp\shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{a5b8155a-118f-4794-b551-c6f3cf7e5411}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{a5b8155a-118f-4794-b551-c6f3cf7e5411}*SharedItemsImports = 5
+		TestApp\shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{c72c5858-9953-4deb-a551-e25bc5e7ad51}*SharedItemsImports = 5
+		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{c72c5858-9953-4deb-a551-e25bc5e7ad51}*SharedItemsImports = 5
 		TestApp\shared\Uno.UI.RuntimeTests.Engine.Shared.projitems*{dec0dfbd-2926-492b-be22-2158438556e3}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{dec0dfbd-2926-492b-be22-2158438556e3}*SharedItemsImports = 5
 		Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems*{e3f4af60-8456-4ed6-9992-303cdad44e0d}*SharedItemsImports = 13

@@ -161,5 +161,22 @@ and define the following in your `csproj`:
   ```
 These attributes will ask for the runtime test engine to replace the ones defined by the `Uno.UI.RuntimeTests.Engine` package.
 
+## Test runner (UnitTestsControl) filtering syntax
+- Search terms are separated by space. Multiple consecutive spaces are treated same as one. 
+- Multiple search terms are chained with AND logic.
+- Search terms are case insensitive.
+- `-` can be used before any term for exclusion, effectively inverting the results.
+- Special tags can be used to match certain part of the test: // syntax: tag:term
+    - `class` or `c` matches the class name
+    - `method` or `m` matches the method name
+    - `displayname` or `d` matches the display name in [DataRow]
+- Search term without a prefixing tag will match either of method name or class name.
+
+Examples:
+- `listview`
+- `listview measure`
+- `listview measure -recycle`
+- `c:listview m:measure -m:recycle`
+
 ## Running the tests automatically during CI
 _TBD_

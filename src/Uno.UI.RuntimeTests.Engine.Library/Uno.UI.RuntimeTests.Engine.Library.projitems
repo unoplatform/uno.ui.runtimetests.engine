@@ -9,20 +9,22 @@
     <Import_RootNamespace>Uno.UI.RuntimeTests.Engine.Library</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\StringExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\InjectedPointerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.MouseHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelperExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RequiresFullWindowAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RunsOnUIThreadAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\TestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\TestCaseResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\TestResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\TestRun.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestClassInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestEngineConfig.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestMethodInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.Filtering.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.CustomConsoleOutput.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsUIContentHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestDispatcherCompat.cs" />

@@ -13,9 +13,6 @@ namespace Uno.UI.RuntimeTests;
 
 internal record UnitTestMethodInfo
 {
-	private readonly List<ITestDataSource> _casesParameters;
-	private readonly IList<PointerDeviceType> _injectedPointerTypes;
-
 	public UnitTestMethodInfo(object testClassInstance, MethodInfo method)
 	{
 		Method = method;
@@ -30,13 +27,13 @@ internal record UnitTestMethodInfo
 			.SingleOrDefault()
 			?.ExceptionType;
 
-		_casesParameters  = method
+		DataSources  = method
 			.GetCustomAttributes()
 			.Where(x => x is ITestDataSource)
 			.Cast<ITestDataSource>()
 			.ToList();
 
-		_injectedPointerTypes = method
+		InjectedPointerTypes = method
 			.GetCustomAttributes<InjectedPointerAttribute>()
 			.Select(attr => attr.Type)
 			.Distinct()
@@ -52,6 +49,10 @@ internal record UnitTestMethodInfo
 	public bool RequiresFullWindow { get; }
 
 	public bool RunsOnUIThread { get; }
+
+	public IReadOnlyList<ITestDataSource> DataSources { get; }
+
+	public IReadOnlyList<PointerDeviceType> InjectedPointerTypes { get; }
 
 	private static bool HasCustomAttribute<T>(MemberInfo? testMethod)
 		=> testMethod?.GetCustomAttribute(typeof(T)) != null;
@@ -72,36 +73,6 @@ internal record UnitTestMethodInfo
 
 		ignoreMessage = "";
 		return false;
-	}
-
-	public IEnumerable<TestCase> GetCases()
-	{
-		List<TestCase> cases = Enumerable.Empty<TestCase>().ToList();
-
-		if (_casesParameters is { Count: 0 })
-		{
-			cases.Add(new TestCase());
-		}
-
-		foreach (var testCaseSource in _casesParameters)
-		{
-			foreach (var caseData in testCaseSource.GetData(Method))
-			{
-				var data = testCaseSource.GetData(Method)
-					.SelectMany(x => x)
-					.ToArray();
-
-				cases.Add(new TestCase { Parameters = data, DisplayName = testCaseSource.GetDisplayName(Method, data) });
-			}
-		}
-
-		if (_injectedPointerTypes.Any())
-		{
-			var currentCases = cases;
-			cases = _injectedPointerTypes.SelectMany(pointer => currentCases.Select(testCase => testCase with { Pointer = pointer })).ToList();
-		}
-
-		return cases;
 	}
 }
 #endif
