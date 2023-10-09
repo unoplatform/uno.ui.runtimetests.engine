@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
@@ -31,7 +31,7 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
 		<PackageReference Include="Uno.Core.Extensions.Logging.Singleton" Version="4.0.1" />
 
-		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+		<PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
 
 		<Manifest Include="$(ApplicationManifest)" />
 	</ItemGroup>
