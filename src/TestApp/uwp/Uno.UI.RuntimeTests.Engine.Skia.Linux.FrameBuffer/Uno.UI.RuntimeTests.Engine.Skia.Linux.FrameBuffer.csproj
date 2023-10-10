@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType Condition="'$(Configuration)'=='Release'">WinExe</OutputType>
 		<OutputType Condition="'$(Configuration)'=='Debug'">Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
-		<NoWarn>$(NoWarn);Uno0001</NoWarn>
+		<TargetFramework>net7.0</TargetFramework>
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);Uno0001</WarningsNotAsErrors>
+		<DefineConstants>$(DefineConstants);__SKIA__;IS_UNO_RUNTIMETEST_PROJECT</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup Condition="exists('..\Uno.UI.RuntimeTests.Engine.UWP')">
 		<EmbeddedResource Include="..\Uno.UI.RuntimeTests.Engine.UWP\Package.appxmanifest" LogicalName="Package.appxmanifest" />

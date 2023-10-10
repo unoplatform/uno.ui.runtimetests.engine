@@ -2,8 +2,10 @@
 	<PropertyGroup>
 		<OutputType Condition="'$(Configuration)'=='Release'">WinExe</OutputType>
 		<OutputType Condition="'$(Configuration)'=='Debug'">Exe</OutputType>
-		<TargetFramework>net6.0-windows</TargetFramework>
+		<TargetFramework>net7.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);Uno0001</WarningsNotAsErrors>
+		<DefineConstants>$(DefineConstants);__SKIA__</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup Label="AssemblyInfo">
 		<AssemblyAttribute Include="System.Runtime.InteropServices.ComVisibleAttribute">
@@ -18,12 +20,12 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-		<PackageReference Include="Uno.WinUI.Skia.Wpf" Version="4.6.19" />
-		<PackageReference Include="Uno.WinUI.RemoteControl" Version="4.6.19" Condition="'$(Configuration)'=='Debug'" />
-		<PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="4.6.19" />
+		<PackageReference Include="Uno.WinUI.Skia.Wpf" Version="5.0.0-dev.2691" />
+		<PackageReference Include="Uno.WinUI.DevServer" Version="5.0.0-dev.2691" /><!-- Also in release to be able to run hot-reload tests-->
+		<PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="5.0.0-dev.2691" />
 
 		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 		<UpToDateCheckInput Include="..\..\shared\**\*.xaml" />

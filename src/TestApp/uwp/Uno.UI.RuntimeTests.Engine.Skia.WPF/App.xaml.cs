@@ -1,17 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
+using Uno.UI.Runtime.Skia.Wpf;
 
-namespace Uno.UI.RuntimeTests.Engine.WPF
+namespace Uno.UI.RuntimeTests.Engine.WPF;
+
+public partial class App : Application
 {
-	/// <summary>
-	/// Interaction logic for App.xaml
-	/// </summary>
-	public partial class App : Application
+	public App()
 	{
+		new WpfHost(Dispatcher, () => new Uno.UI.RuntimeTests.Engine.App()).Run();
 	}
 }
