@@ -18,22 +18,29 @@ public class UnitTestClassInfo
 	{
 		Type = type;
 		TestClassName = Type?.Name ?? "(null)";
-		Tests = tests;
+		Tests = tests ?? Array.Empty<MethodInfo>();
 		Initialize = initialize;
 		Cleanup = cleanup;
+
+		RunsInSecondaryApp = HasCustomAttribute<RunsInSecondaryAppAttribute>(type);
 	}
 
 	public string TestClassName { get; }
 
 	public Type? Type { get; }
 
-	public MethodInfo[]? Tests { get; }
+	public MethodInfo[] Tests { get; }
 
 	public MethodInfo? Initialize { get; }
 
 	public MethodInfo? Cleanup { get; }
 
+	public bool RunsInSecondaryApp { get; }
+
 	public override string ToString() => TestClassName;
+
+	private static bool HasCustomAttribute<T>(MemberInfo? testMethod)
+		=> testMethod?.GetCustomAttribute(typeof(T)) != null;
 }
 
 #endif

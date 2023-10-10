@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -116,9 +117,12 @@ public static class UnitTestsUIContentHelper
 	/// <remarks>
 	/// On UWP, <see cref="WaitForIdle"/> may not always wait long enough for the control to be properly measured.
 	///
-	/// This method assumes that the control will have a non-zero size once loaded, so it's not appropriate for elements that are
+	/// WARNING: This method assumes that the control will have a non-zero size once loaded, so it's not appropriate for elements that are
 	/// collapsed, empty, etc.
+	///
+	/// WARNING: This method have a special behavior with ListView for which it will wait for the first item to be materialized.
 	/// </remarks>
+	[EditorBrowsable(EditorBrowsableState.Never)] // Prefer to use the UIHelper.WaitForLoaded that relies only on element.IsLoaded and doesn't have any implicit rules.
 	public static async Task WaitForLoaded(FrameworkElement element)
 	{
 		async Task Do()
