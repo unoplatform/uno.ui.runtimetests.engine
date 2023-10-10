@@ -23,11 +23,11 @@ using Windows.Devices.Input;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 public sealed class InjectedPointerAttribute : Attribute
 {
-    public PointerDeviceType Type { get; }
+	public PointerDeviceType Type { get; }
 
-    public InjectedPointerAttribute(PointerDeviceType type)
-    {
-        Type = type;
-    }
+	public InjectedPointerAttribute(PointerDeviceType type)
+	{
+		Type = type;
+	}
 }
 #endif

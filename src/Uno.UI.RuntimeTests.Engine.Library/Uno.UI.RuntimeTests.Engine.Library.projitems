@@ -9,26 +9,42 @@
     <Import_RootNamespace>Uno.UI.RuntimeTests.Engine.Library</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\TestCase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\TestCaseResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\TestResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestClassInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestEngineConfig.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestMethodInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestDispatcherCompat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.CustomConsoleOutput.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.TestRun.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsUIContentHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\DevServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\ProcessHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestEmbeddedRunner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestsSourceProjectAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\SecondaryApp.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\_Private\ColorExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\ImageAssert.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\ImageAssert.ExpectedPixels.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\ImageAssert.Validations.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\_Private\ImageHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\TestBitmap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\TestHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\UIHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\InputInjectorHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\InjectedPointerAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.MouseHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelperExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\InputInjectorHelper.MouseHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\InputInjectorHelperExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RequiresFullWindowAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\RunsInSecondaryAppAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RunsOnUIThreadAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\TestCase.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\TestCaseResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Library\InputInjectorHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\TestResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\TestRun.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestClassInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestEngineConfig.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestMethodInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.CustomConsoleOutput.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestsUIContentHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\UnitTestDispatcherCompat.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -41,7 +57,8 @@
     <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)Library\" />
-    <Folder Include="$(MSBuildThisFileDirectory)UI\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Engine\UI\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Library\_Private\" />
   </ItemGroup>
 </Project>
