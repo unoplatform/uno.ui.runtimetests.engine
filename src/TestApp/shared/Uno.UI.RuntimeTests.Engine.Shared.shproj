@@ -11,6 +11,15 @@
   <Import Project="Uno.UI.RuntimeTests.Engine.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\CodeSharing\Microsoft.CodeSharing.CSharp.targets" />
   <ItemGroup>
+    <UpToDateCheckInput Remove="HotReloadTests_Subject.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <_Globbed_Compile Remove="FilterTests.cs" />
+    <_Globbed_Compile Remove="HotReloadTests.cs" />
+    <_Globbed_Compile Remove="HotReloadTests_Subject.xaml.cs" />
     <_Globbed_Compile Remove="MetaAttributes.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <_Globbled_Page Remove="HotReloadTests_Subject.xaml" />
   </ItemGroup>
 </Project>

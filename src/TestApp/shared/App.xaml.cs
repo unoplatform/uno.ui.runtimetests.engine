@@ -165,6 +165,9 @@ namespace Uno.UI.RuntimeTests.Engine
 				builder.AddFilter("Windows", LogLevel.Warning);
 				builder.AddFilter("Microsoft", LogLevel.Warning);
 
+				builder.AddFilter("Uno.UI.RuntimeTests.HotReload", LogLevel.Debug);
+				builder.AddFilter("Uno.UI.RemoteControl", LogLevel.Debug);
+
 				// Generic Xaml events
 				// builder.AddFilter("Windows.UI.Xaml", LogLevel.Debug );
 				// builder.AddFilter("Windows.UI.Xaml.VisualStateGroup", LogLevel.Debug );
