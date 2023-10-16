@@ -17,6 +17,7 @@ using System.Threading;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Uno.Extensions;
 
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
@@ -85,7 +86,7 @@ internal static partial class SecondaryApp
 
 		var childProcess = new Process { StartInfo = childStartInfo };
 
-		await childProcess.ExecuteAndLogAsync($"CHILD_TEST_APP_{Interlocked.Increment(ref _instance):D2}", ct);
+		await childProcess.ExecuteAndLogAsync(typeof(SecondaryApp).Log().Scope($"CHILD_TEST_APP_{Interlocked.Increment(ref _instance):D2}"), ct);
 
 		return testOutput;
 	}

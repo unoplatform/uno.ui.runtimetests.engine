@@ -10,14 +10,19 @@
 #endif
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using HarfBuzzSharp;
+using Microsoft.Extensions.Logging;
 using Uno.Extensions;
 using Uno.Logging;
 using Uno.UI.RuntimeTests.Engine;
@@ -33,6 +38,8 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 /// </remarks>
 internal sealed partial class DevServer : IAsyncDisposable
 {
+	private static readonly ILogger _log = typeof(DevServer).Log();
+	private static int _instance;
 	private static string? _devServerPath;
 
 	/// <summary>
@@ -78,45 +85,72 @@ internal sealed partial class DevServer : IAsyncDisposable
 
 		try
 		{
-			var rawVersion = await ProcessHelper.ExecuteAsync(
-				ct,
-				"dotnet",
-				new() { "--version" },
-				dir,
-				"[GET_DOTNET_VERSION]");
-			var dotnetVersion = GetDotnetVersion(rawVersion);
+			using (var log = _log.Scope("GET_DOTNET_VERSION"))
+			{
+				var rawVersion = await ProcessHelper.ExecuteAsync(
+					ct,
+					"dotnet",
+					new() { "--version" },
+					Environment.CurrentDirectory, // Needed to get the version used by the current app (i.e. including global.json)
+					log);
+				var dotnetVersion = GetDotnetVersion(rawVersion);
 
-			var csProj = @$"<Project Sdk=""Microsoft.NET.Sdk"">
+				var csProj = @$"<Project Sdk=""Microsoft.NET.Sdk"">
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net{dotnetVersion.Major}.{dotnetVersion.Minor}</TargetFramework>
 	</PropertyGroup>
-</Project>"; 
-			await File.WriteAllTextAsync(Path.Combine(dir, "PullDevServer.csproj"), csProj, ct);
-
-			await ProcessHelper.ExecuteAsync(
-				ct,
-				"dotnet",
-				new() { "add", "package", "Uno.WinUI.DevServer", "--prerelease" },
-				dir,
-				"[PULL_DEV_SERVER]");
-
-			var data = await ProcessHelper.ExecuteAsync(
-				ct,
-				"dotnet",
-				new() { "build", "/t:GetRemoteControlHostPath" },
-				dir,
-				"[GET_DEV_SERVER_PATH]");
-
-			if (GetConfigurationValue(data, "RemoteControlHostPath") is { Length: > 0 } path)
-			{
-				return path;
-			}
-			else
-			{
-				throw new InvalidOperationException("Failed to get remote control host path");
+</Project>";
+				await File.WriteAllTextAsync(Path.Combine(dir, "PullDevServer.csproj"), csProj, ct);
 			}
 
+			using (var log = _log.Scope("PULL_DEV_SERVER"))
+			{
+				var args = new List<string> { "add", "package" };
+#if HAS_UNO_WINUI || WINDOWS_WINUI
+				args.Add("Uno.WinUI.DevServer");
+#else
+				args.Add("Uno.UI.DevServer");
+#endif
+				// If the assembly is not a debug version it should have a valid version
+				// Note: This is the version of the RemoteControl assembly, not the RemoteControl.Host, but they should be in sync (both are part of the DevServer package)
+				if (Type.GetType("Uno.UI.RemoteControl.RemoteControlClient, Uno.UI.RemoteControl", throwOnError: false)
+					?.Assembly
+					.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+					?.InformationalVersion is { Length: > 0 } runtimeVersion
+					&& Regex.Match(runtimeVersion, @"^(?<version>\d+\.\d+\.\d+(-\w+\.\d+))+") is {Success: true} match)
+				{
+					args.Add("--version");
+					args.Add(match.Groups["version"].Value);
+				}
+				// Otherwise we use the version used to compile the test engine
+				else if (typeof(DevServer).Assembly.GetCustomAttribute<RuntimeTestDevServerAttribute>()?.Version is { Length: > 0 } version)
+				{
+					args.Add("--version");
+					args.Add(version);
+				}
+				// As a last chance, we just use the latest version
+				else
+				{
+					args.Add("--prerelease"); // latest version
+				}
+
+				await ProcessHelper.ExecuteAsync(ct, "dotnet", args, dir, log);
+			}
+
+			using (var log = _log.Scope("GET_DEV_SERVER_PATH"))
+			{
+				var data = await ProcessHelper.ExecuteAsync(
+					ct,
+					"dotnet",
+					new() { "build", "/t:GetRemoteControlHostPath" },
+					dir,
+					log);
+
+				return GetConfigurationValue(data, "RemoteControlHostPath") is { Length: > 0 } path 
+					? path 
+					: throw new InvalidOperationException("Failed to get remote control host path");
+			}
 		}
 		finally
 		{
@@ -135,7 +169,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 	{
 		if (!File.Exists(hostBinPath))
 		{
-			typeof(DevServer).Log().Error($"DevServer {hostBinPath} does not exist");
+			_log.Error($"DevServer {hostBinPath} does not exist");
 			throw new InvalidOperationException($"Unable to find {hostBinPath}");
 		}
 
@@ -150,7 +184,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 
 		var process = new System.Diagnostics.Process { StartInfo = pi };
 
-		process.StartAndLog("DEV_SERVER");
+		process.StartAndLog(_log.Scope($"DEV_SERVER_{Interlocked.Increment(ref _instance):D2}"));
 
 		return new DevServer(process, port);
 	}
@@ -196,4 +230,5 @@ internal sealed partial class DevServer : IAsyncDisposable
 		await _process.WaitForExitAsync(CancellationToken.None);
 	}
 }
+
 #endif

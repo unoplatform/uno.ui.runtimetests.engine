@@ -3,6 +3,13 @@
 		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute" Condition="!$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER'))">
 			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
 		</AssemblyAttribute>
+
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute" Condition="'$(PkgUno_UI_DevServer)' != ''">
+			<_Parameter1>$([System.IO.Path]::GetFileName(`$(PkgUno_UI_DevServer)`)) </_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute" Condition="'$(PkgUno_WinUI_DevServer)' != ''">
+			<_Parameter1>$([System.IO.Path]::GetFileName(`$(PkgUno_WinUI_DevServer)`)) </_Parameter1>
+		</AssemblyAttribute>
 	</ItemGroup>
 
 	<ItemGroup>

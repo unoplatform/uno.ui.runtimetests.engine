@@ -7,6 +7,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Uno.Extensions;
 using Uno.Logging;
 
@@ -26,14 +27,14 @@ internal static partial class ProcessHelper
 		string executable,
 		List<string> parameters,
 		string workingDirectory,
-		string logPrefix,
+		ILogger log,
 		Dictionary<string, string>? environmentVariables = null)
 	{
 		var process = SetupProcess(executable, parameters, workingDirectory, environmentVariables);
 		var output = new StringBuilder();
 		var error = new StringBuilder();
 
-		typeof(ProcessHelper).Log().Debug(logPrefix + " waiting for process exit");
+		log.Debug("Waiting for process exit");
 
 		// hookup the event handlers to capture the data that is received
 		process.OutputDataReceived += (sender, args) => output.Append(args.Data);
@@ -55,46 +56,46 @@ internal static partial class ProcessHelper
 
 		await process.WaitForExitWithCancellationAsync(ct);
 
-		process.EnsureSuccess(logPrefix, error);
+		process.EnsureSuccess(log, error);
 
 		return output.ToString();
 	}
 
 	public static async Task ExecuteAndLogAsync(
 		this Process process,
-		string logPrefix,
+		ILogger log,
 		CancellationToken ct)
 	{
-		process.StartAndLog(logPrefix);
+		process.StartAndLog(log);
 
-		typeof(ProcessHelper).Log().Debug(logPrefix + " waiting for process exit");
+		typeof(ProcessHelper).Log().Debug(log + " waiting for process exit");
 
 		await process.WaitForExitWithCancellationAsync(ct);
 
-		process.EnsureSuccess(logPrefix);
+		process.EnsureSuccess(log);
 	}
 
 	public static Process StartAndLog(
 		string executable,
 		List<string> parameters,
 		string workingDirectory,
-		string logPrefix,
+		ILogger log,
 		Dictionary<string, string>? environmentVariables = null)
-		=> SetupProcess(executable, parameters, workingDirectory, environmentVariables).StartAndLog(logPrefix);
+		=> SetupProcess(executable, parameters, workingDirectory, environmentVariables).StartAndLog(log);
 
 	public static Process StartAndLog(
 		this Process process,
-		string logPrefix)
+		ILogger log)
 	{
 		process.StartInfo.RedirectStandardOutput = true;
 		process.StartInfo.RedirectStandardError = true;
 
 		// hookup the event handlers to capture the data that is received
-		process.OutputDataReceived += (sender, args) => typeof(ProcessHelper).Log().Debug(logPrefix + ": " + args.Data ?? "<Empty>");
-		process.ErrorDataReceived += (sender, args) => typeof(ProcessHelper).Log().Error(logPrefix + ": " + args.Data ?? "<Empty>");
+		process.OutputDataReceived += (sender, args) => log.Debug(args.Data ?? "<Empty>");
+		process.ErrorDataReceived += (sender, args) => log.Error(args.Data ?? "<Empty>");
 
 		var pi = process.StartInfo;
-		typeof(ProcessHelper).Log().Debug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
+		log.Debug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
 
 		process.Start();
 
@@ -148,22 +149,22 @@ internal static partial class ProcessHelper
 		await process.WaitForExitAsync(ct);
 	}
 
-	public static void EnsureSuccess(this Process process, string logPrefix, StringBuilder error)
+	public static void EnsureSuccess(this Process process, ILogger log, StringBuilder error)
 	{
 		if (process.ExitCode != 0)
 		{
 			var processError = new InvalidOperationException(error.ToString());
-			typeof(ProcessHelper).Log().Error(logPrefix + $" Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}", processError);
+			log.Error($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}", processError);
 
 			throw new InvalidOperationException($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}", processError);
 		}
 	}
 
-	public static void EnsureSuccess(this Process process, string logPrefix)
+	public static void EnsureSuccess(this Process process, ILogger log)
 	{
 		if (process.ExitCode != 0)
 		{
-			typeof(ProcessHelper).Log().Error(logPrefix + $" Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}");
+			log.Error($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}");
 
 			throw new InvalidOperationException($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}");
 		}

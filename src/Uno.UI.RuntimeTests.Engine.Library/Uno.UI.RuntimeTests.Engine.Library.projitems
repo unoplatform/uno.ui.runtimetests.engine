@@ -9,6 +9,8 @@
     <Import_RootNamespace>Uno.UI.RuntimeTests.Engine.Library</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestDevServerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\LogScope.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\TestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\TestCaseResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\TestResult.cs" />
@@ -57,7 +59,6 @@
     <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\" />
     <Folder Include="$(MSBuildThisFileDirectory)Engine\UI\_Private\" />
     <Folder Include="$(MSBuildThisFileDirectory)Library\_Private\" />
   </ItemGroup>

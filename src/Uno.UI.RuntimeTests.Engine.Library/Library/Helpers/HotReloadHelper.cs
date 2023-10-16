@@ -12,17 +12,23 @@
 #endif
 
 using System;
+using System.Collections;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading;
 using Uno.UI.RemoteControl; // DevServer
+using Uno.UI.RemoteControl.HotReload; // DevServer
 using Uno.UI.RemoteControl.HotReload.Messages; // DevServer
 using Uno.UI.RemoteControl.HotReload.MetadataUpdater; // DevServer
 using System.IO;
 using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
+using Uno.Extensions;
+using Uno.Logging;
 using Uno.UI.RuntimeTests.Engine;
 
 
@@ -36,8 +42,17 @@ namespace Uno.UI.RuntimeTests;
 
 public static partial class HotReloadHelper
 {
-	public static async ValueTask<IAsyncDisposable?> UpdateServerFile<T>(string filPathRelativeToProject, string originalText, string replacementText, CancellationToken ct)
-		=> await UpdateServerFile<T>(filPathRelativeToProject, originalText, replacementText, true, ct);
+	// The delay for the client to connect to the dev-server
+	private static TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(3);
+	// The delay for the server to load the workspace and let the client know it's ready
+	private static TimeSpan WorkspaceTimeout = TimeSpan.FromSeconds(30);
+	// The delay for the server to send metadata update once a file has been modified
+	private static TimeSpan MetadataUpdateTimeout = TimeSpan.FromSeconds(5);
+
+	private static readonly ILogger _log = typeof(HotReloadHelper).Log();
+
+	public static async ValueTask<IAsyncDisposable?> UpdateServerFile(string filPathRelativeToProject, string originalText, string replacementText, CancellationToken ct)
+		=> await UpdateServerFile(filPathRelativeToProject, originalText, replacementText, true, ct);
 
 	/// <summary>
 	/// Update the 
@@ -50,7 +65,7 @@ public static partial class HotReloadHelper
 	/// <param name="ct"></param>
 	/// <returns></returns>
 	/// <exception cref="InvalidOperationException"></exception>
-	public static async ValueTask<IAsyncDisposable?> UpdateServerFile<T>(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, CancellationToken ct)
+	public static async ValueTask<IAsyncDisposable?> UpdateServerFile(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, CancellationToken ct)
 	{
 		var projectFile = typeof(HotReloadHelper).Assembly.GetCustomAttribute<RuntimeTestsSourceProjectAttribute>()?.ProjectFullPath;
 		if (projectFile is null or { Length: 0 })
@@ -100,17 +115,37 @@ public static partial class HotReloadHelper
 		{
 			return default;
 		}
-		Console.WriteLine("========== Waiting for connection");
 
-		await RemoteControlClient.Instance.WaitForConnection(ct);
+		_log.Trace($"Request to update file {message.FilePath}, waiting for connection ...");
 
-		Console.WriteLine("========== Connected");
+		var timeout = Task.Delay(ConnectionTimeout, ct);
+		if (await Task.WhenAny(timeout, RemoteControlClient.Instance.WaitForConnection(ct)) == timeout)
+		{
+			throw new TimeoutException(
+				"Timeout while waiting for the app to connect to the dev-server. "
+				+ "This usually indicates that the dev-server is not running on the expected combination of hots and port"
+				+ "(For runtime-tests run in secondary app instance, the server should be listening for connection on "
+				+ $"{Environment.GetEnvironmentVariable("UNO_DEV_SERVER_HOST")}:{Environment.GetEnvironmentVariable("UNO_DEV_SERVER_PORT")}).");
+		}
 
-		
+		_log.Trace("Client connected, waiting for dev-server to load the workspace (i.e. initializing roslyn with the solution) ...");
+
+		var processors = typeof(RemoteControlClient).GetField("_processors", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(RemoteControlClient.Instance) as IDictionary ?? throw new InvalidOperationException("Processors is null");
+		var processor = processors["hotreload"] as ClientHotReloadProcessor ?? throw new InvalidOperationException("HotReloadProcessor is null");
+		var hotReloadReady = typeof(ClientHotReloadProcessor).GetProperty("HotReloadWorkspaceLoaded", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(processor) as Task ?? throw new IOException("HotReloadWorkspaceLoaded is null");
+
+		timeout = Task.Delay(WorkspaceTimeout, ct);
+		if (await Task.WhenAny(timeout, hotReloadReady) == timeout)
+		{
+			throw new TimeoutException(
+				"Timeout while waiting for hot reload workspace to be loaded. "
+				+ "This usually indicates that the dev-server failed to load the solution, you will find more info in dev-server logs "
+				+ "(output in main app logs with [DEV_SERVER] prefix for runtime-tests run in secondary app instance).");
+		}
+
+		_log.Trace("Workspace is ready on dev-server, sending file update request ...");
+
 		var revertMessage = new RevertFileUpdate(RemoteControlClient.Instance, message);
-
-		Console.WriteLine("========== Sending update message for file: " + message.FilePath);
-
 		if (waitForMetadataUpdate)
 		{
 			var cts = new TaskCompletionSource();
@@ -119,13 +154,13 @@ public static partial class HotReloadHelper
 
 			await RemoteControlClient.Instance.SendMessage(message);
 
-			Console.WriteLine("========== Sent message, waiting for update");
+			_log.Trace("File update message sent to the dev-server, waiting for metadata update (i.e. the code changes to be applied in the current app) ...");
 
 			try
 			{
 				MetadataUpdaterHelper.MetadataUpdated += UpdateReceived;
 
-				var timeout = Task.Delay(TestHelper.DefaultTimeout, ct);
+				timeout = Task.Delay(MetadataUpdateTimeout, ct); //TestHelper.DefaultTimeout * 45, ct);
 				if (await Task.WhenAny(timeout, cts.Task) == timeout)
 				{
 					throw new TimeoutException(
@@ -145,7 +180,7 @@ public static partial class HotReloadHelper
 				MetadataUpdaterHelper.MetadataUpdated -= UpdateReceived;
 			}
 
-			Console.WriteLine("========== Got updates");
+			_log.Trace("Received **a** metadata update, continuing test.");
 		}
 		else
 		{
@@ -173,7 +208,7 @@ public static partial class HotReloadHelper
 			}
 			catch (WebSocketException)
 			{
-				Console.WriteLine("Failed to revert file update, connection to the dev-server might have been closed *** WAITING 5 sec to let client reconnect before retry**.");
+				_log.Warn($"Failed to revert file update, connection to the dev-server might have been closed *** WAITING {DevServer.ConnectionRetryInterval:g} to let client reconnect before retry**.");
 
 				// Wait for the client to attempt re-connection
 				await Task.Delay(DevServer.ConnectionRetryInterval + TimeSpan.FromMilliseconds(100));
@@ -184,7 +219,7 @@ public static partial class HotReloadHelper
 				}
 				catch (WebSocketException)
 				{
-					Console.WriteLine($"Failed to revert file update, connection to the dev-server might have been closed. Cannot revert changes made on file {Message.FilePath}.");
+					_log.Error($"Failed to revert file update, connection to the dev-server might have been closed. Cannot revert changes made on file {Message.FilePath}.");
 				}
 			}
 		}

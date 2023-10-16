@@ -166,7 +166,11 @@ namespace Uno.UI.RuntimeTests.Engine
 				builder.AddFilter("Microsoft", LogLevel.Warning);
 
 				builder.AddFilter("Uno.UI.RuntimeTests.HotReload", LogLevel.Debug);
+
+				// Hot reload testing
 				builder.AddFilter("Uno.UI.RemoteControl", LogLevel.Debug);
+				builder.AddFilter("Uno.UI.RuntimeTests.Internal.Helpers", LogLevel.Debug); // DevServer and SecondaryApp
+				builder.AddFilter("Uno.UI.RuntimeTests.HotReloadHelper", LogLevel.Trace); // Helper used by tests in secondary app instances (non debuggable)
 
 				// Generic Xaml events
 				// builder.AddFilter("Windows.UI.Xaml", LogLevel.Debug );

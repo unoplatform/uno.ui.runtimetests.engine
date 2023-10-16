@@ -194,7 +194,7 @@ public record struct ExpectedPixels
 			: (Color)XamlBindingHelper.ConvertValue(typeof(Color), colorCode);
 }
 
-public struct PixelTolerance
+public record struct PixelTolerance
 {
 	#region Fluent declaration
 	public static PixelTolerance None => default;
