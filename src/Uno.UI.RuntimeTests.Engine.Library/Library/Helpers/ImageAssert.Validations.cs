@@ -13,6 +13,10 @@ using static System.Math;
 using Windows.UI;
 using Windows.Foundation;
 
+#if HAS_UNO_WINUI || WINDOWS_WINUI
+using Microsoft.UI;
+#endif
+
 namespace Uno.UI.RuntimeTests;
 
 /// <summary>

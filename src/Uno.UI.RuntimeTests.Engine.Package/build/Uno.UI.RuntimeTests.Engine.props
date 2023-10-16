@@ -1,19 +1,34 @@
 ﻿<Project>
 	<ItemGroup>
-		<Compile Include="$(MSBuildThisFileDirectory)/../src/**/*.cs"
-				 Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
-				 Visible="False" />
-		<Page Include="$(MSBuildThisFileDirectory)/../src/**/*.xaml"
-			  Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
-			  Visible="False"
-			  XamlRuntime="WinUI" />
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute" Condition="!$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER'))">
+			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
 
-		<Compile Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
-				Remove="$(MSBuildThisFileDirectory)/../src/UI/**/*.cs" />
-		<Page Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
-			  Remove="$(MSBuildThisFileDirectory)/../src/UI/**/*.cs" />
+	<ItemGroup>
+		<Compile 
+			Include="$(MSBuildThisFileDirectory)/../src/**/*.cs"
+			Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
+			Visible="False" />
+		<Page 
+			Include="$(MSBuildThisFileDirectory)/../src/**/*.xaml"
+			Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
+			Visible="False"
+			XamlRuntime="WinUI" />
 
-		<Compile Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_LIBRARY'))"
-				 Remove="$(MSBuildThisFileDirectory)/../src/Library/**/*.cs" />
+		<Compile 
+			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
+			Remove="$(MSBuildThisFileDirectory)/../src/Engine/UI/**/*.cs" />
+		<Page 
+			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
+			Remove="$(MSBuildThisFileDirectory)/../src/Engine/UI/**/*.cs" />
+
+		<Compile 
+			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_LIBRARY'))"
+			Remove="$(MSBuildThisFileDirectory)/../src/Library/**/*.cs" />
+
+		<Compile 
+			Condition="'$(PkgUno_UI_DevServer)' == '' AND '$(PkgUno_WinUI_DevServer)' == ''"
+			Remove="$(MSBuildThisFileDirectory)/../src/Library/Helpers/HotReloadHelper.cs" />
 	</ItemGroup>
 </Project>

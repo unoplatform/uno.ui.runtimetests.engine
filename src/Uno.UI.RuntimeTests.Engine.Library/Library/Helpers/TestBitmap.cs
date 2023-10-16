@@ -14,16 +14,24 @@ using Windows.Foundation;
 using Windows.Graphics.Display;
 using Windows.Storage.Streams;
 using Windows.UI;
+
+#if HAS_UNO_WINUI || WINDOWS_WINUI
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+#else
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
+#endif
 
 namespace Uno.UI.RuntimeTests;
 
 /// <summary>
 /// Represents a <see cref="RenderTargetBitmap"/> to be tested against.
 /// </summary>
-internal partial class TestBitmap
+public partial class TestBitmap
 {
 	private readonly RenderTargetBitmap _bitmap;
 	private readonly UIElement _renderedElement; // Allow access through partial implementation
@@ -42,7 +50,7 @@ internal partial class TestBitmap
 	/// <summary>
 	/// Prefer using UIHelper.Screenshot() instead.
 	/// </summary>
-	public static async Task<TestBitmap> From(RenderTargetBitmap bitmap, UIElement renderedElement, double? implicitScaling = null)
+	internal static async Task<TestBitmap> From(RenderTargetBitmap bitmap, UIElement renderedElement, double? implicitScaling = null)
 	{
 		implicitScaling ??= DisplayInformation.GetForCurrentView()?.RawPixelsPerViewPixel ?? 1;
 		var raw = new TestBitmap(bitmap, renderedElement, implicitScaling.Value);

@@ -1,4 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
+﻿// *********************************************************************************************************************
+// *********************************************************************************************************************
+//				Be aware that this file is referenced only if the package Uno.[Win]UI.DevServer is referenced.
+// *********************************************************************************************************************
+// *********************************************************************************************************************
+
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 #nullable enable
 
 #if !IS_UNO_RUNTIMETEST_PROJECT
@@ -28,12 +34,23 @@ using Windows.UI.Xaml;
 
 namespace Uno.UI.RuntimeTests;
 
-public static class HotReloadHelper
+public static partial class HotReloadHelper
 {
-	public static async ValueTask<IAsyncDisposable?> UpdateServerFile(string filPathRelativeToProject, string originalText, string replacementText, CancellationToken ct)
-		=> await UpdateServerFile(filPathRelativeToProject, originalText, replacementText, true, ct);
+	public static async ValueTask<IAsyncDisposable?> UpdateServerFile<T>(string filPathRelativeToProject, string originalText, string replacementText, CancellationToken ct)
+		=> await UpdateServerFile<T>(filPathRelativeToProject, originalText, replacementText, true, ct);
 
-	public static async ValueTask<IAsyncDisposable?> UpdateServerFile(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, CancellationToken ct)
+	/// <summary>
+	/// Update the 
+	/// </summary>
+	/// <typeparam name="T">The type that is expected to be altered</typeparam>
+	/// <param name="filPathRelativeToProject"></param>
+	/// <param name="originalText"></param>
+	/// <param name="replacementText"></param>
+	/// <param name="waitForMetadataUpdate"></param>
+	/// <param name="ct"></param>
+	/// <returns></returns>
+	/// <exception cref="InvalidOperationException"></exception>
+	public static async ValueTask<IAsyncDisposable?> UpdateServerFile<T>(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, CancellationToken ct)
 	{
 		var projectFile = typeof(HotReloadHelper).Assembly.GetCustomAttribute<RuntimeTestsSourceProjectAttribute>()?.ProjectFullPath;
 		if (projectFile is null or { Length: 0 })

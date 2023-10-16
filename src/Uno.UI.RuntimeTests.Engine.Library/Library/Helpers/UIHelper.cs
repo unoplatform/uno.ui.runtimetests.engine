@@ -12,9 +12,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Graphics.Display;
+using Windows.UI;
 using Windows.System;
 
 #if HAS_UNO_WINUI || WINDOWS_WINUI
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -33,7 +35,7 @@ namespace Uno.UI.RuntimeTests;
 /// <summary>
 /// Set of helpers to interact with the UI during tests.
 /// </summary>
-internal static class UIHelper
+public static partial class UIHelper
 {
 	/// <summary>
 	/// Gets or sets the content of the current test area.
@@ -216,9 +218,9 @@ internal static class UIHelper
 				{
 					new Border
 					{
-						BorderBrush = new SolidColorBrush(Windows.UI.Colors.Black),
+						BorderBrush = new SolidColorBrush(Colors.Black),
 						BorderThickness = new Thickness(1),
-						Background = new SolidColorBrush(Windows.UI.Colors.Gray),
+						Background = new SolidColorBrush(Colors.Gray),
 						Width = bitmap.Width * bitmap.ImplicitScaling + 2,
 						Height = bitmap.Height * bitmap.ImplicitScaling + 2,
 						Child = img = new Image

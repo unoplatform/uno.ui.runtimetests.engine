@@ -6,7 +6,7 @@ using System.Linq;
 namespace Uno.UI.RuntimeTests;
 
 
-#if !UNO_RUNTIMETESTS_DISABLE_UI || !UNO_RUNTIMETESTS_DISABLE_RC
+#if !UNO_RUNTIMETESTS_DISABLE_UI || !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
 
 public record UnitTestEngineConfig
 {

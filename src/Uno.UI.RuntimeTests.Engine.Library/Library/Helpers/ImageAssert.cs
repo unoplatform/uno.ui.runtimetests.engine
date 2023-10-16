@@ -25,7 +25,7 @@ namespace Uno.UI.RuntimeTests;
 /// <summary>
 /// Screen shot based assertions, to validate individual colors of an image
 /// </summary>
-internal static partial class ImageAssert
+public static partial class ImageAssert
 {
 	#region HasColorAt
 	public static void HasColorAt(TestBitmap screenshot, Windows.Foundation.Point location, string expectedColorCode, byte tolerance = 0, [CallerLineNumber] int line = 0)
@@ -144,7 +144,7 @@ internal static partial class ImageAssert
 		{
 			Assert.Fail(WithContext(builder: builder => builder
 				.AppendLine($"Color at ({x},{y}) is not expected")
-				.AppendLine($"excluded: {ToArgbCode(excludedColor)} {ColorHelper.ToDisplayName(excludedColor)}")
+				.AppendLine($"excluded: {ToArgbCode(excludedColor)}")
 				.AppendLine($"actual  : {ToArgbCode(pixel)} {pixel}")
 				.AppendLine($"tolerance: {tolerance}")
 				.AppendLine($"difference: {difference}")

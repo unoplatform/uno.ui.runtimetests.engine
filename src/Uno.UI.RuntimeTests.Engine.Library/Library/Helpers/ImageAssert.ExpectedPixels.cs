@@ -15,6 +15,7 @@ using Windows.Foundation;
 using Windows.UI;
 
 #if HAS_UNO_WINUI || WINDOWS_WINUI
+using Microsoft.UI;
 using Microsoft.UI.Xaml.Markup;
 #else
 using Windows.UI.Xaml.Markup;
@@ -22,7 +23,7 @@ using Windows.UI.Xaml.Markup;
 
 namespace Uno.UI.RuntimeTests;
 
-internal record struct ExpectedPixels
+public record struct ExpectedPixels
 {
 	#region Fluent declaration
 	public static ExpectedPixels At(string name, float x, float y)
@@ -193,7 +194,7 @@ internal record struct ExpectedPixels
 			: (Color)XamlBindingHelper.ConvertValue(typeof(Color), colorCode);
 }
 
-internal struct PixelTolerance
+public struct PixelTolerance
 {
 	#region Fluent declaration
 	public static PixelTolerance None => default;
@@ -247,7 +248,7 @@ internal struct PixelTolerance
 			: "No color tolerance";
 }
 
-internal enum ColorToleranceKind
+public enum ColorToleranceKind
 {
 	/// <summary>
 	/// Each component of the pixel (i.e. a, r, g and b) might differ by the provided color tolerance
@@ -260,7 +261,7 @@ internal enum ColorToleranceKind
 	Cumulative
 }
 
-internal enum LocationToleranceKind
+public enum LocationToleranceKind
 {
 	/// <summary>
 	/// The offset applies to all pixel in <see cref="ExpectedPixels.Values"/> at once
