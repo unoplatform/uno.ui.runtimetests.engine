@@ -18,7 +18,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Uno.UI.RuntimeTests.Engine;
+namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 /// <summary>
 /// Helper class to run tests in a secondary app.

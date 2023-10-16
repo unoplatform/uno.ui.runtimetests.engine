@@ -20,8 +20,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Uno.Extensions;
 using Uno.Logging;
+using Uno.UI.RuntimeTests.Engine;
 
-namespace Uno.UI.RuntimeTests.Engine;
+namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 /// <summary>
 /// Helper class to start a dev server instance.

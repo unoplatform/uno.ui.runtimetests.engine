@@ -16,7 +16,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestEngineConfig.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestMethodInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestDispatcherCompat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\_Private\UnitTestDispatcherCompat.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.CustomConsoleOutput.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.TestRun.cs" />
@@ -58,7 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Engine\UI\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Engine\UI\_Private\" />
     <Folder Include="$(MSBuildThisFileDirectory)Library\_Private\" />
   </ItemGroup>
 </Project>

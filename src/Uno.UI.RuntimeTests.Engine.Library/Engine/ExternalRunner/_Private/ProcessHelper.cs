@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Uno.Extensions;
 using Uno.Logging;
 
-namespace Uno.UI.RuntimeTests.Engine;
+namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 /// <summary>
 /// An helper class used by test engine tu run tests in a separate process.
