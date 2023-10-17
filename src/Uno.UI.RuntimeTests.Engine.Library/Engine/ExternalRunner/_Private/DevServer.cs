@@ -4,10 +4,7 @@
 #if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
-
-#if __SKIA__
-#define HAS_UNO_DEV_SERVER
-#endif
+#pragma warning disable CA1848 // Log perf
 
 using System;
 using System.Collections.Generic;
@@ -21,10 +18,8 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using HarfBuzzSharp;
 using Microsoft.Extensions.Logging;
 using Uno.Extensions;
-using Uno.Logging;
 using Uno.UI.RuntimeTests.Engine;
 
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
@@ -49,7 +44,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 	/// <returns>The new dev server instance.</returns>
 	public static async Task<DevServer> Start(CancellationToken ct)
 	{
-#if !HAS_UNO_DEV_SERVER
+#if !HAS_UNO_DEVSERVER
 		throw new NotSupportedException("Dev server is not supported on this platform.");
 #else
 		var path = await GetDevServer(ct);
@@ -169,7 +164,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 	{
 		if (!File.Exists(hostBinPath))
 		{
-			_log.Error($"DevServer {hostBinPath} does not exist");
+			_log.LogError($"DevServer {hostBinPath} does not exist");
 			throw new InvalidOperationException($"Unable to find {hostBinPath}");
 		}
 
@@ -224,7 +219,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 		}
 		catch (Exception e)
 		{
-			typeof(DevServer).Log().Error("Failed to kill dev server", e);
+			_log.LogError("Failed to kill dev server", e);
 		}
 
 		await _process.WaitForExitAsync(CancellationToken.None);

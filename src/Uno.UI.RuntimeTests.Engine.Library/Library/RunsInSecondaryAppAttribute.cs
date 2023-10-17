@@ -15,5 +15,14 @@ namespace Uno.UI.RuntimeTests;
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RunsInSecondaryAppAttribute : Attribute
 {
+	/// <summary>
+	/// Indicates if the test should be ignored if the platform does not support running tests in a secondary app.
+	/// </summary>
+	public bool IgnoreIfNotSupported { get; }
+
+	public RunsInSecondaryAppAttribute(bool ignoreIfNotSupported = false)
+	{
+		IgnoreIfNotSupported = ignoreIfNotSupported;
+	}
 }
 #endif

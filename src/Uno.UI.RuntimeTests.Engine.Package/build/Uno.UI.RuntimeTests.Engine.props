@@ -33,9 +33,5 @@
 		<Compile 
 			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_LIBRARY'))"
 			Remove="$(MSBuildThisFileDirectory)/../src/Library/**/*.cs" />
-
-		<Compile 
-			Condition="'$(PkgUno_UI_DevServer)' == '' AND '$(PkgUno_WinUI_DevServer)' == ''"
-			Remove="$(MSBuildThisFileDirectory)/../src/Library/Helpers/HotReloadHelper.cs" />
 	</ItemGroup>
 </Project>

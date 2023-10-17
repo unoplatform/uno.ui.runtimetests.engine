@@ -3,12 +3,26 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Uno.UI.RemoteControl;
+using Uno.UI.RuntimeTests.Internal.Helpers;
 
 namespace Uno.UI.RuntimeTests.Engine;
 
 [TestClass]
-[RunsInSecondaryApp]
+public class SecondaryAppSanity
+{
+	[TestMethod]
+	public void Is_SecondaryApp_Supported()
+	{
+#if __SKIA__
+		Assert.IsTrue(SecondaryApp.IsSupported);
+#else
+		Assert.IsFalse(SecondaryApp.IsSupported);
+#endif
+	}
+}
+
+[TestClass]
+[RunsInSecondaryApp(ignoreIfNotSupported: true)]
 public class SecondaryAppTests
 {
 	[TestMethod]
@@ -20,12 +34,16 @@ public class SecondaryAppTests
 	[TestMethod]
 	public async Task Is_DevServer_Connected()
 	{
-		Assert.IsNotNull(RemoteControlClient.Instance);
+#if HAS_UNO_DEVSERVER
+		Assert.IsNotNull(Uno.UI.RemoteControl.RemoteControlClient.Instance);
 		
-		var connected = RemoteControlClient.Instance.WaitForConnection(CancellationToken.None);
+		var connected = Uno.UI.RemoteControl.RemoteControlClient.Instance.WaitForConnection(CancellationToken.None);
 		var timeout = Task.Delay(500);
 
 		Assert.AreEqual(connected, await Task.WhenAny(connected, timeout));
+#else
+		Assert.Inconclusive("Dev server in not supported on this platform.");
+#endif
 	}
 
 #if DEBUG

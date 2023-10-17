@@ -720,10 +720,28 @@ public sealed partial class UnitTestsControl : UserControl
 		ReportTestClass(testClassInfo.Type.GetTypeInfo());
 		_ = ReportMessage($"Running {tests.Length} test methods");
 
-		if (testClassInfo.RunsInSecondaryApp && !IsSecondaryApp)
+		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp && !IsSecondaryApp)
 		{
 			try
 			{
+				var testCases = tests.SelectMany(t => t.GetCases(ct)).ToList();
+#pragma warning disable CS0162 // Code not reachable
+				if (!SecondaryApp.IsSupported && secondaryApp.IgnoreIfNotSupported && !config.IsRunningIgnored)
+				{
+					foreach (var testCase in testCases)
+					{
+						ReportTestResult(
+							instance.GetType().Name,
+							TimeSpan.Zero,
+							TestResult.Skipped,
+							null,
+							$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
+					}
+
+					return;
+				}
+#pragma warning restore CS0162
+
 				config = config with { Filter = $"{testClassInfo.Type.FullName} & ({config.Filter})" };
 
 				var results = await SecondaryApp.RunTest(config, ct, isAppVisible: Debugger.IsAttached);
@@ -732,15 +750,15 @@ public sealed partial class UnitTestsControl : UserControl
 					ReportTestResult(result);
 				}
 
-				var expectedResultsCount = tests.Sum(t => t.GetCases(ct).Count());
-				if (results.Length != expectedResultsCount)
+				
+				if (results.Length != testCases.Count)
 				{
 					ReportTestResult(
 						instance.GetType().Name, 
 						TimeSpan.Zero, 
 						TestResult.Failed, 
-						new InvalidOperationException($"Unexpected tests results, got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {expectedResultsCount}.\""), 
-						$"Got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {expectedResultsCount}.");
+						new InvalidOperationException($"Unexpected tests results, got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.\""), 
+						$"Got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.");
 				}
 			}
 			catch (Exception error)

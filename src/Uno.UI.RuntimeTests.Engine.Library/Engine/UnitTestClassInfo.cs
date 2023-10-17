@@ -22,7 +22,7 @@ public class UnitTestClassInfo
 		Initialize = initialize;
 		Cleanup = cleanup;
 
-		RunsInSecondaryApp = HasCustomAttribute<RunsInSecondaryAppAttribute>(type);
+		RunsInSecondaryApp = type?.GetCustomAttribute<RunsInSecondaryAppAttribute>();
 	}
 
 	public string TestClassName { get; }
@@ -35,7 +35,7 @@ public class UnitTestClassInfo
 
 	public MethodInfo? Cleanup { get; }
 
-	public bool RunsInSecondaryApp { get; }
+	public RunsInSecondaryAppAttribute? RunsInSecondaryApp { get; }
 
 	public override string ToString() => TestClassName;
 

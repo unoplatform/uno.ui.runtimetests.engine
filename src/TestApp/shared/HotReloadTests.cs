@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -19,16 +20,32 @@ using Windows.UI.Xaml.Controls;
 namespace Uno.UI.RuntimeTests.Engine;
 
 [TestClass]
+public class HotReloadSanity
+{
+	[TestMethod]
+	public void Is_HotReload_Supported()
+	{
+#if __SKIA__ // DevServer should be referenced also in release
+		Assert.IsTrue(HotReloadHelper.IsSupported);
+#else
+		Assert.IsFalse(HotReloadHelper.IsSupported);
+#endif
+	}
+}
+
+[TestClass]
 [RunsInSecondaryApp]
 public class HotReloadTests
 {
 	[TestMethod]
+#if !__SKIA__
+	[Ignore("This tests assume directs access to the file system which not possible on this platform.")]
+#endif
 	public async Task Is_SourcesEditable(CancellationToken ct)
 	{
 		var sutPath = "../../shared/HotReloadTests_Subject.xaml";
 		var dir = Path.GetDirectoryName(typeof(HotReloadHelper).Assembly.GetCustomAttribute<RuntimeTestsSourceProjectAttribute>()!.ProjectFullPath)!;
 		var file = Path.Combine(dir, sutPath);
-
 
 		Assert.IsTrue(File.Exists(file));
 		Assert.IsTrue(File.ReadAllText(file).Contains("Original text"));
@@ -41,8 +58,30 @@ public class HotReloadTests
 	}
 
 	[TestMethod]
-	public async Task Is_HotReload_Enabled(CancellationToken ct)
+	public async Task Is_CodeHotReload_Enabled(CancellationToken ct)
 	{
+		if (!HotReloadHelper.IsSupported)
+		{
+			Assert.Inconclusive("Hot reload testing is not supported on this platform.");
+		}
+
+		var sut = new HotReloadTest_SimpleSubject();
+
+		Debug.Assert(sut.Value == "42");
+
+		await using var _ = await HotReloadHelper.UpdateServerFile("../../shared/HotReloadTest_SimpleSubject.cs", "42", "43", ct);
+
+		Debug.Assert(sut.Value == "43");
+	}
+
+	[TestMethod]
+	public async Task Is_UIHotReload_Enabled(CancellationToken ct)
+	{
+		if (!HotReloadHelper.IsSupported)
+		{
+			Assert.Inconclusive("Hot reload testing is not supported on this platform.");
+		}
+
 		await UIHelper.Load(new HotReloadTests_Subject(), ct);
 
 		Assert.AreEqual("Original text", UIHelper.FindChildren<TextBlock>().Single().Text);

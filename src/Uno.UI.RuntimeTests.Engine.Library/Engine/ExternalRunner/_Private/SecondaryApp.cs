@@ -33,6 +33,16 @@ internal static partial class SecondaryApp
 	private static int _instance;
 
 	/// <summary>
+	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.
+	/// </summary>
+	public static bool IsSupported => // Note: not as const to avoid "CS0162 unreachable code" warning
+#if IS_SECONDARY_APP_SUPPORTED
+		true;
+#else
+		false;
+#endif
+
+	/// <summary>
 	/// Run the tests defined by the given configuration in another instance of the current application.
 	/// </summary>
 	/// <param name="config">Test engine configuration.</param>
@@ -41,9 +51,10 @@ internal static partial class SecondaryApp
 	/// <returns>The test results.</returns>
 	internal static async Task<TestCaseResult[]> RunTest(UnitTestEngineConfig config, CancellationToken ct, bool isAppVisible = false)
 	{
-#if !IS_SECONDARY_APP_SUPPORTED
-		throw new NotSupportedException("Secondary app is not supported on this platform.");
-#endif
+		if (!IsSupported)
+		{
+			throw new NotSupportedException("Secondary app is not supported on this platform.");
+		}
 
 		// First we fetch and start the dev-server (needed to HR tests for instance)
 		await using var devServer = await DevServer.Start(ct);

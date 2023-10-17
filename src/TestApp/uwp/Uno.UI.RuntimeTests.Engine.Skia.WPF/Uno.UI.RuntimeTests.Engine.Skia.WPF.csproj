@@ -5,7 +5,7 @@
 		<TargetFramework>net7.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
 		<WarningsNotAsErrors>$(WarningsNotAsErrors);Uno0001</WarningsNotAsErrors>
-		<DefineConstants>$(DefineConstants);__SKIA__;IS_UNO_RUNTIMETEST_PROJECT</DefineConstants>
+		<DefineConstants>$(DefineConstants);__SKIA__</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup Label="AssemblyInfo">
 		<AssemblyAttribute Include="System.Runtime.InteropServices.ComVisibleAttribute">

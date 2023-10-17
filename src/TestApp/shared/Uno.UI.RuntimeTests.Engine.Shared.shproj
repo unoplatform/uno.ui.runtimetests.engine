@@ -17,6 +17,7 @@
     <_Globbed_Compile Remove="FilterTests.cs" />
     <_Globbed_Compile Remove="HotReloadTests.cs" />
     <_Globbed_Compile Remove="HotReloadTests_Subject.xaml.cs" />
+    <_Globbed_Compile Remove="HotReloadTest_SimpleSubject.cs" />
     <_Globbed_Compile Remove="MetaAttributes.cs" />
   </ItemGroup>
   <ItemGroup>

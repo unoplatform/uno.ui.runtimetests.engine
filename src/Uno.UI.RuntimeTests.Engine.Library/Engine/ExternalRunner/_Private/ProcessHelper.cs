@@ -1,6 +1,11 @@
 ﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
 #nullable enable
 
+#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+#pragma warning disable CA1848 // Log perf
+
 using System;
 using System.Diagnostics;
 using System.Text;
@@ -9,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Uno.Extensions;
-using Uno.Logging;
 
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
@@ -34,7 +38,7 @@ internal static partial class ProcessHelper
 		var output = new StringBuilder();
 		var error = new StringBuilder();
 
-		log.Debug("Waiting for process exit");
+		log.LogTrace("Waiting for process exit");
 
 		// hookup the event handlers to capture the data that is received
 		process.OutputDataReceived += (sender, args) => output.Append(args.Data);
@@ -46,7 +50,7 @@ internal static partial class ProcessHelper
 		}
 
 		var pi = process.StartInfo;
-		typeof(ProcessHelper).Log().Debug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
+		log.LogDebug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
 
 		process.Start();
 
@@ -68,7 +72,7 @@ internal static partial class ProcessHelper
 	{
 		process.StartAndLog(log);
 
-		typeof(ProcessHelper).Log().Debug(log + " waiting for process exit");
+		log.LogTrace("Waiting for process exit");
 
 		await process.WaitForExitWithCancellationAsync(ct);
 
@@ -91,11 +95,11 @@ internal static partial class ProcessHelper
 		process.StartInfo.RedirectStandardError = true;
 
 		// hookup the event handlers to capture the data that is received
-		process.OutputDataReceived += (sender, args) => log.Debug(args.Data ?? "<Empty>");
-		process.ErrorDataReceived += (sender, args) => log.Error(args.Data ?? "<Empty>");
+		process.OutputDataReceived += (sender, args) => log.LogDebug(args.Data ?? "<Empty>");
+		process.ErrorDataReceived += (sender, args) => log.LogError(args.Data ?? "<Empty>");
 
 		var pi = process.StartInfo;
-		log.Debug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
+		log.LogDebug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
 
 		process.Start();
 
@@ -154,7 +158,7 @@ internal static partial class ProcessHelper
 		if (process.ExitCode != 0)
 		{
 			var processError = new InvalidOperationException(error.ToString());
-			log.Error($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}", processError);
+			log.LogError($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}", processError);
 
 			throw new InvalidOperationException($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}", processError);
 		}
@@ -164,7 +168,7 @@ internal static partial class ProcessHelper
 	{
 		if (process.ExitCode != 0)
 		{
-			log.Error($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}");
+			log.LogError($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}");
 
 			throw new InvalidOperationException($"Process '{process.StartInfo.FileName}' failed with code {process.ExitCode}");
 		}
