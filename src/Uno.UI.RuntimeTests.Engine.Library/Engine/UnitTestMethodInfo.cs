@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Windows.Devices.Input;
+using Microsoft.VisualBasic.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Uno.UI.RuntimeTests;
@@ -74,20 +76,24 @@ internal record UnitTestMethodInfo
 		return false;
 	}
 
-	public IEnumerable<TestCase> GetCases()
+	public IEnumerable<TestCase> GetCases(CancellationToken ct)
 	{
-		List<TestCase> cases = Enumerable.Empty<TestCase>().ToList();
+		List<TestCase> cases = new();
 
 		if (_casesParameters is { Count: 0 })
 		{
-			cases.Add(new TestCase());
+			cases.Add(Method.GetParameters().Any(p => p.ParameterType == typeof(CancellationToken))
+				? new TestCase { Parameters = new object[] { ct } }
+				: new TestCase());
 		}
 
 		foreach (var testCaseSource in _casesParameters)
 		{
+			// Note: CT is not propagated when using a test data source
 			foreach (var caseData in testCaseSource.GetData(Method))
 			{
-				var data = testCaseSource.GetData(Method)
+				var data = testCaseSource
+					.GetData(Method)
 					.SelectMany(x => x)
 					.ToArray();
 

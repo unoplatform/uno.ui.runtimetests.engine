@@ -111,12 +111,19 @@ public static partial class UIHelper
 	/// Walks the tree down to find all the children of the given type.
 	/// </summary>
 	/// <typeparam name="T">Type of the children</typeparam>
-	/// <param name="element">The root element of the tree to walk.</param>
+	/// <param name="element">The root element of the tree to walk, or null to search from <seealso cref="Content"/>.</param>
 	/// <returns>An enumerable sequence of all children of <paramref name="element"/> that are of the requested type.</returns>
 	/// <remarks>If the given <paramref name="element"/> is also a <typeparamref name="T"/>, it will be returned in the enumerable sequence.</remarks>
 	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
-	public static IEnumerable<T> FindChildren<T>(DependencyObject element)
+	public static IEnumerable<T> FindChildren<T>(DependencyObject? element = null)
 	{
+		element ??= Content;
+
+		if (element is null)
+		{
+			yield break;
+		}
+
 		if (element is T t)
 		{
 			yield return t;

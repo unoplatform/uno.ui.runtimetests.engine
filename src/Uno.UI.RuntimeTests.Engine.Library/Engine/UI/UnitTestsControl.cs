@@ -732,7 +732,7 @@ public sealed partial class UnitTestsControl : UserControl
 					ReportTestResult(result);
 				}
 
-				var expectedResultsCount = tests.Sum(t => t.GetCases().Count());
+				var expectedResultsCount = tests.Sum(t => t.GetCases(ct).Count());
 				if (results.Length != expectedResultsCount)
 				{
 					ReportTestResult(
@@ -780,7 +780,7 @@ public sealed partial class UnitTestsControl : UserControl
 				}
 			}
 
-			foreach (var testCase in test.GetCases())
+			foreach (var testCase in test.GetCases(ct))
 			{
 				if (ct.IsCancellationRequested)
 				{

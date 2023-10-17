@@ -5,10 +5,14 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Uno.Extensions;
+using Uno.Logging;
 
 #if HAS_UNO_WINUI || WINDOWS_WINUI
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 #else
+using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 #endif
 
@@ -19,10 +23,8 @@ namespace Uno.UI.RuntimeTests.Engine;
 public class HotReloadTests
 {
 	[TestMethod]
-	public async Task Is_SourcesEditable()
+	public async Task Is_SourcesEditable(CancellationToken ct)
 	{
-		var ct = CancellationToken.None;
-
 		var sutPath = "../../shared/HotReloadTests_Subject.xaml";
 		var dir = Path.GetDirectoryName(typeof(HotReloadHelper).Assembly.GetCustomAttribute<RuntimeTestsSourceProjectAttribute>()!.ProjectFullPath)!;
 		var file = Path.Combine(dir, sutPath);
@@ -39,31 +41,14 @@ public class HotReloadTests
 	}
 
 	[TestMethod]
-	[Ignore("Hot reload not working yet")]
-	public async Task Is_HotReload_Enabled()
+	public async Task Is_HotReload_Enabled(CancellationToken ct)
 	{
-		var ct = CancellationToken.None;
+		await UIHelper.Load(new HotReloadTests_Subject(), ct);
 
-		var sut = new HotReloadTests_Subject();
-		await UIHelper.Load(sut, ct);
-
-		Console.WriteLine("Loaded");
-
-		var text = UIHelper.FindChildren<TextBlock>(sut).Single();
-
-		Console.WriteLine("Found text: " + text.Text);
-
-		Assert.AreEqual("Original text", text.Text);
+		Assert.AreEqual("Original text", UIHelper.FindChildren<TextBlock>().Single().Text);
 
 		await using var _ = await HotReloadHelper.UpdateServerFile<HotReloadTests_Subject>("Original text", "Updated text", ct);
 
-		await Task.Delay(1500, ct);
-
-		sut = new HotReloadTests_Subject();
-		await UIHelper.Load(sut, ct);
-		text = UIHelper.FindChildren<TextBlock>(sut).Single();
-
-		await TestHelper.WaitFor(() => text.Text == "Updated text", ct);
-		Assert.AreEqual("Updated text", text.Text);
+		await TestHelper.WaitFor(() => UIHelper.FindChildren<TextBlock>().Single().Text, "Updated text", ct);
 	}
 }

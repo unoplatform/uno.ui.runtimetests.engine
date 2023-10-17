@@ -204,6 +204,8 @@ public static partial class HotReloadHelper
 
 			try
 			{
+				_log.Info($"Reverting changes made on {Message.FilePath}.");
+
 				await DevServer.SendMessage(revertMessage);
 			}
 			catch (WebSocketException)
