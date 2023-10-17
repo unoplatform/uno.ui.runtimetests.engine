@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.Extensions;
-using Uno.Logging;
 
 #if HAS_UNO_WINUI || WINDOWS_WINUI
 using Microsoft.UI.Xaml;

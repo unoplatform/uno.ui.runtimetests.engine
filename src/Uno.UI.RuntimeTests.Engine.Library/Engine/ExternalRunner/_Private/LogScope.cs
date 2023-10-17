@@ -7,11 +7,18 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 internal static class LoggerExtensions
 {
-	public static LogScope Scope(this ILogger log, string scopeName)
+	public static LogScope CreateScopedLog(this Type type, string scopeName)
+#if false
+		=> new(type.Log(), type.Log().BeginScope(scopeName));
+#else
+		=> new(Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory.CreateLogger(type.FullName + "#" + scopeName));
+#endif
+
+	public static LogScope Scope<T>(this ILogger log, string scopeName)
 #if false
 		=> new(log, log.BeginScope(scopeName));
 #else
-		=> new (Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory.CreateLogger(typeof(DevServer).FullName + "#" + scopeName));
+		=> new (Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory.CreateLogger(typeof(T).FullName + "#" + scopeName));
 #endif
 }
 

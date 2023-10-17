@@ -2,6 +2,7 @@
 using System;
 using Uno.UI.Runtime.Skia;
 using Windows.UI.Core;
+using Uno.UI.Runtime.Skia.Linux.FrameBuffer;
 
 namespace Uno.UI.RuntimeTests.Engine
 {

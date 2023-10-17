@@ -1,4 +1,4 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI && (__SKIA__ || IS_SECONDARY_APP_SUPPORTED)
 #nullable enable
 
 #if !IS_UNO_RUNTIMETEST_PROJECT
@@ -80,7 +80,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 
 		try
 		{
-			using (var log = _log.Scope("GET_DOTNET_VERSION"))
+			using (var log = _log.Scope<DevServer>("GET_DOTNET_VERSION"))
 			{
 				var rawVersion = await ProcessHelper.ExecuteAsync(
 					ct,
@@ -99,7 +99,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 				await File.WriteAllTextAsync(Path.Combine(dir, "PullDevServer.csproj"), csProj, ct);
 			}
 
-			using (var log = _log.Scope("PULL_DEV_SERVER"))
+			using (var log = _log.Scope<DevServer>("PULL_DEV_SERVER"))
 			{
 				var args = new List<string> { "add", "package" };
 #if HAS_UNO_WINUI || WINDOWS_WINUI
@@ -133,7 +133,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 				await ProcessHelper.ExecuteAsync(ct, "dotnet", args, dir, log);
 			}
 
-			using (var log = _log.Scope("GET_DEV_SERVER_PATH"))
+			using (var log = _log.Scope<DevServer>("GET_DEV_SERVER_PATH"))
 			{
 				var data = await ProcessHelper.ExecuteAsync(
 					ct,
@@ -179,7 +179,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 
 		var process = new System.Diagnostics.Process { StartInfo = pi };
 
-		process.StartAndLog(_log.Scope($"DEV_SERVER_{Interlocked.Increment(ref _instance):D2}"));
+		process.StartAndLog(_log.Scope<DevServer>($"DEV_SERVER_{Interlocked.Increment(ref _instance):D2}"));
 
 		return new DevServer(process, port);
 	}

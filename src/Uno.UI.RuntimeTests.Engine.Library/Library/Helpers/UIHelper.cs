@@ -81,7 +81,7 @@ public static partial class UIHelper
 		}
 
 		var tcs = new TaskCompletionSource<object?>();
-		await using var _ = ct.CanBeCanceled ? ct.Register(() => tcs.TrySetCanceled()) : default;
+		using var _ = ct.CanBeCanceled ? ct.Register(() => tcs.TrySetCanceled()) : default;
 		try
 		{
 			element.Loaded += OnElementLoaded;

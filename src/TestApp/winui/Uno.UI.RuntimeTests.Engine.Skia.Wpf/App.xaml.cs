@@ -15,16 +15,5 @@ public partial class App : Application
 	{
 		var host = new WpfHost(Dispatcher, () => new Uno.UI.RuntimeTests.Engine.App());
 		host.Run();
-
-		if (Environment.CommandLine.Contains("--remoteControlServer"))
-		{
-
-		}
-
-			
-		if (RemoteControlClient.Instance is null)
-		{
-			RemoteControlClient.Initialize(typeof(App), new ServerEndpointAttribute("127.0.0.1", 443));
-		}
 	}
 }

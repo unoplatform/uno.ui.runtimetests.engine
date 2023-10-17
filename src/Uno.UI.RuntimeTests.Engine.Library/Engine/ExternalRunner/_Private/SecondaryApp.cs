@@ -30,8 +30,6 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 /// </remarks>
 internal static partial class SecondaryApp
 {
-	private static int _instance;
-
 	/// <summary>
 	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.
 	/// </summary>
@@ -51,11 +49,9 @@ internal static partial class SecondaryApp
 	/// <returns>The test results.</returns>
 	internal static async Task<TestCaseResult[]> RunTest(UnitTestEngineConfig config, CancellationToken ct, bool isAppVisible = false)
 	{
-		if (!IsSupported)
-		{
-			throw new NotSupportedException("Secondary app is not supported on this platform.");
-		}
-
+#if !IS_SECONDARY_APP_SUPPORTED
+		throw new NotSupportedException("Secondary app is not supported on this platform.");
+#else
 		// First we fetch and start the dev-server (needed to HR tests for instance)
 		await using var devServer = await DevServer.Start(ct);
 
@@ -76,6 +72,8 @@ internal static partial class SecondaryApp
 				error);
 		}
 	}
+
+	private static int _instance;
 
 	private static async Task<string> RunLocalApp(string devServerHost, int devServerPort, UnitTestEngineConfig config, bool isAppVisible, CancellationToken ct)
 	{
@@ -106,9 +104,10 @@ internal static partial class SecondaryApp
 
 		var childProcess = new Process { StartInfo = childStartInfo };
 
-		await childProcess.ExecuteAndLogAsync(typeof(SecondaryApp).Log().Scope($"CHILD_TEST_APP_{Interlocked.Increment(ref _instance):D2}"), ct);
+		await childProcess.ExecuteAndLogAsync(typeof(SecondaryApp).CreateScopedLog($"CHILD_TEST_APP_{Interlocked.Increment(ref _instance):D2}"), ct);
 
 		return testOutput;
+#endif
 	}
 }
 #endif

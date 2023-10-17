@@ -1,6 +1,7 @@
 ﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
 
 #nullable enable
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 using System;
 using System.Collections.Generic;
@@ -1031,7 +1032,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private async ValueTask ExecuteOnDispatcher(Func<ValueTask> asyncAction, CancellationToken ct = default)
 	{
-		var tcs = new TaskCompletionSource();
+		var tcs = new TaskCompletionSource<object?>();
 		await _dispatcher.RunAsync(async () =>
 		{
 			try
@@ -1041,10 +1042,10 @@ public sealed partial class UnitTestsControl : UserControl
 					tcs.TrySetCanceled();
 				}
 
-				await using var ctReg = ct.Register(() => tcs.TrySetCanceled());
+				using var ctReg = ct.Register(() => tcs.TrySetCanceled());
 				await asyncAction();
 
-				tcs.TrySetResult();
+				tcs.TrySetResult(default);
 			}
 			catch (Exception e)
 			{
