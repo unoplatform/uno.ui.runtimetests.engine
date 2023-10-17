@@ -150,7 +150,7 @@ internal static partial class ProcessHelper
 	public static async Task WaitForExitWithCancellationAsync(this Process process, CancellationToken ct)
 	{
 		await using var cancel = ct.Register(process.Close);
-		await process.WaitForExitAsync(ct);
+		await process.WaitForExitAsync(CancellationToken.None); // If the ct has been cancelled, we want to wait for exit!
 	}
 
 	public static void EnsureSuccess(this Process process, ILogger log, StringBuilder error)

@@ -63,9 +63,18 @@ internal static partial class SecondaryApp
 		var resultFile = await RunLocalApp("127.0.0.1", devServer.Port, config, isAppVisible, ct);
 
 		// Finally, read the test results
-		var results = await JsonSerializer.DeserializeAsync<TestCaseResult[]>(File.OpenRead(resultFile), cancellationToken: ct);
-
-		return results ?? Array.Empty<TestCaseResult>();
+		try
+		{
+			var results = await JsonSerializer.DeserializeAsync<TestCaseResult[]>(File.OpenRead(resultFile), cancellationToken: ct);
+			
+			return results ?? Array.Empty<TestCaseResult>();
+		}
+		catch (JsonException error)
+		{
+			throw new InvalidOperationException(
+				$"Failed to deserialize the test results from '{resultFile}', this usually indicates that the secondary app has been closed (or crashed) before the end of the test suit.", 
+				error);
+		}
 	}
 
 	private static async Task<string> RunLocalApp(string devServerHost, int devServerPort, UnitTestEngineConfig config, bool isAppVisible, CancellationToken ct)

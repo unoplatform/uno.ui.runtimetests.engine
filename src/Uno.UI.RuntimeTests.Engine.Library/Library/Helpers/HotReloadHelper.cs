@@ -101,13 +101,13 @@ namespace Uno.UI.RuntimeTests
 				throw new InvalidOperationException("The project file path could not be found.");
 			}
 
+			var projectDir = Path.GetDirectoryName(projectFile);
 #if __SKIA__
 			if (!File.Exists(projectFile)) // Sanity!
 			{
 				throw new InvalidOperationException("Unable to find project file.");
 			}
 
-			var projectDir = Path.GetDirectoryName(projectFile);
 			if (!Directory.Exists(projectDir))
 			{
 				throw new InvalidOperationException("Unable to find project directory.");
