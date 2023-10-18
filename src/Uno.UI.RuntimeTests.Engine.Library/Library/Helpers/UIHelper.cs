@@ -53,7 +53,7 @@ public static partial class UIHelper
 	/// <param name="ct">A cancellation token to cancel the async loading operation.</param>
 	/// <returns>An async operation that will complete when the given element is loaded.</returns>
 	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
-	public static async ValueTask Load(FrameworkElement element, CancellationToken ct)
+	public static async ValueTask Load(FrameworkElement element, CancellationToken ct = default)
 	{
 		Content = element;
 		await WaitForLoaded(element, ct);
@@ -62,7 +62,7 @@ public static partial class UIHelper
 	/// <summary>
 	/// Waits for the dispatcher to finish processing pending requests
 	/// </summary>
-	public static async ValueTask WaitForIdle() 
+	public static async ValueTask WaitForIdle(CancellationToken ct = default)
 		=> await UnitTestsUIContentHelper.WaitForIdle();
 
 	/// <summary>
@@ -73,7 +73,7 @@ public static partial class UIHelper
 	/// <returns></returns>
 	/// <exception cref="TimeoutException"></exception>
 	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
-	public static async ValueTask WaitForLoaded(FrameworkElement element, CancellationToken ct)
+	public static async ValueTask WaitForLoaded(FrameworkElement element, CancellationToken ct = default)
 	{
 		if (element.IsLoaded)
 		{
@@ -115,7 +115,7 @@ public static partial class UIHelper
 	/// <returns>An enumerable sequence of all children of <paramref name="element"/> that are of the requested type.</returns>
 	/// <remarks>If the given <paramref name="element"/> is also a <typeparamref name="T"/>, it will be returned in the enumerable sequence.</remarks>
 	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
-	public static IEnumerable<T> FindChildren<T>(DependencyObject? element = null)
+	public static IEnumerable<T> GetChildren<T>(DependencyObject? element = null)
 	{
 		element ??= Content;
 
@@ -131,7 +131,7 @@ public static partial class UIHelper
 
 		for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
 		{
-			foreach (var child in FindChildren<T>(VisualTreeHelper.GetChild(element, i)))
+			foreach (var child in GetChildren<T>(VisualTreeHelper.GetChild(element, i)))
 			{
 				yield return child;
 			}
@@ -139,17 +139,54 @@ public static partial class UIHelper
 	}
 
 	/// <summary>
+	/// Walks the tree down to find the **single** child of the given type.
+	/// </summary>
+	/// <typeparam name="T">Type of the child</typeparam>
+	/// <param name="element">The root element of the tree to walk, or null to search from <seealso cref="Content"/>.</param>
+	/// <returns>The **single** child of <paramref name="element"/> that is of the requested type.</returns>
+	/// <remarks>If the given <paramref name="element"/> is also a <typeparamref name="T"/>, it will be returned.</remarks>
+	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
+	public static T GetChild<T>(DependencyObject? element = null)
+		=> GetChildren<T>(element).Single();
+
+	/// <summary>
+	/// Walks the tree down to find the **single** child of the given type.
+	/// </summary>
+	/// <typeparam name="T">Type of the child</typeparam>
+	/// <param name="predicate">A predicate to filter the searched element.</param>
+	/// <param name="element">The root element of the tree to walk, or null to search from <seealso cref="Content"/>.</param>
+	/// <returns>The **single** child of <paramref name="element"/> that is of the requested type.</returns>
+	/// <remarks>If the given <paramref name="element"/> is also a <typeparamref name="T"/>, it will be returned.</remarks>
+	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
+	public static T GetChild<T>(Func<T, bool> predicate, DependencyObject? element = null)
+		=> GetChildren<T>(element).Single(predicate);
+
+	/// <summary>
+	/// Walks the tree down to find the **single** child of the given name.
+	/// </summary>
+	/// <typeparam name="T">Type of the child</typeparam>
+	/// <param name="name">The name of searched element.</param>
+	/// <param name="element">The root element of the tree to walk, or null to search from <seealso cref="Content"/>.</param>
+	/// <returns>The **single** child of <paramref name="element"/> that is of the requested type.</returns>
+	/// <remarks>If the given <paramref name="element"/> is also a <typeparamref name="T"/>, it will be returned.</remarks>
+	/// <remarks>As all other method of this class, this assume to be invoked on the UI-thread.</remarks>
+	public static T GetChild<T>(string name, DependencyObject? element = null)
+		where T : FrameworkElement
+		=> GetChildren<T>(element).Single(elt => elt.Name == name);
+
+	/// <summary>
 	/// Takes a screen-shot of the given element.
 	/// </summary>
 	/// <param name="element">The element to screen-shot.</param>
 	/// <param name="opaque">Indicates if the resulting image should be make opaque (i.e. all pixels has an opacity of 0xFF) or not.</param>
 	/// <param name="scaling">Indicates the scaling strategy to apply for the image (when screen is not using a 1.0 scale, usually 4K screens).</param>
+	/// <param name="ct">A cancellation token to cancel the async loading operation.</param>
 	/// <returns></returns>
-	public static async ValueTask<TestBitmap> ScreenShot(FrameworkElement element, bool opaque = false, ScreenShotScalingMode scaling = ScreenShotScalingMode.UsePhysicalPixelsWithImplicitScaling)
+	public static async ValueTask<TestBitmap> ScreenShot(FrameworkElement element, bool opaque = false, ScreenShotScalingMode scaling = ScreenShotScalingMode.UsePhysicalPixelsWithImplicitScaling, CancellationToken ct = default)
 	{
 		var renderer = new RenderTargetBitmap();
 		element.UpdateLayout();
-		await WaitForIdle();
+		await WaitForIdle(ct);
 
 		TestBitmap bitmap;
 		switch (scaling)
@@ -203,8 +240,9 @@ public static partial class UIHelper
 	/// Shows the given screenshot on screen for debug purposes
 	/// </summary>
 	/// <param name="bitmap">The image to show.</param>
+	/// <param name="ct">A cancellation token to cancel the async loading operation.</param>
 	/// <returns></returns>
-	public static async ValueTask Show(TestBitmap bitmap)
+	public static async ValueTask Show(TestBitmap bitmap, CancellationToken ct = default)
 	{
 		Image img;
 		CompositeTransform imgTr;
@@ -312,7 +350,7 @@ public static partial class UIHelper
 			}
 		}
 
-		await popup.ShowAsync(ContentDialogPlacement.Popup);
+		await popup.ShowAsync(ContentDialogPlacement.Popup).AsTask(ct);
 	}
 }
 

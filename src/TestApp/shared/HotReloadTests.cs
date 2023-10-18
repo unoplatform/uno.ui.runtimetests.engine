@@ -83,10 +83,10 @@ public class HotReloadTests
 
 		await UIHelper.Load(new HotReloadTests_Subject(), ct);
 
-		Assert.AreEqual("Original text", UIHelper.FindChildren<TextBlock>().Single().Text);
+		Assert.AreEqual("Original text", UIHelper.GetChild<TextBlock>().Text);
 
 		await using var _ = await HotReloadHelper.UpdateServerFile<HotReloadTests_Subject>("Original text", "Updated text", ct);
 
-		await TestHelper.WaitFor(() => UIHelper.FindChildren<TextBlock>().Single().Text, "Updated text", ct);
+		await AsyncAssert.AreEqual("Updated text", () => UIHelper.GetChild<TextBlock>().Text, ct);
 	}
 }

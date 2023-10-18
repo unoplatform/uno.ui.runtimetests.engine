@@ -352,6 +352,12 @@ public sealed partial class UnitTestsControl : UserControl
 				UpdateUI(result);
 			}
 		});
+#if HAS_UNO
+		foreach (var result in results)
+		{
+			_log?.Info($"Test completed '{result.TestName}'='{result.TestResult}'");
+		}
+#endif
 
 		void UpdateUI(TestCaseResult result)
 		{
@@ -726,13 +732,12 @@ public sealed partial class UnitTestsControl : UserControl
 			try
 			{
 				var testCases = tests.SelectMany(t => t.GetCases(ct)).ToList();
-#pragma warning disable CS0162 // Code not reachable
 				if (!SecondaryApp.IsSupported && secondaryApp.IgnoreIfNotSupported && !config.IsRunningIgnored)
 				{
 					foreach (var testCase in testCases)
 					{
 						ReportTestResult(
-							instance.GetType().Name,
+							testCase.ToString(),
 							TimeSpan.Zero,
 							TestResult.Skipped,
 							null,
@@ -741,7 +746,6 @@ public sealed partial class UnitTestsControl : UserControl
 
 					return;
 				}
-#pragma warning restore CS0162
 
 				config = config with { Filter = $"{testClassInfo.Type.FullName} & ({config.Filter})" };
 
@@ -751,7 +755,6 @@ public sealed partial class UnitTestsControl : UserControl
 					ReportTestResult(result);
 				}
 
-				
 				if (results.Length != testCases.Count)
 				{
 					ReportTestResult(

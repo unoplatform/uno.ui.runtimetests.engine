@@ -7,7 +7,9 @@
 			   Condition="'$(PkgUno_WinUI)'=='' and '$(PkgUno_UI)'==''"/>
 	</Target>
 
-	<PropertyGroup>
-		<DefineConstants Condition="'$(PkgUno_UI_DevServer)' != '' OR '$(PkgUno_WinUI_DevServer)' != ''">$(DefineConstants);HAS_UNO_DEVSERVER</DefineConstants>
+	<PropertyGroup Condition="'$(PkgUno_UI_DevServer)' != '' OR '$(PkgUno_WinUI_DevServer)' != ''">
+		<DefineConstants >$(DefineConstants);HAS_UNO_DEVSERVER</DefineConstants>
+		<UnoDevServer_IncludeProjectConfiguration>true</UnoDevServer_IncludeProjectConfiguration>
+		<UnoDevServer_IncludeServerProcessorsConfiguration>true</UnoDevServer_IncludeServerProcessorsConfiguration>
 	</PropertyGroup>
 </Project>
