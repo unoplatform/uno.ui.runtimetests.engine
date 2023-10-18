@@ -38,7 +38,9 @@ internal static partial class RuntimeTestEmbeddedRunner
 		UnoRuntimeTests,
 	}
 
+#pragma warning disable CA2255 // The 'ModuleInitializer' attribute is only intended to be used in application code or advanced source generator scenarios
 	[ModuleInitializer]
+#pragma warning restore CA2255
 	public static void AutoStartTests()
 	{
 		if (Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig
@@ -67,7 +69,9 @@ internal static partial class RuntimeTestEmbeddedRunner
 		{
 			Log("Waiting for app to init before running runtime-tests");
 
+#pragma warning disable CA1416 // Validate platform compatibility
 			Console.CancelKeyPress += (_, _) => ct.Cancel(true);
+#pragma warning restore CA1416 // Validate platform compatibility
 
 			// Wait for the app to init it-self
 			await Task.Delay(500, ct.Token).ConfigureAwait(false);
@@ -134,6 +138,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 		finally
 		{
+			Log("Runtime-test completed, exiting app.");
 			Environment.Exit(0);
 		}
 	}
@@ -150,8 +155,9 @@ internal static partial class RuntimeTestEmbeddedRunner
 		Log("Initializing runtime-tests engine.");
 		var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
 		Window.Current.Content = engine;
+		await UIHelper.WaitForLoaded(engine, ct);
 
-		// Runt tes test !
+		// Run the test !
 		Log($"Running runtime-tests ({config})");
 		await engine.RunTests(ct, config).ConfigureAwait(false);
 
