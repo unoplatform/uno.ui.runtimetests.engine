@@ -315,7 +315,8 @@ public static partial class HotReloadHelper
 	}
 
 	private static string StartEnd(string str, uint chars = 10)
-		=> str.Length <= chars ? str : $"{str[..(int)chars]}...{str[^(int)chars..]}";
+		//=> str.Length <= chars * 2 ? str : $"{str[..(int)chars]}...{str[^(int)chars..]}"; // Not supported by WINDOWS_UWP
+		=> str.Length <= chars * 2 ? str : $"{str.Substring(0, (int)chars)}...{str.Substring(str.Length - 1 - (int)chars)}";
 	#endregion
 }
 #endif
