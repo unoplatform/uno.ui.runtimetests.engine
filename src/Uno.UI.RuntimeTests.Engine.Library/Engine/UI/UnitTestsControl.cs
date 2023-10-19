@@ -1,6 +1,7 @@
 ﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
 
 #nullable enable
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -19,7 +21,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Logging;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
-using Newtonsoft.Json;
+using Uno.UI.RuntimeTests.Engine;
 using Uno.UI.RuntimeTests.Internal.Helpers;
 
 #if HAS_UNO
@@ -65,7 +67,6 @@ public sealed partial class UnitTestsControl : UserControl
 #endif
 #pragma warning restore CS0109
 
-	private const StringComparison StrComp = StringComparison.InvariantCultureIgnoreCase;
 	private Task? _runner;
 	private CancellationTokenSource? _cts = new CancellationTokenSource();
 #if DEBUG
@@ -80,7 +81,7 @@ public sealed partial class UnitTestsControl : UserControl
 	private ApplicationView? _applicationView;
 #pragma warning restore CS0649 // Unused field
 
-	private List<TestCaseResult> _testCases = new List<TestCaseResult>();
+	private readonly List<TestCaseResult> _testCases = new();
 	private TestRun? _currentRun;
 
 	// On WinUI/UWP dependency properties cannot be accessed outside of
@@ -113,6 +114,8 @@ public sealed partial class UnitTestsControl : UserControl
 #endif
 	}
 
+	internal IEnumerable<TestCaseResult> Results => _testCases;
+
 	private static void OverrideDebugProviderAsserts()
 	{
 #if NETSTANDARD2_0 || NET5_0_OR_GREATER
@@ -138,6 +141,15 @@ public sealed partial class UnitTestsControl : UserControl
 	// Using a DependencyProperty as the backing store for IsRunningOnCI.  This enables animation, styling, binding, etc...
 	public static readonly DependencyProperty IsRunningOnCIProperty =
 		DependencyProperty.Register("IsRunningOnCI", typeof(bool), typeof(UnitTestsControl), new PropertyMetadata(false));
+
+	public bool IsSecondaryApp
+	{
+		get { return (bool)GetValue(IsSecondaryAppProperty); }
+		set { SetValue(IsSecondaryAppProperty, value); }
+	}
+
+	public static readonly DependencyProperty IsSecondaryAppProperty =
+		DependencyProperty.Register(nameof(IsSecondaryApp), typeof(bool), typeof(UnitTestsControl), new PropertyMetadata(false));
 
 	/// <summary>
 	/// Defines the test group for splitting runtime tests on CI
@@ -319,17 +331,35 @@ public sealed partial class UnitTestsControl : UserControl
 	}
 
 	private void ReportTestResult(string testName, TimeSpan duration, TestResult testResult, Exception? error = null, string? message = null, string? console = null)
-	{
-		_testCases.Add(
+		=> ReportTestResult(
 			new TestCaseResult
 			{
 				TestName = testName,
 				Duration = duration,
 				TestResult = testResult,
-				Message = error?.ToString() ?? message
+				Message = error?.ToString() ?? message,
+				Error = error,
+				ConsoleOutput = console
 			});
 
-		void Update()
+	private void ReportTestResult(params TestCaseResult[] results)
+	{
+		_testCases.AddRange(results);
+		_dispatcher.Invoke(() =>
+		{
+			foreach (var result in results)
+			{
+				UpdateUI(result);
+			}
+		});
+#if HAS_UNO
+		foreach (var result in results)
+		{
+			_log?.Info($"Test completed '{result.TestName}'='{result.TestResult}'");
+		}
+#endif
+
+		void UpdateUI(TestCaseResult result)
 		{
 			if (_currentRun is null)
 			{
@@ -354,27 +384,27 @@ public sealed partial class UnitTestsControl : UserControl
 
 			testResultBlock.Inlines.Add(new Run
 			{
-				Text = GetTestResultIcon(testResult) + ' ' + testName + retriesText,
+				Text = GetTestResultIcon(result.TestResult) + ' ' + result.TestName + retriesText,
 				FontSize = 13.5d,
-				Foreground = new SolidColorBrush(UnitTestsControl.GetTestResultColor(testResult)),
+				Foreground = new SolidColorBrush(UnitTestsControl.GetTestResultColor(result.TestResult)),
 				FontWeight = FontWeights.ExtraBold
 			});
 
-			if (message is { })
+			if (result.Message is { })
 			{
-				testResultBlock.Inlines.Add(new Run { Text = "\n  ..." + message, FontStyle = FontStyle.Italic });
+				testResultBlock.Inlines.Add(new Run { Text = "\n  ..." + result.Message, FontStyle = FontStyle.Italic });
 			}
 
-			if (error is { })
+			if (result.Error is { })
 			{
-				var isFailed = testResult == TestResult.Failed || testResult == TestResult.Error;
+				var isFailed = result.TestResult == TestResult.Failed || result.TestResult == TestResult.Error;
 
 				var foreground = isFailed ? new SolidColorBrush(Colors.Red) : new SolidColorBrush(Colors.Yellow);
-				testResultBlock.Inlines.Add(new Run { Text = "\nEXCEPTION>" + error.Message, Foreground = foreground });
+				testResultBlock.Inlines.Add(new Run { Text = "\nEXCEPTION>" + result.Error.Message, Foreground = foreground });
 
 				if (isFailed)
 				{
-					failedTestDetails.Text += $"{testResult}: {testName} [{error.GetType()}] \n {error}\n\n";
+					failedTestDetails.Text += $"{result.TestResult}: {result.TestName} [{result.Error.Type}] \n {result.Error.Message}\n\n";
 					if (failedTestDetailsRow.Height.Value == 0)
 					{
 						failedTestDetailsRow.Height = new GridLength(100);
@@ -382,9 +412,9 @@ public sealed partial class UnitTestsControl : UserControl
 				}
 			}
 
-			if (console is { })
+			if (result.ConsoleOutput is { })
 			{
-				testResultBlock.Inlines.Add(new Run { Text = "\nOUT>" + console, Foreground = new SolidColorBrush(Colors.Gray) });
+				testResultBlock.Inlines.Add(new Run { Text = "\nOUT>" + result.ConsoleOutput, Foreground = new SolidColorBrush(Colors.Gray) });
 			}
 
 			if (!IsRunningOnCI)
@@ -393,13 +423,11 @@ public sealed partial class UnitTestsControl : UserControl
 				testResultBlock.StartBringIntoView();
 			}
 
-			if (testResult == TestResult.Error || testResult == TestResult.Failed)
+			if (result.TestResult == TestResult.Error || result.TestResult == TestResult.Failed)
 			{
-				failedTests.Text += "§" + testName;
+				failedTests.Text += "§" + result.TestName;
 			}
 		}
-
-		_dispatcher.Invoke(Update);
 	}
 
 	private static string GenerateNUnitTestResults(List<TestCaseResult> testCases, TestRun testRun)
@@ -492,14 +520,14 @@ public sealed partial class UnitTestsControl : UserControl
 		{
 			try
 			{
-				var config = JsonConvert.DeserializeObject<UnitTestEngineConfig>(configStr);
+				var config = JsonSerializer.Deserialize<UnitTestEngineConfig>(configStr);
 
 				if (config is not null)
 				{
 					consoleOutput.IsChecked = config.IsConsoleOutputEnabled;
 					runIgnored.IsChecked = config.IsRunningIgnored;
 					retry.IsChecked = config.Attempts > 1;
-					testFilter.Text = string.Join(";", config.Filters ?? Array.Empty<string>());
+					testFilter.Text = config.Filter;
 				}
 			}
 			catch (Exception)
@@ -525,7 +553,7 @@ public sealed partial class UnitTestsControl : UserControl
 		void StoreConfig()
 		{
 			var config = BuildConfig();
-			ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonConvert.SerializeObject(config);
+			ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonSerializer.Serialize(config);
 		}
 	}
 
@@ -542,7 +570,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 		return new UnitTestEngineConfig
 		{
-			Filters = filter?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>(),
+			Filter = filter,
 			IsConsoleOutputEnabled = isConsoleOutput,
 			IsRunningIgnored = isRunningIgnored,
 			Attempts = attempts,
@@ -675,17 +703,6 @@ public sealed partial class UnitTestsControl : UserControl
 		await GenerateTestResults();
 	}
 
-	private static IEnumerable<MethodInfo> FilterTests(UnitTestClassInfo testClassInfo, string[]? filters)
-	{
-		var testClassNameContainsFilters = filters?.Any(f => testClassInfo.Type?.FullName?.Contains(f, StrComp) ?? false) ?? false;
-		return testClassInfo.Tests?.
-			Where(t => ((!filters?.Any()) ?? true)
-				|| testClassNameContainsFilters
-				|| (filters?.Any(f => t.DeclaringType?.FullName?.Contains(f, StrComp) ?? false) ?? false)
-				|| (filters?.Any(f => t.Name.Contains(f, StrComp)) ?? false))
-			?? Array.Empty<MethodInfo>();
-	}
-
 	private async Task ExecuteTestsForInstance(
 		CancellationToken ct,
 		object instance,
@@ -696,7 +713,9 @@ public sealed partial class UnitTestsControl : UserControl
 			? ConsoleOutputRecorder.Start()
 			: default;
 
-		var tests = UnitTestsControl.FilterTests(testClassInfo, config.Filters)
+		var tests = (config.Filter is null
+				? testClassInfo.Tests
+				: testClassInfo.Tests.Where(test => config.Filter.IsMatch(test)))
 			.Select(method => new UnitTestMethodInfo(instance, method))
 			.ToArray();
 
@@ -707,6 +726,52 @@ public sealed partial class UnitTestsControl : UserControl
 
 		ReportTestClass(testClassInfo.Type.GetTypeInfo());
 		_ = ReportMessage($"Running {tests.Length} test methods");
+
+		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp && !IsSecondaryApp)
+		{
+			try
+			{
+				var testCases = tests.SelectMany(t => t.GetCases(ct)).ToList();
+				if (!SecondaryApp.IsSupported && secondaryApp.IgnoreIfNotSupported && !config.IsRunningIgnored)
+				{
+					foreach (var testCase in testCases)
+					{
+						ReportTestResult(
+							testCase.ToString(),
+							TimeSpan.Zero,
+							TestResult.Skipped,
+							null,
+							$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
+					}
+
+					return;
+				}
+
+				config = config with { Filter = $"{testClassInfo.Type.FullName} & ({config.Filter})" };
+
+				var results = await SecondaryApp.RunTest(config, ct, isAppVisible: Debugger.IsAttached);
+				foreach (var result in results)
+				{
+					ReportTestResult(result);
+				}
+
+				if (results.Length != testCases.Count)
+				{
+					ReportTestResult(
+						instance.GetType().Name, 
+						TimeSpan.Zero, 
+						TestResult.Failed, 
+						new InvalidOperationException($"Unexpected tests results, got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.\""), 
+						$"Got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.");
+				}
+			}
+			catch (Exception error)
+			{
+				ReportTestResult(instance.GetType().Name, TimeSpan.Zero, TestResult.Failed, error, $"Failed to run tests in secondary app for test class {instance.GetType().Name}");
+			}
+
+			return;
+		}
 
 		foreach (var test in tests)
 		{
@@ -737,7 +802,7 @@ public sealed partial class UnitTestsControl : UserControl
 				}
 			}
 
-			foreach (var testCase in test.GetCases())
+			foreach (var testCase in test.GetCases(ct))
 			{
 				if (ct.IsCancellationRequested)
 				{
@@ -766,7 +831,7 @@ public sealed partial class UnitTestsControl : UserControl
 				await ReportMessage($"Running test {fullTestName}");
 				ReportTestsResults();
 
-				var cleanupActions = new List<Func<CancellationToken, Task>>();
+				var cleanupActions = new List<Func<CancellationToken, ValueTask>>();
 				var sw = new Stopwatch();
 				var canRetry = true;
 
@@ -778,7 +843,7 @@ public sealed partial class UnitTestsControl : UserControl
 					{
 						if (test.RequiresFullWindow)
 						{
-							await _dispatcher.RunAsync(() =>
+							await ExecuteOnDispatcher(() =>
 							{
 #if __ANDROID__
 								// Hide the systray!
@@ -787,10 +852,10 @@ public sealed partial class UnitTestsControl : UserControl
 
 								UnitTestsUIContentHelper.UseActualWindowRoot = true;
 								UnitTestsUIContentHelper.SaveOriginalContent();
-							});
+							}, ct);
 							cleanupActions.Add(async _ =>
 							{
-								await _dispatcher.RunAsync(() =>
+								await ExecuteOnDispatcher(() =>
 								{
 #if __ANDROID__
 									// Restore the systray!
@@ -798,73 +863,46 @@ public sealed partial class UnitTestsControl : UserControl
 #endif
 									UnitTestsUIContentHelper.RestoreOriginalContent();
 									UnitTestsUIContentHelper.UseActualWindowRoot = false;
-								});
+								}, CancellationToken.None);
 							});
 						}
 
-						object? returnValue = null;
-						if (test.RunsOnUIThread)
+						// Configure pointers injection
+						await ExecuteOnDispatcher(() =>
 						{
-							await _dispatcher.RunAsync(() =>
+							if (InputInjectorHelper.TryGetCurrent() is not null)
 							{
-								if (InputInjectorHelper.TryGetCurrent() is not null)
-								{
-									InputInjectorHelper.Current.CleanupPointers();
-								}
+								InputInjectorHelper.Current.CleanupPointers();
+							}
 
-								if (testCase.Pointer is { } pt)
-								{
-									var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
-#pragma warning disable CS1998
-									cleanupActions.Add(async _ => ptSubscription.Dispose());
-#pragma warning restore CS1998
-								}
-
-								if (instance.GetType().GetProperty("Pointers", BindingFlags.Instance | BindingFlags.Public) is { SetMethod: not null } pointerProp
-									&& pointerProp.PropertyType == typeof(InputInjectorHelper))
-								{
-									pointerProp.SetMethod.Invoke(instance, new[] { InputInjectorHelper.Current });
-								}
-
-
-								sw.Start();
-								testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>());
-								returnValue = test.Method.Invoke(instance, testCase.Parameters);
-								sw.Stop();
-							});
-						}
-						else
-						{
 							if (testCase.Pointer is { } pt)
 							{
 								var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
-#pragma warning disable CS1998
-								cleanupActions.Add(async _ => ptSubscription.Dispose());
-#pragma warning restore CS1998
+								cleanupActions.Add(async ct2 => await ExecuteOnDispatcher(ptSubscription.Dispose, ct2));
 							}
 
-							sw.Start();
-							testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>());
-							returnValue = test.Method.Invoke(instance, testCase.Parameters);
-							sw.Stop();
+							if (instance.GetType().GetProperty("Pointers", BindingFlags.Instance | BindingFlags.Public) is { SetMethod: not null } pointerProp
+								&& pointerProp.PropertyType == typeof(InputInjectorHelper))
+							{
+								pointerProp.SetMethod.Invoke(instance, new[] { InputInjectorHelper.Current });
+							}
+						}, ct);
+
+						if (test.RunsOnUIThread)
+						{
+							await ExecuteOnDispatcher(DoInvoke, ct);
+						}
+						else
+						{
+							await DoInvoke();
 						}
 
-						if (test.Method.ReturnType == typeof(Task))
+						async ValueTask DoInvoke()
 						{
-							var task = (Task)returnValue!;
-							var timeoutTask = Task.Delay(DefaultUnitTestTimeout);
-
-							var resultingTask = await Task.WhenAny(task, timeoutTask);
-
-							if (resultingTask == timeoutTask)
-							{
-								throw new TimeoutException(
-									$"Test execution timed out after {DefaultUnitTestTimeout}");
-							}
-
-							// Rethrow exception if failed OR task cancelled if task **internally** raised
-							// a TaskCancelledException (we don't provide any cancellation token).
-							await resultingTask;
+							sw.Start();
+							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
+							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution");
+							sw.Stop();
 						}
 
 						var console = consoleRecorder?.GetContentAndReset();
@@ -945,13 +983,13 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		}
 
-		async Task RunCleanup(object instance, UnitTestClassInfo testClassInfo, string testName, bool runsOnUIThread)
+		async ValueTask RunCleanup(object instance, UnitTestClassInfo testClassInfo, string testName, bool runsOnUIThread)
 		{
-			void Run()
+			async ValueTask DoCleanup()
 			{
 				try
 				{
-					testClassInfo.Cleanup?.Invoke(instance, Array.Empty<object>());
+					await WaitResult(testClassInfo.Cleanup?.Invoke(instance, Array.Empty<object>()), "cleanup");
 				}
 				catch (Exception e)
 				{
@@ -965,13 +1003,60 @@ public sealed partial class UnitTestsControl : UserControl
 
 			if (runsOnUIThread)
 			{
-				await _dispatcher.RunAsync(Run);
+				await ExecuteOnDispatcher(DoCleanup, CancellationToken.None); // No CT for cleanup!
 			}
 			else
 			{
-				Run();
+				await DoCleanup();
 			}
 		}
+
+		async ValueTask WaitResult(object? returnValue, string step)
+		{
+			if (returnValue is Task asyncResult)
+			{
+				var timeoutTask = Task.Delay(DefaultUnitTestTimeout, ct);
+				var resultingTask = await Task.WhenAny(asyncResult, timeoutTask);
+
+				if (resultingTask == timeoutTask)
+				{
+					throw new TimeoutException($"Test {step} timed out after {DefaultUnitTestTimeout}");
+				}
+
+				// Rethrow exception if failed OR task cancelled if task **internally** raised
+				// a TaskCancelledException (we don't provide any cancellation token).
+				await resultingTask;
+			}
+		}
+	}
+
+	private async ValueTask ExecuteOnDispatcher(Action asyncAction, CancellationToken ct = default)
+		=> await ExecuteOnDispatcher(async () => asyncAction(), ct);
+
+	private async ValueTask ExecuteOnDispatcher(Func<ValueTask> asyncAction, CancellationToken ct = default)
+	{
+		var tcs = new TaskCompletionSource<object?>();
+		await _dispatcher.RunAsync(async () =>
+		{
+			try
+			{
+				if (ct.IsCancellationRequested)
+				{
+					tcs.TrySetCanceled();
+				}
+
+				using var ctReg = ct.Register(() => tcs.TrySetCanceled());
+				await asyncAction();
+
+				tcs.TrySetResult(default);
+			}
+			catch (Exception e)
+			{
+				tcs.TrySetException(e);
+			}
+		});
+
+		await tcs.Task;
 	}
 
 	private IEnumerable<UnitTestClassInfo> InitializeTests()

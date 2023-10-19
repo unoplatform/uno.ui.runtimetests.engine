@@ -18,12 +18,21 @@
     <Compile Include="$(MSBuildThisFileDirectory)App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)FilterTests.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HotReloadTests.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HotReloadTests_Subject.xaml.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HotReloadTest_SimpleSubject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)MetaAttributes.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SecondaryAppTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="$(MSBuildThisFileDirectory)HotReloadTests_Subject.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="$(MSBuildThisFileDirectory)MainPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

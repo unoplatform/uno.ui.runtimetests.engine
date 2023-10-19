@@ -7,9 +7,9 @@ on:
     branches: [ "main" ]
     
 env:
-  DotNetVersion: '6.0.401'
-  UnoCheck_Version: '1.5.4'
-  UnoCheck_Manifest: 'https://raw.githubusercontent.com/unoplatform/uno.check/34b1a60f5c1c51604b47362781969dde46979fd5/manifests/uno.ui.manifest.json'
+  DotNetVersion: '7.0.401'
+  UnoCheck_Version: '1.16.0'
+  UnoCheck_Manifest: 'https://raw.githubusercontent.com/unoplatform/uno.check/519b147a80d92e35cac4b8f97855d9302c91b340/manifests/uno.ui.manifest.json'
 
 jobs:
   build:
@@ -45,7 +45,7 @@ jobs:
 
     - run: |
         & dotnet tool update --global uno.check --version $env:UnoCheck_Version --add-source https://api.nuget.org/v3/index.json
-        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vsmac --manifest $env:UnoCheck_Manifest
+        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vswinworkloads --skip vsmac --manifest $env:UnoCheck_Manifest
 
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.1

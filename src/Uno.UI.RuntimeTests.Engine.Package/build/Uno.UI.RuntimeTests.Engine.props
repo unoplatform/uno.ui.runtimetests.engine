@@ -1,19 +1,37 @@
 ﻿<Project>
 	<ItemGroup>
-		<Compile Include="$(MSBuildThisFileDirectory)/../src/**/*.cs"
-				 Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
-				 Visible="False" />
-		<Page Include="$(MSBuildThisFileDirectory)/../src/**/*.xaml"
-			  Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
-			  Visible="False"
-			  XamlRuntime="WinUI" />
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute" Condition="!$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER'))">
+			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
+		</AssemblyAttribute>
 
-		<Compile Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
-				Remove="$(MSBuildThisFileDirectory)/../src/UI/**/*.cs" />
-		<Page Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
-			  Remove="$(MSBuildThisFileDirectory)/../src/UI/**/*.cs" />
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute" Condition="'$(PkgUno_UI_DevServer)' != ''">
+			<_Parameter1>$([System.IO.Path]::GetFileName(`$(PkgUno_UI_DevServer)`)) </_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute" Condition="'$(PkgUno_WinUI_DevServer)' != ''">
+			<_Parameter1>$([System.IO.Path]::GetFileName(`$(PkgUno_WinUI_DevServer)`)) </_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
 
-		<Compile Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_LIBRARY'))"
-				 Remove="$(MSBuildThisFileDirectory)/../src/Library/**/*.cs" />
+	<ItemGroup>
+		<Compile 
+			Include="$(MSBuildThisFileDirectory)/../src/**/*.cs"
+			Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
+			Visible="False" />
+		<Page 
+			Include="$(MSBuildThisFileDirectory)/../src/**/*.xaml"
+			Link="Uno.UI.RuntimeTests.Engine/%(RecursiveDir)%(FileName)%(Extension)"
+			Visible="False"
+			XamlRuntime="WinUI" />
+
+		<Compile 
+			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
+			Remove="$(MSBuildThisFileDirectory)/../src/Engine/UI/**/*.cs" />
+		<Page 
+			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_UI'))"
+			Remove="$(MSBuildThisFileDirectory)/../src/Engine/UI/**/*.cs" />
+
+		<Compile 
+			Condition="$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_LIBRARY'))"
+			Remove="$(MSBuildThisFileDirectory)/../src/Library/**/*.cs" />
 	</ItemGroup>
 </Project>

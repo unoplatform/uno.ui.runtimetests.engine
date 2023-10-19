@@ -13,6 +13,14 @@ internal record TestCaseResult
 	public string? TestName { get; init; }
 	public TimeSpan Duration { get; init; }
 	public string? Message { get; init; }
+	public TestCaseError? Error { get; init; }
+	public string? ConsoleOutput { get; init; }
+}
+
+internal record TestCaseError(string Type, string Message)
+{
+	public static implicit operator TestCaseError?(Exception? ex)
+		=> ex is null ? default : new TestCaseError(ex.GetType().Name, ex.Message);
 }
 
 

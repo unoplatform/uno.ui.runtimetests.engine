@@ -6,4 +6,10 @@
 		<Error Text="The Uno.UI or Uno.WinUI packages must be referenced in order to use the Uno.UI.RuntimeTests.Engine package"
 			   Condition="'$(PkgUno_WinUI)'=='' and '$(PkgUno_UI)'==''"/>
 	</Target>
+
+	<PropertyGroup Condition="'$(PkgUno_UI_DevServer)' != '' OR '$(PkgUno_WinUI_DevServer)' != ''">
+		<DefineConstants >$(DefineConstants);HAS_UNO_DEVSERVER</DefineConstants>
+		<UnoDevServer_IncludeProjectConfiguration>true</UnoDevServer_IncludeProjectConfiguration>
+		<UnoDevServer_IncludeServerProcessorsConfiguration>true</UnoDevServer_IncludeServerProcessorsConfiguration>
+	</PropertyGroup>
 </Project>
