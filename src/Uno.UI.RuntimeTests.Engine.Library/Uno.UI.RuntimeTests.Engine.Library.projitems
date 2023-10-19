@@ -29,7 +29,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestsSourceProjectAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\SecondaryApp.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\AsyncAssert.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.Mocks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.Local.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.DevServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.MetadataUpdateHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.NotSupported.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\_Compat\CallerArgumentExpressionAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\_Private\ColorExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\ImageAssert.cs" />

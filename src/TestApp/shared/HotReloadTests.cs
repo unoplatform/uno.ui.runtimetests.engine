@@ -49,7 +49,7 @@ public class HotReloadTests
 		Assert.IsTrue(File.Exists(file));
 		Assert.IsTrue(File.ReadAllText(file).Contains("Original text"));
 
-		await using var _ = await HotReloadHelper.UpdateServerFile(sutPath, "Original text", "Updated text from Can_Edit_File", waitForMetadataUpdate: false, ct);
+		await using var _ = await HotReloadHelper.UpdateSourceFile(sutPath, "Original text", "Updated text from Can_Edit_File", waitForMetadataUpdate: false, ct);
 
 		await TestHelper.WaitFor(() => File.ReadAllText(file).Contains("Updated text from Can_Edit_File"), ct);
 
@@ -68,7 +68,7 @@ public class HotReloadTests
 
 		Debug.Assert(sut.Value == "42");
 
-		await using var _ = await HotReloadHelper.UpdateServerFile("../../shared/HotReloadTest_SimpleSubject.cs", "42", "43", ct);
+		await using var _ = await HotReloadHelper.UpdateSourceFile("../../shared/HotReloadTest_SimpleSubject.cs", "42", "43", ct);
 
 		Debug.Assert(sut.Value == "43");
 	}
@@ -85,7 +85,7 @@ public class HotReloadTests
 
 		Assert.AreEqual("Original text", UIHelper.GetChild<TextBlock>().Text);
 
-		await using var _ = await HotReloadHelper.UpdateServerFile<HotReloadTests_Subject>("Original text", "Updated text", ct);
+		await using var _ = await HotReloadHelper.UpdateSourceFile<HotReloadTests_Subject>("Original text", "Updated text", ct);
 
 		await AsyncAssert.AreEqual("Updated text", () => UIHelper.GetChild<TextBlock>().Text, ct);
 	}
