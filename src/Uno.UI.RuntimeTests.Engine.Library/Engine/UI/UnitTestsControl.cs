@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -20,7 +21,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Logging;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
-using Newtonsoft.Json;
 using Uno.UI.RuntimeTests.Engine;
 using Uno.UI.RuntimeTests.Internal.Helpers;
 
@@ -520,7 +520,7 @@ public sealed partial class UnitTestsControl : UserControl
 		{
 			try
 			{
-				var config = JsonConvert.DeserializeObject<UnitTestEngineConfig>(configStr);
+				var config = JsonSerializer.Deserialize<UnitTestEngineConfig>(configStr);
 
 				if (config is not null)
 				{
@@ -553,7 +553,7 @@ public sealed partial class UnitTestsControl : UserControl
 		void StoreConfig()
 		{
 			var config = BuildConfig();
-			ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonConvert.SerializeObject(config);
+			ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonSerializer.Serialize(config);
 		}
 	}
 
