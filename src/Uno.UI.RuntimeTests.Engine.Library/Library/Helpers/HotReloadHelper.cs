@@ -90,10 +90,10 @@ public static partial class HotReloadHelper
 			TryUseDevServerFileUpdater();
 		}
 
-		if (!IsSupported)
-		{
-			TryUseLocalFileUpdater();
-		}
+		//if (!IsSupported)
+		//{
+		//	TryUseLocalFileUpdater();
+		//}
 	}
 
 	static partial void TryUseDevServerFileUpdater();

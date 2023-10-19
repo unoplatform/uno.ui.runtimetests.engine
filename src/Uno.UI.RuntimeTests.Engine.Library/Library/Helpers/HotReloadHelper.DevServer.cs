@@ -9,6 +9,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Reflection;
 using System.Threading;
@@ -50,6 +51,11 @@ partial class HotReloadHelper
 				throw new InvalidOperationException("Dev server is not available.");
 			}
 
+			if (RemoteControlClient.Instance.Processors.OfType<ClientHotReloadProcessor>().FirstOrDefault() is not { } hotReload)
+			{
+				throw new InvalidOperationException("App is not configured to accept hot-reload.");
+			}
+
 			var timeout = Task.Delay(ConnectionTimeout, ct);
 			if (await Task.WhenAny(timeout, RemoteControlClient.Instance.WaitForConnection(ct)) == timeout)
 			{
@@ -62,10 +68,7 @@ partial class HotReloadHelper
 
 			_log.LogTrace("Client connected, waiting for dev-server to load the workspace (i.e. initializing roslyn with the solution) ...");
 
-			var processors = typeof(RemoteControlClient).GetField("_processors", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(RemoteControlClient.Instance) as IDictionary ?? throw new InvalidOperationException("Processors is null");
-			var processor = processors["hotreload"] as ClientHotReloadProcessor ?? throw new InvalidOperationException("HotReloadProcessor is null");
-			var hotReloadReady = typeof(ClientHotReloadProcessor).GetProperty("HotReloadWorkspaceLoaded", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(processor) as Task ?? throw new IOException("HotReloadWorkspaceLoaded is null");
-
+			var hotReloadReady = hotReload.WaitForWorkspaceLoaded(ct);
 			timeout = Task.Delay(WorkspaceTimeout, ct);
 			if (await Task.WhenAny(timeout, hotReloadReady) == timeout)
 			{

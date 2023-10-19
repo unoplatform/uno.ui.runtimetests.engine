@@ -34,6 +34,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.MetadataUpdateHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.NotSupported.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\_Compat\CallerArgumentExpressionAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\_Compat\MetadataUpdateHandlerAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\_Private\ColorExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\ImageAssert.cs" />
