@@ -40,9 +40,12 @@ internal static partial class ProcessHelper
 
 		log.LogTrace("Waiting for process exit");
 
+		process.StartInfo.RedirectStandardOutput = true;
+		process.StartInfo.RedirectStandardError = true;
+
 		// hookup the event handlers to capture the data that is received
-		process.OutputDataReceived += (sender, args) => output.Append(args.Data);
-		process.ErrorDataReceived += (sender, args) => error.Append(args.Data);
+		process.OutputDataReceived += (sender, args) => output.AppendLine(args.Data);
+		process.ErrorDataReceived += (sender, args) => error.AppendLine(args.Data);
 
 		if (ct.IsCancellationRequested)
 		{
