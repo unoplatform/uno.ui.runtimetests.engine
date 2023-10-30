@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net7.0-android;net7.0-ios;net7.0-maccatalyst;net7.0-macos</TargetFrameworks>
 		<SingleProject>true</SingleProject>
@@ -20,7 +20,7 @@
 	<ItemGroup>
 		<PackageReference Include="Uno.WinUI" Version="5.0.0-dev.3552" />
 		<PackageReference Include="Uno.WinUI.DevServer" Version="5.0.0-dev.3552" Condition="'$(Configuration)'=='Debug'" />
-		<PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="5.0.0-dev.3552" />
+		<PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="5.0.0-dev.3597" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
 
 		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
