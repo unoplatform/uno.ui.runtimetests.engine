@@ -1,4 +1,9 @@
 ﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+
+#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -42,7 +47,8 @@ internal readonly struct LogScope : IDisposable, ILogger
 		=> _logger.IsEnabled(logLevel);
 
 	/// <inheritdoc />
-	public IDisposable BeginScope<TState>(TState state)
+	public IDisposable? BeginScope<TState>(TState state)
+		where TState : notnull
 		=> _logger.BeginScope(state);
 
 	/// <inheritdoc />

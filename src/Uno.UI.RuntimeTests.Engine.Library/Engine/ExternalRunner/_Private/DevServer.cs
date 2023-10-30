@@ -45,7 +45,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 	public static async Task<DevServer> Start(CancellationToken ct)
 	{
 #if !HAS_UNO_DEVSERVER
-		throw new NotSupportedException("Dev server is not supported on this platform.");
+		throw new NotSupportedException("Dev server has not been referenced.");
 #else
 		var path = await GetDevServer(ct);
 		var port = GetTcpPort();
