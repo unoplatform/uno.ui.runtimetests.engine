@@ -168,7 +168,7 @@ namespace Uno.UI.RuntimeTests.Engine
 				builder.AddFilter("Uno.UI.RuntimeTests.HotReload", LogLevel.Debug);
 
 				// Hot reload testing
-				builder.AddFilter("Uno.UI.RemoteControl", LogLevel.Debug);
+				builder.AddFilter("Uno.UI.RemoteControl", LogLevel.Trace);
 				builder.AddFilter("Uno.UI.RuntimeTests.Internal.Helpers", LogLevel.Debug); // DevServer and SecondaryApp
 				builder.AddFilter("Uno.UI.RuntimeTests.HotReloadHelper", LogLevel.Trace); // Helper used by tests in secondary app instances (non debuggable)
 				builder.AddFilter("Uno.UI.RuntimeTests.UnitTestsControl", LogLevel.Information); // Dumps the runner status
