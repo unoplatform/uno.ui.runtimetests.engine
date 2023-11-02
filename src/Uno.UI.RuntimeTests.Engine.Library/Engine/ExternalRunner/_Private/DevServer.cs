@@ -5,23 +5,6 @@
 #pragma warning disable
 #endif
 #pragma warning disable CA1848 // Log perf
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Uno.Extensions;
-using Uno.UI.RuntimeTests.Engine;
-
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 /// <summary>
@@ -31,9 +14,9 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 /// This class is intended to be used only by the the test engine itself and should not be used by applications.
 /// API contract is not guaranteed and might change in future releases.
 /// </remarks>
-internal sealed partial class DevServer : IAsyncDisposable
+internal sealed partial class DevServer : global::System.IAsyncDisposable
 {
-	private static readonly ILogger _log = typeof(DevServer).Log();
+	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = global::Uno.Extensions.LogExtensionPoint.Log(typeof(DevServer));
 	private static int _instance;
 	private static string? _devServerPath;
 
@@ -42,7 +25,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 	/// </summary>
 	/// <param name="ct">Cancellation token to abort the initialization of the server.</param>
 	/// <returns>The new dev server instance.</returns>
-	public static async Task<DevServer> Start(CancellationToken ct)
+	public static async global::System.Threading.Tasks.Task<DevServer> Start(global::System.Threading.CancellationToken ct)
 	{
 #if !HAS_UNO_DEVSERVER
 		throw new NotSupportedException("Dev server has not been referenced.");
@@ -54,9 +37,9 @@ internal sealed partial class DevServer : IAsyncDisposable
 #endif
 	}
 
-	private readonly Process _process;
+	private readonly global::System.Diagnostics.Process _process;
 
-	private DevServer(Process process, int port)
+	private DevServer(global::System.Diagnostics.Process process, int port)
 	{
 		Port = port;
 		_process = process;
@@ -67,16 +50,16 @@ internal sealed partial class DevServer : IAsyncDisposable
 	/// </summary>
 	public int Port { get; }
 
-	private static async Task<string> GetDevServer(CancellationToken ct)
+	private static async global::System.Threading.Tasks.Task<string> GetDevServer(global::System.Threading.CancellationToken ct)
 		=> _devServerPath ??= await PullDevServer(ct);
 
 	/// <summary>
 	/// Pulls the latest version of dev server from NuGet and returns the path to the executable
 	/// </summary>
-	private static async Task<string> PullDevServer(CancellationToken ct)
+	private static async global::System.Threading.Tasks.Task<string> PullDevServer(global::System.Threading.CancellationToken ct)
 	{
-		var dir = Path.Combine(Path.GetTempPath(), $"DevServer_{Guid.NewGuid():N}");
-		Directory.CreateDirectory(dir);
+		var dir = global::System.IO.Path.Combine(global::System.IO.Path.GetTempPath(), $"DevServer_{(global::System.Guid.NewGuid()):N}");
+		global::System.IO.Directory.CreateDirectory(dir);
 
 		try
 		{
@@ -86,7 +69,7 @@ internal sealed partial class DevServer : IAsyncDisposable
 					ct,
 					"dotnet",
 					new() { "--version" },
-					Environment.CurrentDirectory, // Needed to get the version used by the current app (i.e. including global.json)
+					global::System.Environment.CurrentDirectory, // Needed to get the version used by the current app (i.e. including global.json)
 					log);
 				var dotnetVersion = GetDotnetVersion(rawVersion);
 
@@ -96,12 +79,12 @@ internal sealed partial class DevServer : IAsyncDisposable
 		<TargetFramework>net{dotnetVersion.Major}.{dotnetVersion.Minor}</TargetFramework>
 	</PropertyGroup>
 </Project>";
-				await File.WriteAllTextAsync(Path.Combine(dir, "PullDevServer.csproj"), csProj, ct);
+				await global::System.IO.File.WriteAllTextAsync(global::System.IO.Path.Combine(dir, "PullDevServer.csproj"), csProj, ct);
 			}
 
 			using (var log = _log.Scope<DevServer>("PULL_DEV_SERVER"))
 			{
-				var args = new List<string> { "add", "package" };
+				var args = new global::System.Collections.Generic.List<string> { "add", "package" };
 #if HAS_UNO_WINUI || WINDOWS_WINUI
 				args.Add("Uno.WinUI.DevServer");
 #else
@@ -109,17 +92,15 @@ internal sealed partial class DevServer : IAsyncDisposable
 #endif
 				// If the assembly is not a debug version it should have a valid version
 				// Note: This is the version of the RemoteControl assembly, not the RemoteControl.Host, but they should be in sync (both are part of the DevServer package)
-				if (Type.GetType("Uno.UI.RemoteControl.RemoteControlClient, Uno.UI.RemoteControl", throwOnError: false)
-					?.Assembly
-					.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-					?.InformationalVersion is { Length: > 0 } runtimeVersion
-					&& Regex.Match(runtimeVersion, @"^(?<version>\d+\.\d+\.\d+(-\w+\.\d+))+") is {Success: true} match)
+				if (global::System.Type.GetType("Uno.UI.RemoteControl.RemoteControlClient, Uno.UI.RemoteControl", throwOnError: false)?.Assembly is { } devServerAssembly
+					&& global::System.Reflection.CustomAttributeExtensions.GetCustomAttribute<global::System.Reflection.AssemblyInformationalVersionAttribute>(devServerAssembly)?.InformationalVersion is { Length: > 0 } runtimeVersion
+					&& global::System.Text.RegularExpressions.Regex.Match(runtimeVersion, @"^(?<version>\d+\.\d+\.\d+(-\w+\.\d+))+") is { Success: true } match)
 				{
 					args.Add("--version");
 					args.Add(match.Groups["version"].Value);
 				}
 				// Otherwise we use the version used to compile the test engine
-				else if (typeof(DevServer).Assembly.GetCustomAttribute<RuntimeTestDevServerAttribute>()?.Version is { Length: > 0 } version)
+				else if (global::System.Reflection.CustomAttributeExtensions.GetCustomAttribute<global::Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute>(typeof(DevServer).Assembly)?.Version is { Length: > 0 } version)
 				{
 					args.Add("--version");
 					args.Add(version);
@@ -144,14 +125,14 @@ internal sealed partial class DevServer : IAsyncDisposable
 
 				return GetConfigurationValue(data, "RemoteControlHostPath") is { Length: > 0 } path 
 					? path 
-					: throw new InvalidOperationException("Failed to get remote control host path");
+					: throw new global::System.InvalidOperationException("Failed to get remote control host path");
 			}
 		}
 		finally
 		{
 			try
 			{
-				Directory.Delete(dir, recursive: true);
+				global::System.IO.Directory.Delete(dir, recursive: true);
 			}
 			catch { /* Nothing to do */ }
 		}
@@ -162,51 +143,52 @@ internal sealed partial class DevServer : IAsyncDisposable
 	/// </summary>
 	private static DevServer StartCore(string hostBinPath, int port)
 	{
-		if (!File.Exists(hostBinPath))
+		if (!global::System.IO.File.Exists(hostBinPath))
 		{
-			_log.LogError($"DevServer {hostBinPath} does not exist");
-			throw new InvalidOperationException($"Unable to find {hostBinPath}");
+			global::Microsoft.Extensions.Logging.LoggerExtensions.LogError(_log, $"DevServer {hostBinPath} does not exist");
+			throw new global::System.InvalidOperationException($"Unable to find {hostBinPath}");
 		}
 
-		var arguments = $"\"{hostBinPath}\" --httpPort {port} --ppid {Environment.ProcessId} --metadata-updates true";
-		var pi = new ProcessStartInfo("dotnet", arguments)
+		var arguments = $"\"{hostBinPath}\" --httpPort {port} --ppid {(global::System.Environment.ProcessId)} --metadata-updates true";
+		var pi = new global::System.Diagnostics.ProcessStartInfo("dotnet", arguments)
 		{
 			UseShellExecute = false,
 			CreateNoWindow = true,
-			WindowStyle = ProcessWindowStyle.Hidden,
-			WorkingDirectory = Path.GetDirectoryName(hostBinPath),
+			WindowStyle = global::System.Diagnostics.ProcessWindowStyle.Hidden,
+			WorkingDirectory = global::System.IO.Path.GetDirectoryName(hostBinPath),
 		};
 
-		var process = new System.Diagnostics.Process { StartInfo = pi };
+		var process = new global::System.Diagnostics.Process { StartInfo = pi };
 
-		process.StartAndLog(_log.Scope<DevServer>($"DEV_SERVER_{Interlocked.Increment(ref _instance):D2}"));
+		process.StartAndLog(_log.Scope<DevServer>($"DEV_SERVER_{(global::System.Threading.Interlocked.Increment(ref _instance)):D2}"));
 
 		return new DevServer(process, port);
 	}
 
 	#region Misc helpers
 	private static string? GetConfigurationValue(string msbuildResult, string nodeName)
-		=> Regex.Match(msbuildResult, $"<{nodeName}>(?<value>.*?)</{nodeName}>") is { Success: true } match
+		=> global::System.Text.RegularExpressions.Regex.Match(msbuildResult, $"<{nodeName}>(?<value>.*?)</{nodeName}>") is { Success: true } match
 			? match.Groups["value"].Value
 			: null;
 
-	private static Version GetDotnetVersion(string dotnetRawVersion)
-		=> Version.TryParse(dotnetRawVersion?.Split('-').FirstOrDefault(), out var version)
-			? version
-			: throw new InvalidOperationException("Failed to read dotnet version");
+	private static global::System.Version GetDotnetVersion(string dotnetRawVersion)
+		=> dotnetRawVersion?.Split('-') is { } versionParts
+			&& global::System.Version.TryParse(global::System.Linq.Enumerable.FirstOrDefault(versionParts), out var version)
+				? version
+				: throw new global::System.InvalidOperationException("Failed to read dotnet version");
 
 	private static int GetTcpPort()
 	{
-		var l = new TcpListener(IPAddress.Loopback, 0);
+		var l = new global::System.Net.Sockets.TcpListener(global::System.Net.IPAddress.Loopback, 0);
 		l.Start();
-		var port = ((IPEndPoint)l.LocalEndpoint).Port;
+		var port = ((global::System.Net.IPEndPoint)l.LocalEndpoint).Port;
 		l.Stop();
 		return port;
 	}
 	#endregion
 
 	/// <inheritdoc />
-	public async ValueTask DisposeAsync()
+	public async global::System.Threading.Tasks.ValueTask DisposeAsync()
 	{
 		if (_process is null or { HasExited: true })
 		{
@@ -217,12 +199,12 @@ internal sealed partial class DevServer : IAsyncDisposable
 		{
 			_process.Kill(true); // Best effort, the app should kill itself anyway
 		}
-		catch (Exception e)
+		catch (global::System.Exception e)
 		{
-			_log.LogError("Failed to kill dev server", e);
+			global::Microsoft.Extensions.Logging.LoggerExtensions.LogError(_log, "Failed to kill dev server", e);
 		}
 
-		await _process.WaitForExitAsync(CancellationToken.None);
+		await _process.WaitForExitAsync(global::System.Threading.CancellationToken.None);
 	}
 }
 
