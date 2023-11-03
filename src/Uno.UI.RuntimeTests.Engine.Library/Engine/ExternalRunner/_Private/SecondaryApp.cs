@@ -9,16 +9,6 @@
 #define IS_SECONDARY_APP_SUPPORTED
 #endif
 
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Uno.Extensions;
-
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 /// <summary>
@@ -47,10 +37,10 @@ internal static partial class SecondaryApp
 	/// <param name="ct">Token to cancel the test run.</param>
 	/// <param name="isAppVisible">Indicates if the application should be ran head-less or not.</param>
 	/// <returns>The test results.</returns>
-	internal static async Task<TestCaseResult[]> RunTest(UnitTestEngineConfig config, CancellationToken ct, bool isAppVisible = false)
+	internal static async global::System.Threading.Tasks.Task<TestCaseResult[]> RunTest(UnitTestEngineConfig config, global::System.Threading.CancellationToken ct, bool isAppVisible = false)
 	{
 #if !IS_SECONDARY_APP_SUPPORTED
-		throw new NotSupportedException("Secondary app is not supported on this platform.");
+		throw new global::System.NotSupportedException("Secondary app is not supported on this platform.");
 #else
 		// First we fetch and start the dev-server (needed to HR tests for instance)
 		await using var devServer = await DevServer.Start(ct);
@@ -61,13 +51,13 @@ internal static partial class SecondaryApp
 		// Finally, read the test results
 		try
 		{
-			var results = await JsonSerializer.DeserializeAsync<TestCaseResult[]>(File.OpenRead(resultFile), cancellationToken: ct);
+			var results = await global::System.Text.Json.JsonSerializer.DeserializeAsync<TestCaseResult[]>(global::System.IO.File.OpenRead(resultFile), cancellationToken: ct);
 			
-			return results ?? Array.Empty<TestCaseResult>();
+			return results ?? global::System.Array.Empty<TestCaseResult>();
 		}
-		catch (JsonException error)
+		catch (global::System.Text.Json.JsonException error)
 		{
-			throw new InvalidOperationException(
+			throw new global::System.InvalidOperationException(
 				$"Failed to deserialize the test results from '{resultFile}', this usually indicates that the secondary app has been closed (or crashed) before the end of the test suit.", 
 				error);
 		}
@@ -75,18 +65,19 @@ internal static partial class SecondaryApp
 
 	private static int _instance;
 
-	private static async Task<string> RunLocalApp(string devServerHost, int devServerPort, UnitTestEngineConfig config, bool isAppVisible, CancellationToken ct)
+	private static async global::System.Threading.Tasks.Task<string> RunLocalApp(string devServerHost, int devServerPort, UnitTestEngineConfig config, bool isAppVisible, global::System.Threading.CancellationToken ct)
 	{
-		var testOutput = Path.GetTempFileName();
+		var testOutput = global::System.IO.Path.GetTempFileName();
+		var configJson = global::System.Text.Json.JsonSerializer.Serialize(config, new global::System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault });
 
-		var childStartInfo = new ProcessStartInfo(
-			Environment.ProcessPath ?? throw new InvalidOperationException("Cannot determine the current app executable path"),
-			string.Join(" ", Environment.GetCommandLineArgs().Select(arg => '"' + arg + '"')))
+		var childStartInfo = new global::System.Diagnostics.ProcessStartInfo(
+			global::System.Environment.ProcessPath ?? throw new global::System.InvalidOperationException("Cannot determine the current app executable path"),
+			string.Join(" ", global::System.Linq.Enumerable.Select(global::System.Environment.GetCommandLineArgs(), arg => '"' + arg + '"')))
 		{
 			UseShellExecute = false,
 			CreateNoWindow = !isAppVisible,
-			WindowStyle = isAppVisible ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-			WorkingDirectory = Environment.CurrentDirectory,
+			WindowStyle = isAppVisible ? global::System.Diagnostics.ProcessWindowStyle.Normal : global::System.Diagnostics.ProcessWindowStyle.Hidden,
+			WorkingDirectory = global::System.Environment.CurrentDirectory,
 		};
 
 		// Configure the runtime to allow hot-reload
@@ -97,14 +88,14 @@ internal static partial class SecondaryApp
 		childStartInfo.EnvironmentVariables.Add("UNO_DEV_SERVER_PORT", devServerPort.ToString());
 
 		// Request to the runtime tests engine to auto-start at startup
-		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_RUN_TESTS", JsonSerializer.Serialize(config, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault }));
+		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_RUN_TESTS", configJson);
 		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_OUTPUT_PATH", testOutput);
 		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_OUTPUT_KIND", "UnoRuntimeTests"); // "NUnit"
 		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_IS_SECONDARY_APP", "true"); // "NUnit"
 
-		var childProcess = new Process { StartInfo = childStartInfo };
+		var childProcess = new global::System.Diagnostics.Process { StartInfo = childStartInfo };
 
-		await childProcess.ExecuteAndLogAsync(typeof(SecondaryApp).CreateScopedLog($"CHILD_TEST_APP_{Interlocked.Increment(ref _instance):D2}"), ct);
+		await childProcess.ExecuteAndLogAsync(typeof(SecondaryApp).CreateScopedLog($"CHILD_TEST_APP_{(global::System.Threading.Interlocked.Increment(ref _instance)):D2}"), ct);
 
 		return testOutput;
 #endif

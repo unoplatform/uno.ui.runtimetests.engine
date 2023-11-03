@@ -8,26 +8,15 @@
 #pragma warning disable CA1848 // Log perf
 #pragma warning disable CA1823 // Field not used
 
-using System;
-using System.Collections;
-using System.ComponentModel;
-using System.Globalization;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-using System.Threading;
-using System.IO;
-using System.Diagnostics;
-using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
-using Uno.Extensions;
-using Uno.UI.RuntimeTests.Engine;
+// Add using for extensions methods only
+using global::System.Reflection;
+using global::Microsoft.Extensions.Logging;
+using global::Uno.Extensions;
 
 #if HAS_UNO_WINUI || WINDOWS_WINUI
-using Microsoft.UI.Xaml;
+using global::Microsoft.UI.Xaml;
 #else
-using Windows.UI.Xaml;
+using global::Windows.UI.Xaml;
 #endif
 
 namespace Uno.UI.RuntimeTests;
@@ -39,22 +28,22 @@ public static partial class HotReloadHelper
 		public FileEdit Revert() => this with { OldText = NewText, NewText = OldText };
 	}
 
-	private record RevertFileEdit(FileEdit Edition, bool WaitForMetadataUpdate) : IAsyncDisposable
+	private record RevertFileEdit(FileEdit Edition, bool WaitForMetadataUpdate) : global::System.IAsyncDisposable
 	{
 		/// <inheritdoc />
-		public async ValueTask DisposeAsync()
+		public async global::System.Threading.Tasks.ValueTask DisposeAsync()
 		{
 			var revert = Edition.Revert();
 
 			_log.LogInformation($"Reverting changes made on {revert.FilePath} (from: \"{StartEnd(revert.OldText)}\" to \"{StartEnd(revert.NewText)}\").");
 
 			// Note: We also wait for metadata update here to ensure that the file is reverted before the test continues / we run another test.
-			if (await SendMessageCore(revert, WaitForMetadataUpdate, CancellationToken.None) is ReConnect reconnect)
+			if (await SendMessageCore(revert, WaitForMetadataUpdate, global::System.Threading.CancellationToken.None) is ReConnect reconnect)
 			{
 				_log.LogWarning($"Failed to revert file edition, let {_impl} reconnect.");
 
-				await reconnect(CancellationToken.None);
-				if (await SendMessageCore(revert, WaitForMetadataUpdate, CancellationToken.None) is not null)
+				await reconnect(global::System.Threading.CancellationToken.None);
+				if (await SendMessageCore(revert, WaitForMetadataUpdate, global::System.Threading.CancellationToken.None) is not null)
 				{
 					_log.LogError($"Failed to revert file edition on file {revert.FilePath}.");
 				}
@@ -62,26 +51,26 @@ public static partial class HotReloadHelper
 		}
 	}
 
-	public delegate Task ReConnect(CancellationToken ct);
+	public delegate global::System.Threading.Tasks.Task ReConnect(global::System.Threading.CancellationToken ct);
 
 	public interface IFileUpdater
 	{
-		ValueTask EnsureReady(CancellationToken ct);
+		global::System.Threading.Tasks.ValueTask EnsureReady(global::System.Threading.CancellationToken ct);
 
-		ValueTask<ReConnect?> Apply(FileEdit edition, CancellationToken ct);
+		global::System.Threading.Tasks.ValueTask<ReConnect?> Apply(FileEdit edition, global::System.Threading.CancellationToken ct);
 	}
 
-	private static readonly ILogger _log = typeof(HotReloadHelper).Log();
+	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = typeof(HotReloadHelper).Log();
 	private static IFileUpdater _impl = new NotSupported();
 
 	// The delay for the client to connect to the dev-server
-	private static TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(3);
+	private static global::System.TimeSpan ConnectionTimeout = global::System.TimeSpan.FromSeconds(3);
 
 	// The delay for the server to load the workspace and let the client know it's ready
-	private static TimeSpan WorkspaceTimeout = TimeSpan.FromSeconds(30);
+	private static global::System.TimeSpan WorkspaceTimeout = global::System.TimeSpan.FromSeconds(30);
 
 	// The delay for the server to send metadata update once a file has been modified
-	private static TimeSpan MetadataUpdateTimeout = TimeSpan.FromSeconds(5);
+	private static global::System.TimeSpan MetadataUpdateTimeout = global::System.TimeSpan.FromSeconds(5);
 
 	static HotReloadHelper()
 	{
@@ -103,7 +92,7 @@ public static partial class HotReloadHelper
 	/// Configures the <see cref="IFileUpdater"/> to use.
 	/// </summary>
 	/// <param name="updater"></param>
-	[EditorBrowsable(EditorBrowsableState.Advanced)]
+	[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Advanced)]
 	public static void Use(IFileUpdater updater)
 		=> _impl = updater;
 
@@ -121,7 +110,7 @@ public static partial class HotReloadHelper
 	/// <param name="replacementText">The replacement text.</param>
 	/// <param name="ct">An cancellation token to abort the asynchronous operation.</param>
 	/// <returns>An IAsyncDisposable object that will revert the change when disposed.</returns>
-	public static async ValueTask<IAsyncDisposable> UpdateSourceFile(string filPathRelativeToProject, string originalText, string replacementText, CancellationToken ct = default)
+	public static async global::System.Threading.Tasks.ValueTask<global::System.IAsyncDisposable> UpdateSourceFile(string filPathRelativeToProject, string originalText, string replacementText, global::System.Threading.CancellationToken ct = default)
 		=> await UpdateSourceFile(filPathRelativeToProject, originalText, replacementText, true, ct);
 
 	/// <summary>
@@ -133,28 +122,28 @@ public static partial class HotReloadHelper
 	/// <param name="waitForMetadataUpdate">Request to wait for a metadata update to consider the file update to be applied.</param>
 	/// <param name="ct">An cancellation token to abort the asynchronous operation.</param>
 	/// <returns>An IAsyncDisposable object that will revert the change when disposed.</returns>
-	public static async ValueTask<IAsyncDisposable> UpdateSourceFile(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, CancellationToken ct = default)
+	public static async global::System.Threading.Tasks.ValueTask<global::System.IAsyncDisposable> UpdateSourceFile(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, global::System.Threading.CancellationToken ct = default)
 	{
-		var projectFile = typeof(HotReloadHelper).Assembly.GetCustomAttribute<RuntimeTestsSourceProjectAttribute>()?.ProjectFullPath;
+		var projectFile = typeof(HotReloadHelper).Assembly.GetCustomAttribute<global::Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute>()?.ProjectFullPath;
 		if (projectFile is null or { Length: 0 })
 		{
-			throw new InvalidOperationException("The project file path could not be found.");
+			throw new global::System.InvalidOperationException("The project file path could not be found.");
 		}
 
-		var projectDir = Path.GetDirectoryName(projectFile) ?? "";
+		var projectDir = global::System.IO.Path.GetDirectoryName(projectFile) ?? "";
 #if __SKIA__
-		if (!File.Exists(projectFile)) // Sanity!
+		if (!global::System.IO.File.Exists(projectFile)) // Sanity!
 		{
-			throw new InvalidOperationException("Unable to find project file.");
+			throw new global::System.InvalidOperationException("Unable to find project file.");
 		}
 
-		if (!Directory.Exists(projectDir))
+		if (!global::System.IO.Directory.Exists(projectDir))
 		{
-			throw new InvalidOperationException("Unable to find project directory.");
+			throw new global::System.InvalidOperationException("Unable to find project directory.");
 		}
 #endif
 
-		return await UpdateSourceFile(new FileEdit(Path.Combine(projectDir, filPathRelativeToProject), originalText, replacementText), waitForMetadataUpdate, ct);
+		return await UpdateSourceFile(new FileEdit(global::System.IO.Path.Combine(projectDir, filPathRelativeToProject), originalText, replacementText), waitForMetadataUpdate, ct);
 	}
 
 	/// <summary>
@@ -165,7 +154,7 @@ public static partial class HotReloadHelper
 	/// <param name="replacementText">The replacement text.</param>
 	/// <param name="ct">An cancellation token to abort the asynchronous operation.</param>
 	/// <returns>An IAsyncDisposable object that will revert the change when disposed.</returns>
-	public static async ValueTask<IAsyncDisposable> UpdateSourceFile<T>(string originalText, string replacementText, CancellationToken ct = default)
+	public static async global::System.Threading.Tasks.ValueTask<global::System.IAsyncDisposable> UpdateSourceFile<T>(string originalText, string replacementText, global::System.Threading.CancellationToken ct = default)
 		where T : FrameworkElement, new()
 	{
 		var edition = new T().CreateFileEdit(
@@ -182,7 +171,7 @@ public static partial class HotReloadHelper
 	/// <param name="waitForMetadataUpdate">Request to wait for a metadata update to consider the file update to be applied.</param>
 	/// <param name="ct">An cancellation token to abort the asynchronous operation.</param>
 	/// <returns>An IAsyncDisposable object that will revert the change when disposed.</returns>
-	public static async Task<IAsyncDisposable> UpdateSourceFile(FileEdit message, bool waitForMetadataUpdate, CancellationToken ct = default)
+	public static async global::System.Threading.Tasks.Task<global::System.IAsyncDisposable> UpdateSourceFile(FileEdit message, bool waitForMetadataUpdate, global::System.Threading.CancellationToken ct = default)
 	{
 		_log.LogTrace($"Waiting for connection in order to update file {message.FilePath} (from: \"{StartEnd(message.OldText)}\" to \"{StartEnd(message.NewText)}\") ...");
 		await _impl.EnsureReady(ct);
@@ -215,11 +204,11 @@ public static partial class HotReloadHelper
 		string replacementText)
 		=> new(element.GetDebugParseContext().FileName, originalText, replacementText);
 
-	private static async Task<ReConnect?> SendMessageCore(FileEdit message, bool waitForMetadataUpdate, CancellationToken ct)
+	private static async global::System.Threading.Tasks.Task<ReConnect?> SendMessageCore(FileEdit message, bool waitForMetadataUpdate, global::System.Threading.CancellationToken ct)
 	{
 		if (waitForMetadataUpdate)
 		{
-			var cts = new TaskCompletionSource<object?>();
+			var cts = new global::System.Threading.Tasks.TaskCompletionSource<object?>();
 			using var ctReg = ct.Register(() => cts.TrySetCanceled());
 			void UpdateReceived(object? sender, object? args) => cts.TrySetResult(default);
 
@@ -238,10 +227,10 @@ public static partial class HotReloadHelper
 
 				_log.LogTrace("File edition requested, waiting for metadata update (i.e. the code changes to be applied in the current app) ...");
 
-				var timeout = Task.Delay(MetadataUpdateTimeout, ct);
-				if (await Task.WhenAny(timeout, cts.Task) == timeout)
+				var timeout = global::System.Threading.Tasks.Task.Delay(MetadataUpdateTimeout, ct);
+				if (await global::System.Threading.Tasks.Task.WhenAny(timeout, cts.Task) == timeout)
 				{
-					throw new TimeoutException(
+					throw new global::System.TimeoutException(
 						"Timeout while waiting for metadata update. "
 						+ "This usually indicates that the dev-server failed to process the requested update, you will find more info in dev-server logs "
 						+ "(output in main app logs with [DEV_SERVER] prefix for runtime-tests run in secondary app instance).");
@@ -253,7 +242,7 @@ public static partial class HotReloadHelper
 				MetadataUpdateHandler.MetadataUpdated -= UpdateReceived;
 			}
 
-			await Task.Delay(100, ct); // Let the metadata to be updated by all handlers.
+			await global::System.Threading.Tasks.Task.Delay(100, ct); // Let the metadata to be updated by all handlers.
 
 			_log.LogTrace("Received **a** metadata update, continuing test.");
 			return null;
@@ -274,7 +263,7 @@ public static partial class HotReloadHelper
 		var dpcProp = typeof(FrameworkElement).GetProperty("DebugParseContext", BindingFlags.Instance | BindingFlags.NonPublic);
 		if (dpcProp == null)
 		{
-			throw new InvalidOperationException("Could not find DebugParseContext property on FrameworkElement. You should consider to define the property '' in your project in order to enable it's generation even in release.");
+			throw new global::System.InvalidOperationException("Could not find DebugParseContext property on FrameworkElement. You should consider to define the property '' in your project in order to enable it's generation even in release.");
 		}
 
 		var dpcForElement = dpcProp.GetValue(element);
@@ -294,19 +283,19 @@ public static partial class HotReloadHelper
 		var fileName = fl[0].GetValue(dpcForElement)?.ToString() ?? string.Empty;
 
 		// Don't return details for embedded controls.
-		if (fileName.StartsWith("ms-appx:///Uno.UI/", StringComparison.InvariantCultureIgnoreCase)
-			|| fileName.EndsWith("mergedstyles.xaml", StringComparison.InvariantCultureIgnoreCase))
+		if (fileName.StartsWith("ms-appx:///Uno.UI/", global::System.StringComparison.InvariantCultureIgnoreCase)
+			|| fileName.EndsWith("mergedstyles.xaml", global::System.StringComparison.InvariantCultureIgnoreCase))
 		{
 			return (string.Empty, -1, -1);
 		}
 
-		_ = int.TryParse(fl[1].GetValue(dpcForElement)?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int line);
-		_ = int.TryParse(fl[2].GetValue(dpcForElement)?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int pos);
+		_ = int.TryParse(fl[1].GetValue(dpcForElement)?.ToString(), global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out int line);
+		_ = int.TryParse(fl[2].GetValue(dpcForElement)?.ToString(), global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out int pos);
 
 		const string FileTypePrefix = "file:///";
 
 		// Strip any file protocol prefix as not expected by the server
-		if (fileName.StartsWith(FileTypePrefix, StringComparison.InvariantCultureIgnoreCase))
+		if (fileName.StartsWith(FileTypePrefix, global::System.StringComparison.InvariantCultureIgnoreCase))
 		{
 			fileName = fileName.Substring(FileTypePrefix.Length);
 		}

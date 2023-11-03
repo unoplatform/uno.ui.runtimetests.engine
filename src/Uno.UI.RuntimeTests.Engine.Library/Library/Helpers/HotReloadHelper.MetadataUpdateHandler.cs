@@ -4,12 +4,7 @@
 #pragma warning disable
 #endif
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Uno.UI.RuntimeTests;
-
-[assembly:System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(HotReloadHelper.MetadataUpdateHandler))]
+[assembly:System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(global::Uno.UI.RuntimeTests.HotReloadHelper.MetadataUpdateHandler))]
 
 namespace Uno.UI.RuntimeTests;
 
@@ -17,11 +12,11 @@ partial class HotReloadHelper
 {
 	internal static class MetadataUpdateHandler
 	{
-		public static event EventHandler? MetadataUpdated;
+		public static event global::System.EventHandler? MetadataUpdated;
 
-		internal static void UpdateApplication(Type[]? types)
+		internal static void UpdateApplication(global::System.Type[]? types)
 		{
-			MetadataUpdated?.Invoke(null, EventArgs.Empty);
+			MetadataUpdated?.Invoke(null, global::System.EventArgs.Empty);
 		}
 	}
 }

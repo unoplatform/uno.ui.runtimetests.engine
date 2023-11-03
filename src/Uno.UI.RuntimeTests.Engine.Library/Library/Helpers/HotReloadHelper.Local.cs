@@ -4,14 +4,6 @@
 #pragma warning disable
 #endif
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Uno.UI.RuntimeTests;
 
 partial class HotReloadHelper
@@ -19,27 +11,27 @@ partial class HotReloadHelper
 	static partial void TryUseLocalFileUpdater()
 		=> Use(new LocalFileUpdater());
 
-	[EditorBrowsable(EditorBrowsableState.Advanced)]
+	[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Advanced)]
 	public static void UseLocalFileUpdater()
 		=> Use(new LocalFileUpdater());
 
 	private class LocalFileUpdater : IFileUpdater
 	{
 		/// <inheritdoc />
-		public async ValueTask EnsureReady(CancellationToken ct) { }
+		public async global::System.Threading.Tasks.ValueTask EnsureReady(global::System.Threading.CancellationToken ct) { }
 
 		/// <inheritdoc />
-		public async ValueTask<ReConnect?> Apply(FileEdit edition, CancellationToken ct)
+		public async global::System.Threading.Tasks.ValueTask<ReConnect?> Apply(FileEdit edition, global::System.Threading.CancellationToken ct)
 		{
-			if (!File.Exists(edition.FilePath))
+			if (!global::System.IO.File.Exists(edition.FilePath))
 			{
-				throw new InvalidOperationException($"Source file {edition.FilePath} does not exist!");
+				throw new global::System.InvalidOperationException($"Source file {edition.FilePath} does not exist!");
 			}
 
-			var originalContent = await File.ReadAllTextAsync(edition.FilePath, ct);
+			var originalContent = await global::System.IO.File.ReadAllTextAsync(edition.FilePath, ct);
 			var updatedContent = originalContent.Replace(edition.OldText, edition.NewText);
 
-			await File.WriteAllTextAsync(edition.FilePath, updatedContent, ct);
+			await global::System.IO.File.WriteAllTextAsync(edition.FilePath, updatedContent, ct);
 
 			return null;
 		}
