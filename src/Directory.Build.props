@@ -36,9 +36,6 @@
 		<AnalysisLevel>latest</AnalysisLevel>
 		<AnalysisModePerformance>AllEnabledByDefault</AnalysisModePerformance>
 	</PropertyGroup>
-	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.0-preview1.22403.2" PrivateAssets="All" />
-	</ItemGroup>
 
 	<Choose>
 		<When Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false' and '$(IsSampleProject)' != 'true'">
