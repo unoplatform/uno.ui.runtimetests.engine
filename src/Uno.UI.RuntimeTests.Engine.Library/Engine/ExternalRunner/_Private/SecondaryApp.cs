@@ -1,12 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
+﻿using System;
+
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 #nullable enable
 
 #if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
-#endif
-
-#if __SKIA__
-#define IS_SECONDARY_APP_SUPPORTED
 #endif
 
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
@@ -23,9 +21,9 @@ internal static partial class SecondaryApp
 	/// <summary>
 	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.
 	/// </summary>
-	public static bool IsSupported => // Note: not as const to avoid "CS0162 unreachable code" warning
-#if IS_SECONDARY_APP_SUPPORTED
-		true;
+	public static bool IsSupported =>
+#if HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
+		global::System.OperatingSystem.IsWindows() || global::System.OperatingSystem.IsLinux() || global::System.OperatingSystem.IsFreeBSD();
 #else
 		false;
 #endif
@@ -39,9 +37,17 @@ internal static partial class SecondaryApp
 	/// <returns>The test results.</returns>
 	internal static async global::System.Threading.Tasks.Task<TestCaseResult[]> RunTest(UnitTestEngineConfig config, global::System.Threading.CancellationToken ct, bool isAppVisible = false)
 	{
-#if !IS_SECONDARY_APP_SUPPORTED
-		throw new global::System.NotSupportedException("Secondary app is not supported on this platform.");
+		if (!IsSupported)
+		{
+			throw new global::System.NotSupportedException("Secondary app is not supported on this platform.");
+		}
+
+#if !HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
+#pragma warning disable CA1825 // Array.Empty not available on UWP
+		return new TestCaseResult[0]; // Non reachable code.
+#pragma warning restore CA1825
 #else
+#pragma warning disable CA1416 // Validate platform compatibility => This is checked by the IsSupported property.
 		// First we fetch and start the dev-server (needed to HR tests for instance)
 		await using var devServer = await DevServer.Start(ct);
 
@@ -98,6 +104,7 @@ internal static partial class SecondaryApp
 		await childProcess.ExecuteAndLogAsync(typeof(SecondaryApp).CreateScopedLog($"CHILD_TEST_APP_{(global::System.Threading.Interlocked.Increment(ref _instance)):D2}"), ct);
 
 		return testOutput;
+#pragma warning restore CA1416 // Validate platform compatibility
 #endif
 	}
 }

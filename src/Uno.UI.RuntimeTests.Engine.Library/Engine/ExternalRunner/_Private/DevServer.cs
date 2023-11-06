@@ -1,10 +1,11 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI && (__SKIA__ || IS_SECONDARY_APP_SUPPORTED)
+﻿#if !UNO_RUNTIMETESTS_DISABLE_UI && HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
 #nullable enable
 
 #if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1848 // Log perf
+#pragma warning disable CS1998 // No await
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
 /// <summary>
@@ -14,6 +15,9 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 /// This class is intended to be used only by the the test engine itself and should not be used by applications.
 /// API contract is not guaranteed and might change in future releases.
 /// </remarks>
+[global::System.Runtime.Versioning.SupportedOSPlatform("windows")]
+[global::System.Runtime.Versioning.SupportedOSPlatform("linux")]
+[global::System.Runtime.Versioning.SupportedOSPlatform("freeBSD")]
 internal sealed partial class DevServer : global::System.IAsyncDisposable
 {
 	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = global::Uno.Extensions.LogExtensionPoint.Log(typeof(DevServer));
@@ -28,7 +32,7 @@ internal sealed partial class DevServer : global::System.IAsyncDisposable
 	public static async global::System.Threading.Tasks.Task<DevServer> Start(global::System.Threading.CancellationToken ct)
 	{
 #if !HAS_UNO_DEVSERVER
-		throw new NotSupportedException("Dev server has not been referenced.");
+		throw new global::System.NotSupportedException("Dev server has not been referenced.");
 #else
 		var path = await GetDevServer(ct);
 		var port = GetTcpPort();
