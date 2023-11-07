@@ -90,14 +90,14 @@ internal static partial class SecondaryApp
 		childStartInfo.EnvironmentVariables["DOTNET_MODIFIABLE_ASSEMBLIES"] = "debug";
 
 		// Requests to the uno app to attempt to connect to the given dev-server instance
-		childStartInfo.EnvironmentVariables.Add("UNO_DEV_SERVER_HOST", devServerHost);
-		childStartInfo.EnvironmentVariables.Add("UNO_DEV_SERVER_PORT", devServerPort.ToString());
+		childStartInfo.EnvironmentVariables["UNO_DEV_SERVER_HOST"] = devServerHost;
+		childStartInfo.EnvironmentVariables["UNO_DEV_SERVER_PORT"] = devServerPort.ToString();
 
 		// Request to the runtime tests engine to auto-start at startup
-		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_RUN_TESTS", configJson);
-		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_OUTPUT_PATH", testOutput);
-		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_OUTPUT_KIND", "UnoRuntimeTests"); // "NUnit"
-		childStartInfo.EnvironmentVariables.Add("UNO_RUNTIME_TESTS_IS_SECONDARY_APP", "true"); // "NUnit"
+		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_RUN_TESTS"] = configJson;
+		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_OUTPUT_PATH"] = testOutput;
+		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_OUTPUT_KIND"] = "UnoRuntimeTests"; // "NUnit"
+		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_IS_SECONDARY_APP"] = "true"; // "NUnit"
 
 		var childProcess = new global::System.Diagnostics.Process { StartInfo = childStartInfo };
 
