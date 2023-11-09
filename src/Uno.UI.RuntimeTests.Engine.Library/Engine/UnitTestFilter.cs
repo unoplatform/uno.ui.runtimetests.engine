@@ -8,7 +8,7 @@ namespace Uno.UI.RuntimeTests;
 public record UnitTestFilter
 {
 	private readonly IUnitTestEngineFilter _filter;
-	private static readonly char[] _separators = { '(', ')', '&', '|', ';' };
+	private static readonly char[] _separators = { '(', ')', '&', '|', ';', '!' };
 
 	private UnitTestFilter(IUnitTestEngineFilter filter)
 	{
@@ -44,36 +44,42 @@ public record UnitTestFilter
 		else
 		{
 			var index = 0;
-			return Parse(ref index, syntax.AsSpan());
+			var pending = default(IUnitTestEngineFilter?);
+			var stx = syntax.AsSpan();
+			do
+			{
+				pending = ReadToken(pending, ref index, stx);
+			} while (index < syntax.Length);
+
+			return pending;
 		}
 	}
 
-	private static IUnitTestEngineFilter Parse(ref int index, ReadOnlySpan<char> syntax)
+	private static IUnitTestEngineFilter ReadToken(IUnitTestEngineFilter? pending, ref int index, ReadOnlySpan<char> syntax)
 	{
 		// Simple syntax parser ... that does not have any operator priority!
 
-		var pending = default(IUnitTestEngineFilter?);
 		for (; index < syntax.Length; index++)
 		{
 			switch (syntax[index])
 			{
 				case '(':
 					index++;
-					pending = Parse(ref index, syntax);
+					pending = ReadToken(null, ref index, syntax);
 					break;
 
-				//case ' ':
-				//	break;
+				case ' ':
+					break;
 
 				case '&' when pending is not null:
 					index++;
-					pending = new AndFilter(pending, Parse(ref index, syntax));
+					pending = new AndFilter(pending, ReadToken(null, ref index, syntax));
 					break;
 
 				case ';' when pending is not null: // Legacy support
 				case '|' when pending is not null:
 					index++;
-					pending = new OrFilter(pending, Parse(ref index, syntax));
+					pending = new OrFilter(pending, ReadToken(null, ref index, syntax));
 					break;
 
 				case ')' when pending is not null:
@@ -82,13 +88,25 @@ public record UnitTestFilter
 				case ')':
 					return new NullFilter();
 
+				case '!':
+					index++;
+					pending = new NotFilter(ReadToken(null, ref index, syntax));
+					break;
+
 				default:
 				{
 					var j = index;
-					for (; j < syntax.Length && !_separators.Contains(syntax[j]); j++) { }
-					pending = new TextFilter(syntax.Slice(index, j - index).ToString().Trim());
-					index = j - 1;
-					break;
+					for (; j < syntax.Length; j++)
+					{
+						if (_separators.Contains(syntax[j]))
+						{
+							j--;
+							break;
+						}
+					}
+					var text = syntax.Slice(index, j - index).ToString().TrimEnd();
+					index = j;
+					return text is { Length: > 0 } ? new TextFilter(text) : default(NullFilter);
 				}
 			}
 		}
@@ -111,6 +129,12 @@ public record UnitTestFilter
 	{
 		public bool IsMatch(string methodFullname) => Left.IsMatch(methodFullname) || Right.IsMatch(methodFullname);
 		public override string ToString() => $"({Left} | {Right})";
+	}
+
+	private readonly record struct NotFilter(IUnitTestEngineFilter Filter) : IUnitTestEngineFilter
+	{
+		public bool IsMatch(string methodFullname) => !Filter.IsMatch(methodFullname);
+		public override string ToString() => $"!({Filter})";
 	}
 
 	private readonly record struct TextFilter(string Text) : IUnitTestEngineFilter
