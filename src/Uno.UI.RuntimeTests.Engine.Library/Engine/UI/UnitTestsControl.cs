@@ -1,6 +1,10 @@
 ﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
 
 #nullable enable
+
+#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 using System;
@@ -129,8 +133,10 @@ public sealed partial class UnitTestsControl : UserControl
 #endif
 	}
 
+#pragma warning disable CA2201 // Do not raise reserved exception types
 	static void FailCore(string stackTrace, string message, string detailMessage, string errorSource)
 		=> throw new Exception($"{message} ({detailMessage}) {stackTrace}");
+#pragma warning restore CA2201
 
 	public bool IsRunningOnCI
 	{

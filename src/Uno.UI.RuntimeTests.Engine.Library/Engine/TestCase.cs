@@ -1,5 +1,9 @@
 ﻿#nullable enable
 
+#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+
 using System;
 using System.Linq;
 using Windows.Devices.Input;

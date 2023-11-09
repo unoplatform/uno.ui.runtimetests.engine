@@ -1,0 +1,8 @@
+﻿<Project>
+	<PropertyGroup Condition="'$(PkgUno_UI_DevServer)' != '' OR '$(PkgUno_WinUI_DevServer)' != ''">
+		<DefineConstants >$(DefineConstants);HAS_UNO_DEVSERVER</DefineConstants>
+		<UnoForceHotReloadCodeGen>true</UnoForceHotReloadCodeGen>
+		<UnoForceIncludeProjectConfiguration>true</UnoForceIncludeProjectConfiguration>
+		<UnoForceIncludeServerProcessorsConfiguration>true</UnoForceIncludeServerProcessorsConfiguration>
+	</PropertyGroup>
+</Project>
