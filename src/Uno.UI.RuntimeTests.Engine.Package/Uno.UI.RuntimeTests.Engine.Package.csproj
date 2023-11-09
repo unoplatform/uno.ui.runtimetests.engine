@@ -26,6 +26,10 @@
 			<Pack>true</Pack>
 			<PackagePath>build</PackagePath>
 		</Content>
+		<Content Include="buildTransitive\*.*">
+			<Pack>true</Pack>
+			<PackagePath>buildTransitive</PackagePath>
+		</Content>
 		<Content Include="..\Uno.UI.RuntimeTests.Engine.Library\**\*.cs">
 			<Pack>true</Pack>
 			<Visible>false</Visible>
