@@ -80,7 +80,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 #pragma warning restore CA1416 // Validate platform compatibility
 
 			// Wait for the app to init it-self
-			await Task.Delay(500, ct.Token).ConfigureAwait(false);
+			await Task.Delay(2000, ct.Token).ConfigureAwait(false);
 			for (var i = 0; Window.Current is null && i < 100; i++)
 			{
 				await Task.Delay(50, ct.Token).ConfigureAwait(false);
