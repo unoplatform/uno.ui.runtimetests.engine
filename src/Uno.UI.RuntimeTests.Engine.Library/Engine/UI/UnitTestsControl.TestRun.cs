@@ -2,6 +2,10 @@
 
 #if !UNO_RUNTIMETESTS_DISABLE_UI
 
+#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+
 public sealed partial class UnitTestsControl
 {
 	private class TestRun

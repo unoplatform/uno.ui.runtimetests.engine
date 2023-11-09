@@ -1,4 +1,9 @@
 ﻿#if !UNO_RUNTIMETESTS_DISABLE_UI || !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
+
+#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+
 using System;
 using System.Linq;
 using System.Reflection;
