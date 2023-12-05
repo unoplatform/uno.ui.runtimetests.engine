@@ -162,7 +162,7 @@ and define the following in your `csproj`:
 These attributes will ask for the runtime test engine to replace the ones defined by the `Uno.UI.RuntimeTests.Engine` package.
 
 ## Running the tests automatically during CI
-When your app references the runtime-test engine, as soon as you start your application with the following environement variables, the runtime-test engine will automatically run the tests on application startup and then kill the app.
+When your application references the runtime-test engine, as soon as you start it with the following environement variables, the runtime-test engine will automatically run the tests on application startup and then kill the app.
 
 * **UNO_RUNTIME_TESTS_RUN_TESTS**: This can be either
 	* A json serialized [test configuration](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/UnitTestEngineConfig.cs) (use `{}` to run with default configuration);
@@ -173,7 +173,7 @@ You can also define some other configurations variables:
 
 * **UNO_RUNTIME_TESTS_OUTPUT_KIND**: Selects the kind of the test result file, possible values are `NUnit` (default) or `UnoRuntimeTests` (cf. [`TestResultKind`](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/ExternalRunner/RuntimeTestEmbeddedRunner.cs#L41))
 
-Currently the easiest way to run runtime-tests on the CI is using the skia-GTK, here an example of a azure pipeline configuration file:
+Currently the easiest way to run runtime-tests on the CI is using the skia-GTK head. Here an example of a azure pipeline configuration file:
 
 ```yaml
 jobs:
