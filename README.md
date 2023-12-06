@@ -162,18 +162,18 @@ and define the following in your `csproj`:
 These attributes will ask for the runtime test engine to replace the ones defined by the `Uno.UI.RuntimeTests.Engine` package.
 
 ## Running the tests automatically during CI
-When your application references the runtime-test engine, as soon as you start it with the following environement variables, the runtime-test engine will automatically run the tests on application startup and then kill the app.
+When your application references the runtime-test engine, as soon as you start it with the following environment variables, the runtime-test engine will automatically run the tests on application startup and then kill the app.
 
 * **UNO_RUNTIME_TESTS_RUN_TESTS**: This can be either
 	* A json serialized [test configuration](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/UnitTestEngineConfig.cs) (use `{}` to run with default configuration);
  	* A filter string.
 * **UNO_RUNTIME_TESTS_OUTPUT_PATH**: This is the output path of the test result file
 
-You can also define some other configurations variables:
+You can also define some other configuration variables:
 
 * **UNO_RUNTIME_TESTS_OUTPUT_KIND**: Selects the kind of the test result file, possible values are `NUnit` (default) or `UnoRuntimeTests` (cf. [`TestResultKind`](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/ExternalRunner/RuntimeTestEmbeddedRunner.cs#L41))
 
-Currently the easiest way to run runtime-tests on the CI is using the skia-GTK head. Here an example of a azure pipeline configuration file:
+Currently, the easiest way to run runtime-tests on the CI is using the Skia-GTK head. Here is an example of an Azure pipeline configuration file:
 
 ```yaml
 jobs:
@@ -237,4 +237,7 @@ jobs:
 Notes:
 * This is running the GTK head using a virtual x-server (xvfb).
 * We use `{}` for the `UNO_RUNTIME_TESTS_RUN_TESTS` in order to run all tests with default configuration.
-* If you want to test hot-relaod scenarios (usually relevant only for library developers), you need to build your test project in debug (`-c Debug`).
+* If you want to test hot-reload scenarios (usually relevant only for library developers), you need to build your test project in debug (`-c Debug`).
+
+### Running the tests automatically during CI on WASM and mobile targets
+Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.
