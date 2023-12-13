@@ -162,4 +162,82 @@ and define the following in your `csproj`:
 These attributes will ask for the runtime test engine to replace the ones defined by the `Uno.UI.RuntimeTests.Engine` package.
 
 ## Running the tests automatically during CI
-_TBD_
+When your application references the runtime-test engine, as soon as you start it with the following environment variables, the runtime-test engine will automatically run the tests on application startup and then kill the app.
+
+* **UNO_RUNTIME_TESTS_RUN_TESTS**: This can be either
+	* A json serialized [test configuration](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/UnitTestEngineConfig.cs) (use `{}` to run with default configuration);
+ 	* A filter string.
+* **UNO_RUNTIME_TESTS_OUTPUT_PATH**: This is the output path of the test result file
+
+You can also define some other configuration variables:
+
+* **UNO_RUNTIME_TESTS_OUTPUT_KIND**: Selects the kind of the test result file, possible values are `NUnit` (default) or `UnoRuntimeTests` (cf. [`TestResultKind`](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/ExternalRunner/RuntimeTestEmbeddedRunner.cs#L41))
+
+Currently, the easiest way to run runtime-tests on the CI is using the Skia-GTK head. Here is an example of an Azure pipeline configuration file:
+
+```yaml
+jobs:
+- job: Skia_Tests
+  displayName: 'Runtime Tests - Skia GTK'
+  timeoutInMinutes: 60
+  
+  pool:
+    vmImage: 'ubuntu-20.04'
+
+  variables:
+    NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
+
+  steps:
+  - checkout: self
+    clean: true
+    
+  - task: UseDotNet@2
+    displayName: 'Use .NET'
+    inputs:
+      packageType: 'sdk'
+      version: '7.x'
+      
+  - script: |
+        dotnet tool install -g uno.check
+        uno-check --target skiagtk --fix --non-interactive --ci
+    
+    displayName: 'Run uno-check'    
+
+  - script: dotnet build Uno.Extensions.RuntimeTests.Skia.Gtk.csproj -c Release -p:UnoTargetFrameworkOverride=net7.0 -p:GeneratePackageOnBuild=false -bl:$(Build.ArtifactStagingDirectory)/skia-gtk-runtime-test-build.binlog
+    displayName: 'Build Runtime Tests app (GTK)'
+    workingDirectory: $(Build.SourcesDirectory)/src/Uno.Extensions.RuntimeTests/Uno.Extensions.RuntimeTests.Skia.Gtk
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Build Logs
+    retryCountOnTaskFailure: 3
+    condition: always()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)/skia-gtk-runtime-test-build.binlog
+      ArtifactName: skia-runtime-test-build
+      ArtifactType: Container
+
+  - script: xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' dotnet Uno.Extensions.RuntimeTests.Skia.Gtk.dll
+    displayName: 'Run Runtime Tests (GTK)'
+    workingDirectory: $(Build.SourcesDirectory)/src/Uno.Extensions.RuntimeTests/Uno.Extensions.RuntimeTests.Skia.Gtk/bin/Debug/net7.0
+    env:
+      UNO_RUNTIME_TESTS_RUN_TESTS: '{}'
+      UNO_RUNTIME_TESTS_OUTPUT_PATH: '$(Common.TestResultsDirectory)/skia-gtk-runtime-tests-results.xml'
+
+  - task: PublishTestResults@2
+    displayName: 'Publish GTK Runtime Tests Results'
+    condition: always()
+    retryCountOnTaskFailure: 3
+    inputs:
+      testRunTitle: 'GTK Runtime Tests Run'
+      testResultsFormat: 'NUnit'
+      testResultsFiles: '$(Common.TestResultsDirectory)/skia-gtk-runtime-tests-results.xml'
+      failTaskOnFailedTests: true 
+```
+
+Notes:
+* This is running the GTK head using a virtual x-server (xvfb).
+* We use `{}` for the `UNO_RUNTIME_TESTS_RUN_TESTS` in order to run all tests with default configuration.
+* If you want to test hot-reload scenarios (usually relevant only for library developers), you need to build your test project in debug (`-c Debug`).
+
+### Running the tests automatically during CI on WASM and mobile targets
+Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.
