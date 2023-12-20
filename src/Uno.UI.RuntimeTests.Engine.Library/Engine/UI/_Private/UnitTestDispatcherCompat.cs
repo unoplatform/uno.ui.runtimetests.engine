@@ -53,6 +53,11 @@ public partial class UnitTestDispatcherCompat
 		this._impl = impl;
 	}
 
+#if !WINDOWS_WINUI && !HAS_UNO_WINUI
+	public Windows.Foundation.IAsyncAction RunIdleAsync(Windows.UI.Core.IdleDispatchedHandler agileCallback)
+		=> _impl.RunIdleAsync(agileCallback);
+#endif
+
 	public static UnitTestDispatcherCompat From(UIElement x) =>
 #if HAS_UNO_WINUI || WINDOWS_WINUI
 		new UnitTestDispatcherCompat(x.DispatcherQueue);

@@ -111,8 +111,14 @@ public static class UnitTestsUIContentHelper
 	/// <returns></returns>
 	public static async Task WaitForIdle()
 	{
+#if WINDOWS_WINUI || HAS_UNO_WINUI
+		// This is a wrong implementation. It doesn't really wait for "Idle".
 		await RootElementDispatcher.RunAsync(UnitTestDispatcherCompat.Priority.Low, () => { });
 		await RootElementDispatcher.RunAsync(UnitTestDispatcherCompat.Priority.Low, () => { });
+#else
+		await RootElementDispatcher.RunIdleAsync(_ => { /* Empty to wait for the idle queue to be reached */ });
+		await RootElementDispatcher.RunIdleAsync(_ => { /* Empty to wait for the idle queue to be reached */ });
+#endif
 	}
 
 	/// <summary>
