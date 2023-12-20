@@ -111,8 +111,8 @@ public static class UnitTestsUIContentHelper
 	/// <returns></returns>
 	public static async Task WaitForIdle()
 	{
-		await RootElementDispatcher.RunAsync(UnitTestDispatcherCompat.Priority.Low, () => { });
-		await RootElementDispatcher.RunAsync(UnitTestDispatcherCompat.Priority.Low, () => { });
+		await RootElementDispatcher.RunIdleAsync(_ => { /* Empty to wait for the idle queue to be reached */ });
+		await RootElementDispatcher.RunIdleAsync(_ => { /* Empty to wait for the idle queue to be reached */ });
 	}
 
 	/// <summary>

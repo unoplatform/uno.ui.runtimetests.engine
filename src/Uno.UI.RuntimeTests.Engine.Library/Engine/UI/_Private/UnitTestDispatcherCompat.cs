@@ -48,21 +48,50 @@ public partial class UnitTestDispatcherCompat
 {
 	private readonly _Impl _impl;
 
+#if WINDOWS_WINUI || HAS_UNO_WINUI
+
+    private readonly Windows.UI.Core.CoreDispatcher? _dispatcher;
+    public UnitTestDispatcherCompat(_Impl impl, Windows.UI.Core.CoreDispatcher? dispatcher = null)
+	{
+		this._impl = impl;
+		this._dispatcher = dispatcher;
+	}
+#else
 	public UnitTestDispatcherCompat(_Impl impl)
 	{
 		this._impl = impl;
 	}
+#endif
+
+	public Windows.Foundation.IAsyncAction RunIdleAsync(Windows.UI.Core.IdleDispatchedHandler agileCallback)
+	{
+#if !WINDOWS_WINUI && !HAS_UNO_WINUI
+		// Windows UWP and Uno UWP can use CoreDispatcher.RunIdleAsync without issues.
+		return _impl.RunIdleAsync(agileCallback);
+#else
+		// For now, Uno WinUI Dispatcher is non-null.
+		// In the future, this will break and it will be null.
+		if (_dispatcher is not null)
+		{
+			return _dispatcher.RunIdleAsync(agileCallback);
+		}
+
+		// This code path is for Windows WinUI, and "potentially" Uno WinUI in future when the breaking change is taken.
+		// This is a wrong implementation. It doesn't really wait for "Idle".
+		return RunAsync(UnitTestDispatcherCompat.Priority.Low, () => { }).AsAsyncAction();
+#endif
+	}
 
 	public static UnitTestDispatcherCompat From(UIElement x) =>
 #if HAS_UNO_WINUI || WINDOWS_WINUI
-		new UnitTestDispatcherCompat(x.DispatcherQueue);
+		new UnitTestDispatcherCompat(x.DispatcherQueue, x.Dispatcher);
 #else
 		new UnitTestDispatcherCompat(x.Dispatcher);
 #endif
 
 	public static UnitTestDispatcherCompat From(Window x) =>
 #if HAS_UNO_WINUI || WINDOWS_WINUI
-		new UnitTestDispatcherCompat(x.DispatcherQueue);
+		new UnitTestDispatcherCompat(x.DispatcherQueue, x.Dispatcher);
 #else
 		new UnitTestDispatcherCompat(x.Dispatcher);
 #endif
