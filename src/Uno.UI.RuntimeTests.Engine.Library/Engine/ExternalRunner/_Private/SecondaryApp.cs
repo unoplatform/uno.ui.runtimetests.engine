@@ -69,12 +69,13 @@ internal static partial class SecondaryApp
 		}
 	}
 
+	private static readonly global::System.Text.Json.JsonSerializerOptions _serializeOpts = new global::System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault };
 	private static int _instance;
 
 	private static async global::System.Threading.Tasks.Task<string> RunLocalApp(string devServerHost, int devServerPort, UnitTestEngineConfig config, bool isAppVisible, global::System.Threading.CancellationToken ct)
 	{
 		var testOutput = global::System.IO.Path.GetTempFileName();
-		var configJson = global::System.Text.Json.JsonSerializer.Serialize(config, new global::System.Text.Json.JsonSerializerOptions { DefaultIgnoreCondition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault });
+		var configJson = global::System.Text.Json.JsonSerializer.Serialize(config, _serializeOpts);
 
 		var childStartInfo = new global::System.Diagnostics.ProcessStartInfo(
 			global::System.Environment.ProcessPath ?? throw new global::System.InvalidOperationException("Cannot determine the current app executable path"),

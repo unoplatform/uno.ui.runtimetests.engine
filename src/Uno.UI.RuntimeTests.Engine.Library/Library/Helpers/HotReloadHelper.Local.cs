@@ -15,7 +15,7 @@ partial class HotReloadHelper
 	public static void UseLocalFileUpdater()
 		=> Use(new LocalFileUpdater());
 
-	private class LocalFileUpdater : IFileUpdater
+	private sealed class LocalFileUpdater : IFileUpdater
 	{
 		/// <inheritdoc />
 		public async global::System.Threading.Tasks.ValueTask EnsureReady(global::System.Threading.CancellationToken ct) { }

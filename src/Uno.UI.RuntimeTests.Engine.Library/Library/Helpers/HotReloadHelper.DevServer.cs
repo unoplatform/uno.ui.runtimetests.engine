@@ -39,7 +39,7 @@ partial class HotReloadHelper
 			};
 	}
 
-	private class DevServerUpdater : IFileUpdater
+	private sealed class DevServerUpdater : IFileUpdater
 	{
 		/// <inheritdoc />
 		public async ValueTask EnsureReady(CancellationToken ct)

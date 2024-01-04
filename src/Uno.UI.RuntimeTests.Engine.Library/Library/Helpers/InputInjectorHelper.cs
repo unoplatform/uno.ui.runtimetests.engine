@@ -112,7 +112,7 @@ public partial class InputInjectorHelper
 	public void InjectMouseInput(params InjectedInputMouseInfo?[] input)
 		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>());
 
-	private record PointerSubscription(InputInjectorHelper Injector, PointerDeviceType Previous, PointerDeviceType Current) : IDisposable
+	private sealed record PointerSubscription(InputInjectorHelper Injector, PointerDeviceType Previous, PointerDeviceType Current) : IDisposable
 	{
 		/// <inheritdoc />
 		public void Dispose()

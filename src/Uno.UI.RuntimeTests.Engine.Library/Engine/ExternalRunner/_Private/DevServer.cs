@@ -205,7 +205,7 @@ internal sealed partial class DevServer : global::System.IAsyncDisposable
 		}
 		catch (global::System.Exception e)
 		{
-			global::Microsoft.Extensions.Logging.LoggerExtensions.LogError(_log, "Failed to kill dev server", e);
+			global::Microsoft.Extensions.Logging.LoggerExtensions.LogError(_log, e, "Failed to kill dev server");
 		}
 
 		await _process.WaitForExitAsync(global::System.Threading.CancellationToken.None);

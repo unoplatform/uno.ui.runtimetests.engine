@@ -15,7 +15,7 @@ namespace Uno.UI.RuntimeTests
 {
 	public sealed partial class UnitTestsControl
 	{
-		private class ConsoleOutputRecorder : IDisposable
+		private sealed class ConsoleOutputRecorder : IDisposable
 		{
 			private readonly TextWriterDuplicator _duplicator;
 			private readonly TextWriter _originalOutput;
@@ -52,7 +52,7 @@ namespace Uno.UI.RuntimeTests
 			}
 		}
 
-		private class TextWriterDuplicator : TextWriter
+		private sealed class TextWriterDuplicator : TextWriter
 		{
 			private readonly TextWriter _inner;
 			private readonly StringBuilder _accumulator = new StringBuilder();

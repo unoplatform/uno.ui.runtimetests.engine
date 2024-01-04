@@ -8,7 +8,7 @@ namespace Uno.UI.RuntimeTests;
 
 public static partial class HotReloadHelper
 {
-	private class NotSupported : IFileUpdater
+	private sealed class NotSupported : IFileUpdater
 	{
 		/// <inheritdoc />
 		public global::System.Threading.Tasks.ValueTask EnsureReady(global::System.Threading.CancellationToken ct)
