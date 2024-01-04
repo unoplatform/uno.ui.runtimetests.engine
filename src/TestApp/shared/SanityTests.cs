@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -44,6 +45,28 @@ namespace Uno.UI.RuntimeTests.Engine
 		[DataRow("goodbye", DisplayName = "goodbye test")]
 		public void Is_Sane_With_Cases(string text)
 		{
+#pragma warning disable CA1861 // Prefer static readonly
+			Assert.IsTrue(new[] { "hello", "goodbye" }.Contains(text));
+		}
+
+		[TestMethod]
+		[DynamicData(nameof(DynamicData), DynamicDataSourceType.Property)]
+		[DynamicData(nameof(GetDynamicData), DynamicDataSourceType.Method)]
+		public void Is_Sane_With_DynamicData(string text)
+		{
+			Assert.IsTrue(new[] { "hello", "goodbye" }.Contains(text));
+		}
+
+		public static IEnumerable<object[]> DynamicData { get; } = new[]
+		{
+			new object[] { "hello" },
+			new object[] { "goodbye" },
+		};
+
+		public static IEnumerable<object[]> GetDynamicData()
+		{
+			yield return new object[] { "hello" };
+			yield return new object[] { "goodbye" };
 		}
 
 #if DEBUG

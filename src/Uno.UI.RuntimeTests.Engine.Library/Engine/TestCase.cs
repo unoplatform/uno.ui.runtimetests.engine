@@ -3,6 +3,7 @@
 #if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#pragma warning disable CA1852 // Make class final : unnecessary breaking change
 
 using System;
 using System.Linq;
@@ -11,7 +12,6 @@ using Windows.Devices.Input;
 namespace Uno.UI.RuntimeTests;
 
 #if !UNO_RUNTIMETESTS_DISABLE_UI
-
 internal record TestCase
 {
 	public object[] Parameters { get; init; } = Array.Empty<object>();

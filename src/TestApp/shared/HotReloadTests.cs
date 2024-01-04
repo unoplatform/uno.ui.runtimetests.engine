@@ -47,13 +47,13 @@ public class HotReloadTests
 		var file = Path.Combine(dir, sutPath);
 
 		Assert.IsTrue(File.Exists(file));
-		Assert.IsTrue(File.ReadAllText(file).Contains("Original text"));
+		Assert.IsTrue((await File.ReadAllTextAsync(file, ct)).Contains("Original text"));
 
 		await using var _ = await HotReloadHelper.UpdateSourceFile(sutPath, "Original text", "Updated text from Can_Edit_File", waitForMetadataUpdate: false, ct);
 
 		await TestHelper.WaitFor(() => File.ReadAllText(file).Contains("Updated text from Can_Edit_File"), ct);
 
-		Assert.IsTrue(File.ReadAllText(file).Contains("Updated text from Can_Edit_File"));
+		Assert.IsTrue((await File.ReadAllTextAsync(file, ct)).Contains("Updated text from Can_Edit_File"));
 	}
 
 	[TestMethod]

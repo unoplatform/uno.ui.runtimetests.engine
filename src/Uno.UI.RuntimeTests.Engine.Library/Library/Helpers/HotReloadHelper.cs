@@ -28,7 +28,7 @@ public static partial class HotReloadHelper
 		public FileEdit Revert() => this with { OldText = NewText, NewText = OldText };
 	}
 
-	private record RevertFileEdit(FileEdit Edition, bool WaitForMetadataUpdate) : global::System.IAsyncDisposable
+	private sealed record RevertFileEdit(FileEdit Edition, bool WaitForMetadataUpdate) : global::System.IAsyncDisposable
 	{
 		/// <inheritdoc />
 		public async global::System.Threading.Tasks.ValueTask DisposeAsync()

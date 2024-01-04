@@ -5,6 +5,7 @@
 #if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#pragma warning disable CA1852 // Make class final : unnecessary breaking change
 
 public sealed partial class UnitTestsControl
 {

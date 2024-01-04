@@ -725,7 +725,7 @@ public sealed partial class UnitTestsControl : UserControl
 			.Select(method => new UnitTestMethodInfo(instance, method))
 			.ToArray();
 
-		if (!tests.Any() || testClassInfo.Type == null)
+		if (tests.Length <= 0 || testClassInfo.Type == null)
 		{
 			return;
 		}

@@ -4,6 +4,7 @@
 #if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#pragma warning disable CA1852 // Make class final : unnecessary breaking change
 
 using System;
 using System.Collections.Generic;
@@ -93,15 +94,15 @@ internal record UnitTestMethodInfo
 		foreach (var testCaseSource in _casesParameters)
 		{
 			// Note: CT is not propagated when using a test data source
-			foreach (var caseData in testCaseSource.GetData(Method))
-			{
-				var data = testCaseSource
-					.GetData(Method)
-					.SelectMany(x => x)
-					.ToArray();
+			var testCases = testCaseSource
+				.GetData(Method)
+				.Select(caseData => new TestCase
+				{
+					Parameters = caseData, 
+					DisplayName = testCaseSource.GetDisplayName(Method, caseData)
+				});
 
-				cases.Add(new TestCase { Parameters = data, DisplayName = testCaseSource.GetDisplayName(Method, data) });
-			}
+			cases.AddRange(testCases);
 		}
 
 		if (_injectedPointerTypes.Any())
