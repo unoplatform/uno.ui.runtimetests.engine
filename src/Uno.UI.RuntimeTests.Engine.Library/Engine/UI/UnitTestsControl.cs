@@ -6,6 +6,7 @@
 #pragma warning disable
 #endif
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
 
 using System;
 using System.Collections.Generic;
@@ -27,11 +28,6 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Uno.UI.RuntimeTests.Engine;
 using Uno.UI.RuntimeTests.Internal.Helpers;
-
-#if HAS_UNO
-using Uno.Foundation.Logging;
-using Uno.Logging;
-#endif
 
 #if HAS_UNO_WINUI || WINDOWS_WINUI
 using Windows.UI;
@@ -66,9 +62,7 @@ namespace Uno.UI.RuntimeTests;
 public sealed partial class UnitTestsControl : UserControl
 {
 #pragma warning disable CS0109
-#if HAS_UNO
 	private new readonly ILogger _log = Uno.Extensions.LogExtensionPoint.Log(typeof(UnitTestsControl));
-#endif
 #pragma warning restore CS0109
 
 	private Task? _runner;
@@ -116,7 +110,11 @@ public sealed partial class UnitTestsControl : UserControl
 #if HAS_UNO
 		_applicationView = ApplicationView.GetForCurrentView();
 #endif
+
+		ConstructPartial();
 	}
+
+	partial void ConstructPartial();
 
 	internal IEnumerable<TestCaseResult> Results => _testCases;
 
@@ -262,9 +260,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private async Task ReportMessage(string message, bool isRunning = true)
 	{
-#if HAS_UNO
-		_log?.Info(message);
-#endif
+		_log.LogInformation(message);
 
 		void Setter()
 		{
@@ -358,12 +354,11 @@ public sealed partial class UnitTestsControl : UserControl
 				UpdateUI(result);
 			}
 		});
-#if HAS_UNO
+
 		foreach (var result in results)
 		{
-			_log?.Info($"Test completed '{result.TestName}'='{result.TestResult}'");
+			_log.LogInformation($"Test completed '{result.TestName}'='{result.TestResult}'");
 		}
-#endif
 
 		void UpdateUI(TestCaseResult result)
 		{
@@ -536,10 +531,9 @@ public sealed partial class UnitTestsControl : UserControl
 					testFilter.Text = config.Filter;
 				}
 			}
-			catch (Exception)
+			catch (Exception error)
 			{
-				// UNO MOVE
-				// _log.Error("Failed to restore runtime tests config", e);
+				_log.LogError(error, "Failed to restore runtime tests config.");
 			}
 		}
 
