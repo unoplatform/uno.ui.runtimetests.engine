@@ -48,15 +48,20 @@ public record UnitTestFilter
 		}
 		else
 		{
-			var index = 0;
+			int previousIndex, index = 0;
 			var pending = default(IUnitTestEngineFilter?);
 			var stx = syntax.AsSpan();
 			do
 			{
-				pending = ReadToken(pending, ref index, stx);
-			} while (index < syntax.Length);
+				previousIndex = index;
+				var token = ReadToken(pending, ref index, stx);
+				if (token is not NullFilter)
+				{
+					pending = token; // Avoids to override the current parsed filter is something went wrong
+				}
+			} while (index < syntax.Length && index > previousIndex);
 
-			return pending;
+			return pending ?? new NullFilter();
 		}
 	}
 

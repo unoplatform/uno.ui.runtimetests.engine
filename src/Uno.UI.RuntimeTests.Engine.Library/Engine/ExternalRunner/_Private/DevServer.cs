@@ -1,4 +1,8 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI && HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
+﻿using System;
+using System.ComponentModel;
+using System.IO;
+
+#if !UNO_RUNTIMETESTS_DISABLE_UI && HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
 #nullable enable
 
 #if !IS_UNO_RUNTIMETEST_PROJECT
@@ -18,17 +22,37 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 [global::System.Runtime.Versioning.SupportedOSPlatform("windows")]
 [global::System.Runtime.Versioning.SupportedOSPlatform("linux")]
 [global::System.Runtime.Versioning.SupportedOSPlatform("freeBSD")]
-internal sealed partial class DevServer : global::System.IAsyncDisposable
+public sealed partial class DevServer : global::System.IAsyncDisposable
 {
 	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = global::Uno.Extensions.LogExtensionPoint.Log(typeof(DevServer));
 	private static int _instance;
 	private static string? _devServerPath;
 
 	/// <summary>
+	/// Sets path to the dev-server host assembly (i.e. the Uno.UI.RemoteControl.Host.dll file).
+	/// </summary>
+	/// <param name="path">Path for the dev-server host assembly.</param>
+	[EditorBrowsable(EditorBrowsableState.Advanced)] // To be used by uno only
+	public static void SetDefaultPath(string path)
+		=> _devServerPath = path;
+
+	/// <summary>
 	/// Starts a new dev server instance
 	/// </summary>
 	/// <param name="ct">Cancellation token to abort the initialization of the server.</param>
 	/// <returns>The new dev server instance.</returns>
+	public static async global::System.Threading.Tasks.Task<DevServer> Start(string path, global::System.Threading.CancellationToken ct)
+		=> StartCore(path, GetTcpPort());
+
+	/// <summary>
+	/// Starts a new dev server instance
+	/// </summary>
+	/// <param name="ct">Cancellation token to abort the initialization of the server.</param>
+	/// <returns>The new dev server instance.</returns>
+	/// <remarks>
+	/// The path of the dev-server will be resolved from the UNO_RUNTIME_TESTS_DEV_SERVER_PATH environment variable (path to the Uno.UI.RemoteControl.Host.dll file),
+	/// and if not defined, it the latest version version will be pulled from NuGet.
+	/// </remarks>
 	public static async global::System.Threading.Tasks.Task<DevServer> Start(global::System.Threading.CancellationToken ct)
 	{
 #if !HAS_UNO_DEVSERVER
@@ -55,7 +79,7 @@ internal sealed partial class DevServer : global::System.IAsyncDisposable
 	public int Port { get; }
 
 	private static async global::System.Threading.Tasks.Task<string> GetDevServer(global::System.Threading.CancellationToken ct)
-		=> _devServerPath ??= await PullDevServer(ct);
+		=> _devServerPath ??= Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_DEV_SERVER_PATH") is { Length: > 0 } path ? path : await PullDevServer(ct);
 
 	/// <summary>
 	/// Pulls the latest version of dev server from NuGet and returns the path to the executable

@@ -10,6 +10,7 @@
 #endif
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -49,9 +50,13 @@ internal static partial class RuntimeTestEmbeddedRunner
 #pragma warning restore CA2255
 	public static void AutoStartTests()
 	{
+		Trace("Initializing runtime-tests module.");
+
 		if (Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig
 			&& Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_PATH") is { } outputPath)
 		{
+			Trace($"Application configured to start runtime-tests (Output={outputPath} | Config={testsConfig}).");
+
 			var outputKind = Enum.TryParse<TestResultKind>(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
 				? kind
 				: TestResultKind.NUnit;
@@ -65,6 +70,10 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			_ = RunTestsAndExit(testsConfig, outputPath, outputKind, isSecondaryApp);
 		}
+		else
+		{
+			Trace("Application has not been configured to start runtime-test, aborting runtime-test embedded runner.");
+		}
 	}
 
 	private static async Task RunTestsAndExit(string testsConfigRaw, string outputPath, TestResultKind outputKind, bool isSecondaryApp)
@@ -73,7 +82,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 		try
 		{
-			Log("Waiting for app to init before running runtime-tests");
+			Log("Waiting for app to init before running runtime-tests.");
 
 #pragma warning disable CA1416 // Validate platform compatibility
 			Console.CancelKeyPress += (_, _) => ct.Cancel(true);
@@ -91,6 +100,8 @@ internal static partial class RuntimeTestEmbeddedRunner
 			{
 				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher");
 			}
+
+			Trace("Got window (and dispatcher), continuing runtime-test initialization on it.");
 
 			// While the app init, parse the tests config
 			var config = default(UnitTestEngineConfig?);
@@ -114,6 +125,8 @@ internal static partial class RuntimeTestEmbeddedRunner
 					{
 						try
 						{
+							Trace("Got dispatcher access, init the runtime-test engine.");
+
 							await RunTests(window, config, outputPath, outputKind, isSecondaryApp, ct.Token);
 							tcs.TrySetResult();
 						}
@@ -158,7 +171,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 
 		// Then override the app content by the test control
-		Log("Initializing runtime-tests engine.");
+		Trace("Initializing runtime-tests engine.");
 		var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
 		Window.Current.Content = engine;
 		await UIHelper.WaitForLoaded(engine, ct);
@@ -171,7 +184,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		Log($"Saving runtime-tests results to {outputPath}.");
 		switch (outputKind)
 		{
-			case TestResultKind.UnoRuntimeTests: 
+			case TestResultKind.UnoRuntimeTests:
 				await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(engine.Results), Encoding.UTF8, ct);
 				break;
 
@@ -181,6 +194,10 @@ internal static partial class RuntimeTestEmbeddedRunner
 				break;
 		}
 	}
+
+	[Conditional("DEBUG")]
+	private static void Trace(string text)
+		=> Console.WriteLine(text);
 
 	private static void Log(string text)
 		=> Console.WriteLine(text);
