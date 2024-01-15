@@ -63,14 +63,20 @@ public static partial class HotReloadHelper
 	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = typeof(HotReloadHelper).Log();
 	private static IFileUpdater _impl = new NotSupported();
 
-	// The delay for the client to connect to the dev-server
-	private static global::System.TimeSpan ConnectionTimeout = global::System.TimeSpan.FromSeconds(3);
+	/// <summary>
+	/// The delay for the client to connect to the dev-server
+	/// </summary>
+	public static global::System.TimeSpan DefaultConnectionTimeout = global::System.TimeSpan.FromSeconds(3);
 
-	// The delay for the server to load the workspace and let the client know it's ready
-	private static global::System.TimeSpan WorkspaceTimeout = global::System.TimeSpan.FromSeconds(30);
+	/// <summary>
+	/// The delay for the server to load the workspace and let the client know it's ready
+	/// </summary>
+	public static global::System.TimeSpan DefaultWorkspaceTimeout = global::System.TimeSpan.FromSeconds(30);
 
-	// The delay for the server to send metadata update once a file has been modified
-	private static global::System.TimeSpan MetadataUpdateTimeout = global::System.TimeSpan.FromSeconds(5);
+	/// <summary>
+	/// The delay for the server to send metadata update once a file has been modified
+	/// </summary>
+	public static global::System.TimeSpan DefaultMetadataUpdateTimeout = global::System.TimeSpan.FromSeconds(5);
 
 	static HotReloadHelper()
 	{
@@ -227,7 +233,7 @@ public static partial class HotReloadHelper
 
 				_log.LogTrace("File edition requested, waiting for metadata update (i.e. the code changes to be applied in the current app) ...");
 
-				var timeout = global::System.Threading.Tasks.Task.Delay(MetadataUpdateTimeout, ct);
+				var timeout = global::System.Threading.Tasks.Task.Delay(DefaultMetadataUpdateTimeout, ct);
 				if (await global::System.Threading.Tasks.Task.WhenAny(timeout, cts.Task) == timeout)
 				{
 					throw new global::System.TimeoutException(

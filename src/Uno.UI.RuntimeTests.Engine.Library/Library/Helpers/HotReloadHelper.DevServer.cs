@@ -31,7 +31,7 @@ partial class HotReloadHelper
 	partial record FileEdit
 	{
 		public UpdateFile ToMessage()
-			=> new UpdateFile
+			=> new()
 			{
 				FilePath = FilePath,
 				OldText = OldText,
@@ -48,20 +48,20 @@ partial class HotReloadHelper
 
 			if (RemoteControlClient.Instance is null)
 			{
-				throw new InvalidOperationException("Dev server is not available.");
+				throw new InvalidOperationException("Dev server is not available (make sure to reference the Uno.WinUI.DevServer package).");
 			}
 
 			if (RemoteControlClient.Instance.Processors.OfType<ClientHotReloadProcessor>().FirstOrDefault() is not { } hotReload)
 			{
-				throw new InvalidOperationException("App is not configured to accept hot-reload.");
+				throw new InvalidOperationException("App is not configured to accept hot-reload (project has to be build in debug to get processor path injected).");
 			}
 
-			var timeout = Task.Delay(ConnectionTimeout, ct);
+			var timeout = Task.Delay(DefaultConnectionTimeout, ct);
 			if (await Task.WhenAny(timeout, RemoteControlClient.Instance.WaitForConnection(ct)) == timeout)
 			{
 				throw new TimeoutException(
 					"Timeout while waiting for the app to connect to the dev-server. "
-					+ "This usually indicates that the dev-server is not running on the expected combination of hots and port"
+					+ "This usually indicates that the dev-server is not running on the expected combination of host and port"
 					+ "(For runtime-tests run in secondary app instance, the server should be listening for connection on "
 					+ $"{Environment.GetEnvironmentVariable("UNO_DEV_SERVER_HOST")}:{Environment.GetEnvironmentVariable("UNO_DEV_SERVER_PORT")}).");
 			}
@@ -69,7 +69,7 @@ partial class HotReloadHelper
 			_log.LogTrace("Client connected, waiting for dev-server to load the workspace (i.e. initializing roslyn with the solution) ...");
 
 			var hotReloadReady = hotReload.WaitForWorkspaceLoaded(ct);
-			timeout = Task.Delay(WorkspaceTimeout, ct);
+			timeout = Task.Delay(DefaultWorkspaceTimeout, ct);
 			if (await Task.WhenAny(timeout, hotReloadReady) == timeout)
 			{
 				throw new TimeoutException(
