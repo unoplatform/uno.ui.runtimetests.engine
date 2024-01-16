@@ -98,7 +98,7 @@ internal static partial class SecondaryApp
 		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_RUN_TESTS"] = configJson;
 		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_OUTPUT_PATH"] = testOutput;
 		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_OUTPUT_KIND"] = "UnoRuntimeTests"; // "NUnit"
-		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_IS_SECONDARY_APP"] = "true"; // "NUnit"
+		childStartInfo.EnvironmentVariables["UNO_RUNTIME_TESTS_IS_SECONDARY_APP"] = "true";
 
 		var childProcess = new global::System.Diagnostics.Process { StartInfo = childStartInfo };
 

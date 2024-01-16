@@ -55,6 +55,19 @@ internal static partial class RuntimeTestEmbeddedRunner
 		if (Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig
 			&& Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_PATH") is { } outputPath)
 		{
+			if (bool.TryParse(testsConfig, out var runTests))
+			{
+				if (runTests)
+				{
+					testsConfig = string.Empty; // Do not treat "true" as a filter.
+				}
+				else
+				{
+					Trace("Application has been configured to **NOT** start runtime-test, aborting runtime-test embedded runner.");
+					return;
+				}
+			}
+
 			Trace($"Application configured to start runtime-tests (Output={outputPath} | Config={testsConfig}).");
 
 			var outputKind = Enum.TryParse<TestResultKind>(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)

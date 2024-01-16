@@ -71,6 +71,11 @@
 									IsChecked="True"
 									not_skia:Content="➰ Auto retry"
 									skia:Content="Auto retry" />
+								<ToggleButton
+									x:Name="showSecondaryApp"
+									IsThreeState="True"
+									not_skia:Content="🪟 Show 2nd app"
+									skia:Content="Show 2nd app" />
 							</StackPanel>
 						</Flyout>
 					</Button.Flyout>
