@@ -527,6 +527,7 @@ public sealed partial class UnitTestsControl : UserControl
 				{
 					consoleOutput.IsChecked = config.IsConsoleOutputEnabled;
 					runIgnored.IsChecked = config.IsRunningIgnored;
+					showSecondaryApp.IsChecked = config.IsSecondaryAppVisible;
 					retry.IsChecked = config.Attempts > 1;
 					testFilter.Text = config.Filter;
 				}
@@ -548,6 +549,8 @@ public sealed partial class UnitTestsControl : UserControl
 		runIgnored.Unchecked += (snd, e) => StoreConfig();
 		retry.Checked += (snd, e) => StoreConfig();
 		retry.Unchecked += (snd, e) => StoreConfig();
+		showSecondaryApp.Checked += (snd, e) => StoreConfig();
+		showSecondaryApp.Unchecked += (snd, e) => StoreConfig();
 		testFilter.TextChanged += (snd, e) => StoreConfig();
 
 		void StoreConfig()
@@ -561,6 +564,7 @@ public sealed partial class UnitTestsControl : UserControl
 	{
 		var isConsoleOutput = consoleOutput.IsChecked ?? false;
 		var isRunningIgnored = runIgnored.IsChecked ?? false;
+		var isSecondaryAppVisible = showSecondaryApp.IsChecked;
 		var attempts = (retry.IsChecked ?? true) ? UnitTestEngineConfig.DefaultRepeatCount : 1;
 		var filter = testFilter.Text.Trim();
 		if (string.IsNullOrEmpty(filter))
@@ -573,6 +577,7 @@ public sealed partial class UnitTestsControl : UserControl
 			Filter = filter,
 			IsConsoleOutputEnabled = isConsoleOutput,
 			IsRunningIgnored = isRunningIgnored,
+			IsSecondaryAppVisible = isSecondaryAppVisible,
 			Attempts = attempts,
 		};
 	}
@@ -749,7 +754,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 				config = config with { Filter = $"{testClassInfo.Type.FullName} & ({config.Filter})" };
 
-				var results = await SecondaryApp.RunTest(config, ct, isAppVisible: Debugger.IsAttached);
+				var results = await SecondaryApp.RunTest(config, ct, isAppVisible: config.IsSecondaryAppVisible ?? Debugger.IsAttached);
 				foreach (var result in results)
 				{
 					ReportTestResult(result);

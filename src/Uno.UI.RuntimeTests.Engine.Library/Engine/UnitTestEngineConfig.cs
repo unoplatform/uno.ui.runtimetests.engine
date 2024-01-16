@@ -25,6 +25,8 @@ public record UnitTestEngineConfig
 	public bool IsConsoleOutputEnabled { get; init; }
 
 	public bool IsRunningIgnored { get; init; }
+
+	public bool? IsSecondaryAppVisible { get; init; }
 }
 
 #endif
