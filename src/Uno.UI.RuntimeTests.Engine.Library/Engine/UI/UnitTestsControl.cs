@@ -100,7 +100,7 @@ public sealed partial class UnitTestsControl : UserControl
 			GetContent: () => unitTestContentRoot.Content as UIElement,
 			SetContent: elt => unitTestContentRoot.Content = elt
 		);
-		UnitTestsUIContentHelper.CurrentTestWindow = XamlWindow.Current;
+		UnitTestsUIContentHelper.CurrentTestWindow ??= XamlWindow.Current;
 
 		DataContext = null;
 

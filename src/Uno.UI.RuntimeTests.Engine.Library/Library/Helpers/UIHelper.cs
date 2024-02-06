@@ -193,7 +193,7 @@ public static partial class UIHelper
 		{
 			case ScreenShotScalingMode.UsePhysicalPixelsWithImplicitScaling:
 				await renderer.RenderAsync(element);
-				bitmap = await TestBitmap.From(renderer, element, DisplayInformation.GetForCurrentView()?.RawPixelsPerViewPixel ?? 1);
+				bitmap = await TestBitmap.From(renderer, element, element.XamlRoot?.RasterizationScale ?? 1);
 				break;
 			case ScreenShotScalingMode.UseLogicalPixels:
 				await renderer.RenderAsync(element, (int)element.RenderSize.Width, (int)element.RenderSize.Height);
