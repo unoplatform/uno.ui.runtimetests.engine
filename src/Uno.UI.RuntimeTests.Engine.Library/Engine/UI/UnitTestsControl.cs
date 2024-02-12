@@ -618,6 +618,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 	public async Task RunTestsForInstance(object testClassInstance)
 	{
+#pragma warning disable CA1849
 		Interlocked.Exchange(ref _cts, new CancellationTokenSource())?.Cancel(); // cancel any previous CTS
 
 		testResults.Children.Clear();
@@ -718,11 +719,9 @@ public sealed partial class UnitTestsControl : UserControl
 			? ConsoleOutputRecorder.Start()
 			: default;
 
-		var tests = (config.Filter is null
-				? testClassInfo.Tests
-				: testClassInfo.Tests.Where(test => config.Filter.IsMatch(test)))
-			.Select(method => new UnitTestMethodInfo(instance, method))
-			.ToArray();
+		var tests = config.Filter is null
+			? testClassInfo.Tests
+			: testClassInfo.Tests.Where(test => config.Filter.IsMatch(test.Method)).ToArray();
 
 		if (tests.Length <= 0 || testClassInfo.Type == null)
 		{
@@ -732,7 +731,9 @@ public sealed partial class UnitTestsControl : UserControl
 		ReportTestClass(testClassInfo.Type.GetTypeInfo());
 		_ = ReportMessage($"Running {tests.Length} test methods");
 
-		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp && !IsSecondaryApp)
+		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp
+			&& !IsSecondaryApp
+			&& (config.IsRunningIgnored || testClassInfo.Tests.Any(test => !test.IsIgnored(out _))))
 		{
 			try
 			{

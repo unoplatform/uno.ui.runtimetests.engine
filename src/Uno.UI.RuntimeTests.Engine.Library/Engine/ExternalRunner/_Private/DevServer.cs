@@ -151,8 +151,8 @@ public sealed partial class DevServer : global::System.IAsyncDisposable
 					dir,
 					log);
 
-				return GetConfigurationValue(data, "RemoteControlHostPath") is { Length: > 0 } path 
-					? path 
+				return GetConfigurationValue(data, "RemoteControlHostPath") is { Length: > 0 } path
+					? path
 					: throw new global::System.InvalidOperationException("Failed to get remote control host path");
 			}
 		}

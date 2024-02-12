@@ -22,7 +22,7 @@ public class UnitTestClassInfo
 	{
 		Type = type;
 		TestClassName = Type?.Name ?? "(null)";
-		Tests = tests ?? Array.Empty<MethodInfo>();
+		Tests = tests?.Select(test => new UnitTestMethodInfo(test)).ToArray() ?? Array.Empty<UnitTestMethodInfo>();
 		Initialize = initialize;
 		Cleanup = cleanup;
 
@@ -33,7 +33,7 @@ public class UnitTestClassInfo
 
 	public Type? Type { get; }
 
-	public MethodInfo[] Tests { get; }
+	public UnitTestMethodInfo[] Tests { get; }
 
 	public MethodInfo? Initialize { get; }
 
