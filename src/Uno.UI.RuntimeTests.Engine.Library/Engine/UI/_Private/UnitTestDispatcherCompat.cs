@@ -50,8 +50,8 @@ public partial class UnitTestDispatcherCompat
 
 #if WINDOWS_WINUI || HAS_UNO_WINUI
 
-    private readonly Windows.UI.Core.CoreDispatcher? _dispatcher;
-    public UnitTestDispatcherCompat(_Impl impl, Windows.UI.Core.CoreDispatcher? dispatcher = null)
+	private readonly Windows.UI.Core.CoreDispatcher? _dispatcher;
+	public UnitTestDispatcherCompat(_Impl impl, Windows.UI.Core.CoreDispatcher? dispatcher = null)
 	{
 		this._impl = impl;
 		this._dispatcher = dispatcher;

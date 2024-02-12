@@ -69,7 +69,7 @@ public class FilterTests
 	[DataRow("!abcd | def", "abc.def.g.h.i", true)]
 	public void When_ParseAndMatch(string filter, string method, bool expectedResult)
 	{
-		UnitTestFilter sut =  filter;
+		UnitTestFilter sut = filter;
 		var result = sut.IsMatch(method);
 
 		Assert.AreEqual(expectedResult, result);

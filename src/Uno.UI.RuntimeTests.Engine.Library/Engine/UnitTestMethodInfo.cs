@@ -17,12 +17,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Uno.UI.RuntimeTests;
 
-internal record UnitTestMethodInfo
+public record UnitTestMethodInfo
 {
 	private readonly List<ITestDataSource> _casesParameters;
 	private readonly IList<PointerDeviceType> _injectedPointerTypes;
 
-	public UnitTestMethodInfo(object testClassInstance, MethodInfo method)
+	public UnitTestMethodInfo(MethodInfo method)
 	{
 		Method = method;
 		RunsOnUIThread =
@@ -36,7 +36,7 @@ internal record UnitTestMethodInfo
 			.SingleOrDefault()
 			?.ExceptionType;
 
-		_casesParameters  = method
+		_casesParameters = method
 			.GetCustomAttributes()
 			.Where(x => x is ITestDataSource)
 			.Cast<ITestDataSource>()
@@ -80,7 +80,7 @@ internal record UnitTestMethodInfo
 		return false;
 	}
 
-	public IEnumerable<TestCase> GetCases(CancellationToken ct)
+	internal IEnumerable<TestCase> GetCases(CancellationToken ct)
 	{
 		List<TestCase> cases = new();
 
@@ -98,7 +98,7 @@ internal record UnitTestMethodInfo
 				.GetData(Method)
 				.Select(caseData => new TestCase
 				{
-					Parameters = caseData, 
+					Parameters = caseData,
 					DisplayName = testCaseSource.GetDisplayName(Method, caseData)
 				});
 
