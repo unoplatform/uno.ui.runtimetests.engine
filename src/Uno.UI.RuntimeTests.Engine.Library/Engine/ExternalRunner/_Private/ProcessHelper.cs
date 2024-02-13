@@ -1,11 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI && HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1848 // Log perf
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI && HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
 using System;
 using System.Diagnostics;
 using System.Text;

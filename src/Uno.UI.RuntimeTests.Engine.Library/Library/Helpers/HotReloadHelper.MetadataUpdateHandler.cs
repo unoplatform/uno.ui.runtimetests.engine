@@ -1,10 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 
-[assembly:System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(global::Uno.UI.RuntimeTests.HotReloadHelper.MetadataUpdateHandler))]
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
+
+[assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(global::Uno.UI.RuntimeTests.HotReloadHelper.MetadataUpdateHandler))]
 
 namespace Uno.UI.RuntimeTests;
 

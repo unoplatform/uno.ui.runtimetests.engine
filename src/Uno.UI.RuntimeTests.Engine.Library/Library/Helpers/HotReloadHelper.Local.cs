@@ -1,9 +1,8 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 namespace Uno.UI.RuntimeTests;
 
 partial class HotReloadHelper

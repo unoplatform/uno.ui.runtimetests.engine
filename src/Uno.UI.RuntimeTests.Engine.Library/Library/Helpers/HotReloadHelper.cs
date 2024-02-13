@@ -1,13 +1,11 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
-
 #pragma warning disable CA1848 // Log perf
 #pragma warning disable CA1823 // Field not used
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 // Add using for extensions methods only
 using global::System.Reflection;
 using global::Microsoft.Extensions.Logging;
@@ -190,7 +188,7 @@ public static partial class HotReloadHelper
 		catch
 		{
 			await revertMessage.DisposeAsync();
-			
+
 			throw;
 		}
 

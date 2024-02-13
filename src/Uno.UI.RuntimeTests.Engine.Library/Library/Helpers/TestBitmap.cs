@@ -1,10 +1,9 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 using System;
 using System.IO;
 using System.Linq;
@@ -37,7 +36,7 @@ public partial class TestBitmap
 	private readonly UIElement _renderedElement; // Allow access through partial implementation
 	private readonly double _implicitScaling;
 
-	private byte[]? _pixels; 
+	private byte[]? _pixels;
 	private bool _altered;
 
 	private TestBitmap(RenderTargetBitmap bitmap, UIElement renderedElement, double implicitScaling)

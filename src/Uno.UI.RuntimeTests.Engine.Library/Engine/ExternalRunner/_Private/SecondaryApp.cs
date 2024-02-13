@@ -1,11 +1,11 @@
-﻿using System;
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+
+using System;
 
 #if !UNO_RUNTIMETESTS_DISABLE_UI
 #nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
-#pragma warning disable
-#endif
 
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
 
@@ -58,13 +58,13 @@ internal static partial class SecondaryApp
 		try
 		{
 			var results = await global::System.Text.Json.JsonSerializer.DeserializeAsync<TestCaseResult[]>(global::System.IO.File.OpenRead(resultFile), cancellationToken: ct);
-			
+
 			return results ?? global::System.Array.Empty<TestCaseResult>();
 		}
 		catch (global::System.Text.Json.JsonException error)
 		{
 			throw new global::System.InvalidOperationException(
-				$"Failed to deserialize the test results from '{resultFile}', this usually indicates that the secondary app has been closed (or crashed) before the end of the test suit.", 
+				$"Failed to deserialize the test results from '{resultFile}', this usually indicates that the secondary app has been closed (or crashed) before the end of the test suit.",
 				error);
 		}
 	}

@@ -1,12 +1,11 @@
-﻿namespace Uno.UI.RuntimeTests;
-
-#if !UNO_RUNTIMETESTS_DISABLE_UI
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1852 // Make class final : unnecessary breaking change
 
+namespace Uno.UI.RuntimeTests;
+
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 public sealed partial class UnitTestsControl
 {
 	private class TestRun

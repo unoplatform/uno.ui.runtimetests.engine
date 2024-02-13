@@ -1,10 +1,9 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 using System;
 using System.Collections.Generic;
 using System.Linq;

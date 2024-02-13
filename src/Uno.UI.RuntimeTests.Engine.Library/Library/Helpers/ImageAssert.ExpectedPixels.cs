@@ -1,11 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1814 // We use 2D Color[] on purpose
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -92,10 +91,10 @@ public record struct ExpectedPixels
 		{
 			var colors = new Color[(int)rect.Height, (int)rect.Width];
 			for (var py = 0; py < rect.Height; py++)
-			for (var px = 0; px < rect.Width; px++)
-			{
-				colors[py, px] = source.GetPixel((int)rect.X + px, (int)rect.Y + py);
-			}
+				for (var px = 0; px < rect.Width; px++)
+				{
+					colors[py, px] = source.GetPixel((int)rect.X + px, (int)rect.Y + py);
+				}
 
 			return this with { SourceLocation = new Point(rect.X, rect.Y), Values = colors };
 		}

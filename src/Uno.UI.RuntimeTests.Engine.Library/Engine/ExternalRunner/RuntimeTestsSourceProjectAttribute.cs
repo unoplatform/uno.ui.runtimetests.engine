@@ -1,9 +1,9 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+
+#if !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
+#nullable enable
 
 using System;
 using System.Collections.Generic;

@@ -1,9 +1,8 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -23,7 +22,7 @@ internal static class LoggerExtensions
 #if false
 		=> new(log, log.BeginScope(scopeName));
 #else
-		=> new (Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory.CreateLogger(typeof(T).FullName + "#" + scopeName));
+		=> new(Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory.CreateLogger(typeof(T).FullName + "#" + scopeName));
 #endif
 }
 

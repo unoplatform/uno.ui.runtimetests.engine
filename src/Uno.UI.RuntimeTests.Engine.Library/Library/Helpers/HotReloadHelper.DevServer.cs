@@ -1,11 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && HAS_UNO_DEVSERVER // Set as soon as the DevServer package is referenced, cf. Uno.UI.RuntimeTests.Engine.targets
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1848 // Log perf
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && HAS_UNO_DEVSERVER // Set as soon as the DevServer package is referenced, cf. Uno.UI.RuntimeTests.Engine.targets
 using System;
 using System.Collections;
 using System.IO;

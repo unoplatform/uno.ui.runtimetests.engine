@@ -1,8 +1,8 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 namespace Uno.UI.RuntimeTests;
 
 public static partial class AsyncAssert
@@ -87,7 +87,7 @@ public static partial class AsyncAssert
 	/// <param name="timeoutMs">The max duration to wait for in milliseconds.</param>
 	/// <param name="ct">Cancellation token to cancel teh asynchronous operation</param>
 	public static global::System.Threading.Tasks.ValueTask IsTrue(global::System.Func<bool> condition, string message, int timeoutMs, global::System.Threading.CancellationToken ct = default)
-		=> IsTrueCore( condition, message, global::System.TimeSpan.FromMilliseconds(timeoutMs), ct);
+		=> IsTrueCore(condition, message, global::System.TimeSpan.FromMilliseconds(timeoutMs), ct);
 
 	/// <summary>
 	/// Asynchronously tests whether the specified condition is true and throws an exception if the condition is false.

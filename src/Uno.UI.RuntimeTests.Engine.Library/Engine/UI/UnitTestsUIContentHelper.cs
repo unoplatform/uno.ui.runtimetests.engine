@@ -1,8 +1,7 @@
-﻿#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#nullable enable
 
 using System;
 using System.ComponentModel;

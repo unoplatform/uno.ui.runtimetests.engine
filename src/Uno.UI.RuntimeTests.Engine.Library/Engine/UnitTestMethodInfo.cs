@@ -1,11 +1,10 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
-
-#nullable enable
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1852 // Make class final : unnecessary breaking change
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 using System;
 using System.Collections.Generic;
 using System.Linq;

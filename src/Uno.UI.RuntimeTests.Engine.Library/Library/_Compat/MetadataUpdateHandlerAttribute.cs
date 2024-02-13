@@ -1,9 +1,8 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && WINDOWS_UWP
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 
-
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && WINDOWS_UWP
 using System.Diagnostics.CodeAnalysis;
 
 #nullable enable
