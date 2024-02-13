@@ -1,13 +1,13 @@
-﻿#if WINDOWS_UWP
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
+#pragma warning disable
+#endif
+
+#if WINDOWS_UWP
 #define UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
 #endif
 
 #if !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
 #nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
-#pragma warning disable
-#endif
 
 using System;
 using System.Diagnostics;

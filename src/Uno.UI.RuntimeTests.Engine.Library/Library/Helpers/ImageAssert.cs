@@ -1,10 +1,9 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -113,12 +112,12 @@ public static partial class ImageAssert
 				.AppendLine($"ImageAssert.HasColorAt @ line {line}")
 				.AppendLine("====================");
 
-				if (message is not null)
-				{
-					sb.AppendLine(message);
-				}
-				builder?.Invoke(sb);
-					
+			if (message is not null)
+			{
+				sb.AppendLine(message);
+			}
+			builder?.Invoke(sb);
+
 			return sb.ToString();
 		}
 	}
@@ -162,7 +161,7 @@ public static partial class ImageAssert
 				sb.AppendLine(message);
 			}
 			builder?.Invoke(sb);
-				
+
 			return sb.ToString();
 		}
 	}

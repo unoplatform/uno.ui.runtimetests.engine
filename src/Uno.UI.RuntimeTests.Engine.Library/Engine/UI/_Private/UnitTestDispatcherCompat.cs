@@ -1,9 +1,8 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 using System;
 using System.Collections.Generic;
 using System.Text;

@@ -1,6 +1,6 @@
 ﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
-# endif
+#endif
 
 using System;
 using System.Linq;

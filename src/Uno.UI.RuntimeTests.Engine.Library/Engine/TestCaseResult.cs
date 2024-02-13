@@ -1,9 +1,8 @@
-﻿#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CA1852 // Make class final : unnecessary breaking change
+#nullable enable
 
 using System;
 using System.Linq;

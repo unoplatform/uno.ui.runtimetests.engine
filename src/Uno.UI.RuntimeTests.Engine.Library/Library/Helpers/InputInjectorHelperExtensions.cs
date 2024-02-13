@@ -1,10 +1,9 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,7 +76,7 @@ public static partial class InputInjectorHelperExtensions
 
 	public static void Drag(this InputInjectorHelper injector, UIElement elt, Point to)
 		=> injector.DragCoordinates(GetAbsoluteCenter(elt), to);
-	
+
 	public static void Drag(this InputInjectorHelper injector, UIElement elt, double toX, double toY)
 		=> injector.DragCoordinates(GetAbsoluteCenter(elt), new Point(toX, toY));
 

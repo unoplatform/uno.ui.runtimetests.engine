@@ -1,13 +1,11 @@
-﻿#if !UNO_RUNTIMETESTS_DISABLE_UI
-
-#nullable enable
-
-#if !IS_UNO_RUNTIMETEST_PROJECT
+﻿#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
+#nullable enable
 
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -764,10 +762,10 @@ public sealed partial class UnitTestsControl : UserControl
 				if (results.Length != testCases.Count)
 				{
 					ReportTestResult(
-						instance.GetType().Name, 
-						TimeSpan.Zero, 
-						TestResult.Failed, 
-						new InvalidOperationException($"Unexpected tests results, got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.\""), 
+						instance.GetType().Name,
+						TimeSpan.Zero,
+						TestResult.Failed,
+						new InvalidOperationException($"Unexpected tests results, got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.\""),
 						$"Got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.");
 				}
 			}
