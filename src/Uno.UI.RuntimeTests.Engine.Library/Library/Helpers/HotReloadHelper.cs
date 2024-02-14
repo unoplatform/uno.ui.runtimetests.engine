@@ -58,7 +58,7 @@ public static partial class HotReloadHelper
 		global::System.Threading.Tasks.ValueTask<ReConnect?> Apply(FileEdit edition, global::System.Threading.CancellationToken ct);
 	}
 
-	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = typeof(HotReloadHelper).Log();
+	private static readonly global::Microsoft.Extensions.Logging.ILogger _log = global::Uno.Extensions.LogExtensionPoint.Log(typeof(HotReloadHelper));
 	private static IFileUpdater _impl = new NotSupported();
 
 	/// <summary>
