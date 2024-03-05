@@ -249,6 +249,7 @@ public static partial class UIHelper
 		StackPanel legend;
 		var popup = new ContentDialog
 		{
+			XamlRoot = UnitTestsUIContentHelper.CurrentTestWindow?.Content?.XamlRoot,
 			MinWidth = bitmap.Width + 2,
 			MinHeight = bitmap.Height + 30,
 			Content = new Grid
