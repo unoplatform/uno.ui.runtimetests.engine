@@ -51,7 +51,7 @@ public partial class TestBitmap
 	/// </summary>
 	internal static async Task<TestBitmap> From(RenderTargetBitmap bitmap, UIElement renderedElement, double? implicitScaling = null)
 	{
-		implicitScaling ??= DisplayInformation.GetForCurrentView()?.RawPixelsPerViewPixel ?? 1;
+		implicitScaling ??= renderedElement.XamlRoot?.RasterizationScale ?? 1;
 		var raw = new TestBitmap(bitmap, renderedElement, implicitScaling.Value);
 		await raw.Populate();
 
