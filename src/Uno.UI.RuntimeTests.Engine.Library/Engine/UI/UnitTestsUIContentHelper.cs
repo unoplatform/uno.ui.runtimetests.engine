@@ -43,7 +43,6 @@ namespace Uno.UI.RuntimeTests;
 
 public static class UnitTestsUIContentHelper
 {
-	private static Window? _currentTestWindow;
 	private static UIElement? _originalWindowContent;
 
 	internal static (UIElement Control, Func<UIElement?> GetContent, Action<UIElement?> SetContent) EmbeddedTestRoot { get; set; }
@@ -74,11 +73,7 @@ public static class UnitTestsUIContentHelper
 		}
 	}
 
-	public static Window? CurrentTestWindow
-	{
-		get => _currentTestWindow ?? throw new InvalidOperationException("Current test window not set.");
-		set => _currentTestWindow = value;
-	}
+	public static Window? CurrentTestWindow { get; set; }
 
 	public static UIElement? Content
 	{
