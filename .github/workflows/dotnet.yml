@@ -44,7 +44,7 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
 
     - name: Windows-only Build
-      run: msbuild -r src\Uno.UI.RuntimeTests.Engine-win-only-build.slnf
+      run: msbuild -r -v:m src\Uno.UI.RuntimeTests.Engine-win-only-build.slnf
 
     - name: Build
       run: |
