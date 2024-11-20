@@ -1,6 +1,14 @@
 ﻿<Project>
 	<!--Forcefull disable on windows as the package is actually empty on that target (no dev-server, we rely only on VS)-->
-	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows' AND ('$(PkgUno_UI_DevServer)' != '' OR '$(PkgUno_WinUI_DevServer)' != '')">
+	<PropertyGroup Condition="
+					$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'
+					AND (
+						'$(PkgUno_UI_DevServer)' != '' 
+						OR '$(PkgUno_WinUI_DevServer)' != ''
+					)
+					AND '$(UnoRemoteControlProcessorsPath)' != ''
+					">
+		
 		<DefineConstants>$(DefineConstants);HAS_UNO_DEVSERVER</DefineConstants>
 		<UnoForceHotReloadCodeGen>true</UnoForceHotReloadCodeGen>
 		<UnoForceIncludeProjectConfiguration>true</UnoForceIncludeProjectConfiguration>

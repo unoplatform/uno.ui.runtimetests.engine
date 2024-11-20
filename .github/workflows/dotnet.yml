@@ -26,17 +26,10 @@ jobs:
       with:
         dotnet-version: ${{ env.DotNetVersion }}
 
-    - name: Setup GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.9
+    - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
       with:
-        versionSpec: '5.x'
-
-    - name: GitVersion
-      id: gitversion
-      uses: gittools/actions/gitversion/execute@v0.9.9
-      with:
-        useConfigFile: true
-        configFilePath: build/gitversion.yml
+        toolVersion: 3.6.139
+        setAllVars: true
 
     - run: |
         npm install -g conventional-changelog-cli@2.2.2
@@ -55,8 +48,7 @@ jobs:
 
     - name: Build
       run: |
-        $adjustedPackageVersion="${{ steps.gitversion.outputs.semVer }}".ToLower();
-        dotnet build src\Uno.UI.RuntimeTests.Engine-dotnet-build.slnf "/t:Build;Pack" /p:PackageVersion=$adjustedPackageVersion /p:Version=${{ steps.gitversion.outputs.assemblySemVer }} "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
+        dotnet build src\Uno.UI.RuntimeTests.Engine-dotnet-build.slnf "/t:Build;Pack" /p:PackageVersion=$env:NBGV_SemVer2 /p:Version=$env:NBGV_SemVer2 "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
