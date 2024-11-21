@@ -5,7 +5,7 @@ using Uno.UI.Runtime.Skia.Gtk;
 
 namespace Uno.UI.RuntimeTests.Engine.Skia.Gtk
 {
-	class Program
+	static class Program
 	{
 		static void Main(string[] args)
 		{
