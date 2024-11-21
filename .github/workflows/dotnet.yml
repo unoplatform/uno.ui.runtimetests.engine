@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
     
 env:
-  DotNetVersion: '7.0.401'
+  DotNetVersion: '8.0.403'
   UnoCheck_Version: '1.16.0'
   UnoCheck_Manifest: 'https://raw.githubusercontent.com/unoplatform/uno.check/519b147a80d92e35cac4b8f97855d9302c91b340/manifests/uno.ui.manifest.json'
 
