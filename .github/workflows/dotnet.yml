@@ -7,9 +7,8 @@ on:
     branches: [ "main" ]
     
 env:
-  DotNetVersion: '7.0.401'
-  UnoCheck_Version: '1.16.0'
-  UnoCheck_Manifest: 'https://raw.githubusercontent.com/unoplatform/uno.check/519b147a80d92e35cac4b8f97855d9302c91b340/manifests/uno.ui.manifest.json'
+  DotNetVersion: '8.0.403'
+  UnoCheck_Version: '1.26.1'
 
 jobs:
   build:
@@ -26,17 +25,10 @@ jobs:
       with:
         dotnet-version: ${{ env.DotNetVersion }}
 
-    - name: Setup GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.9
+    - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
       with:
-        versionSpec: '5.x'
-
-    - name: GitVersion
-      id: gitversion
-      uses: gittools/actions/gitversion/execute@v0.9.9
-      with:
-        useConfigFile: true
-        configFilePath: build/gitversion.yml
+        toolVersion: 3.6.139
+        setAllVars: true
 
     - run: |
         npm install -g conventional-changelog-cli@2.2.2
@@ -45,18 +37,17 @@ jobs:
 
     - run: |
         & dotnet tool update --global uno.check --version $env:UnoCheck_Version --add-source https://api.nuget.org/v3/index.json
-        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vswinworkloads --skip vsmac --manifest $env:UnoCheck_Manifest
+        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vswinworkloads --skip vsmac
 
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.1
 
     - name: Windows-only Build
-      run: msbuild -r src\Uno.UI.RuntimeTests.Engine-win-only-build.slnf
+      run: msbuild -r -v:m src\Uno.UI.RuntimeTests.Engine-win-only-build.slnf
 
     - name: Build
       run: |
-        $adjustedPackageVersion="${{ steps.gitversion.outputs.semVer }}".ToLower();
-        dotnet build src\Uno.UI.RuntimeTests.Engine-dotnet-build.slnf "/t:Build;Pack" /p:PackageVersion=$adjustedPackageVersion /p:Version=${{ steps.gitversion.outputs.assemblySemVer }} "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
+        dotnet build src\Uno.UI.RuntimeTests.Engine-dotnet-build.slnf "/t:Build;Pack" /p:PackageVersion=$env:NBGV_SemVer2 /p:Version=$env:NBGV_SemVer2 "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4

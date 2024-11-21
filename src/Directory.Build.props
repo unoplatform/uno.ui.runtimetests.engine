@@ -15,7 +15,8 @@
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<NoWarn>$(NoWarn);CS1998</NoWarn><!--Lacks await in async-->
+		<NoWarn>$(NoWarn);CS1998</NoWarn> <!-- Lacks await in async -->
+		<NoWarn>$(NoWarn);NU1903</NoWarn> <!-- System.Private.Uri is transitively updated by the runtime -->
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TF_BUILD)' == 'true' or '$(GITHUB_ACTIONS)'=='true'">

@@ -4,7 +4,7 @@ using Uno.UI.Runtime.Skia.Linux.FrameBuffer;
 
 namespace Uno.UI.RuntimeTests.Engine
 {
-	class Program
+    static class Program
 	{
 		static void Main(string[] args)
 		{
