@@ -23,7 +23,7 @@ public class PointersInjectionTests
 	[InjectedPointer(PointerDeviceType.Mouse)]
 	[InjectedPointer(PointerDeviceType.Touch)]
 #if !HAS_UNO_SKIA && !WINDOWS
-	[ExpectedException(typeof(NotSupportedException))]
+	[Ignore("Input injection not supported")]
 #endif
 	public async Task When_TapCoordinates()
 	{

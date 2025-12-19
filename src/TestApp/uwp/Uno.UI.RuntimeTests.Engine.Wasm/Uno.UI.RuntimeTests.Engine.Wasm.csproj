@@ -50,7 +50,7 @@
 		<PackageReference Include="Uno.Wasm.Bootstrap" Version="7.0.5" />
 		<PackageReference Include="Uno.Wasm.Bootstrap.DevServer" Version="7.0.5" />
 
-		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+		<PackageReference Include="MSTest.TestFramework" Version="4.0.2" />
 	</ItemGroup>
 
 	<Import Project="..\..\shared\uno.ui.runtimetests.engine.Shared.projitems" Label="Shared" />
