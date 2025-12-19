@@ -911,18 +911,8 @@ public sealed partial class UnitTestsControl : UserControl
 
 						var console = consoleRecorder?.GetContentAndReset();
 
-						if (test.ExpectedException is null)
-						{
-							_currentRun.Succeeded++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, console: console);
-						}
-						else
-						{
-							_currentRun.Failed++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Failed,
-								message: $"Test did not throw the excepted exception of type {test.ExpectedException.Name}",
-								console: console);
-						}
+						_currentRun.Succeeded++;
+						ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, console: console);
 					}
 					catch (Exception ex)
 					{
@@ -947,7 +937,7 @@ public sealed partial class UnitTestsControl : UserControl
 							_currentRun.Ignored++;
 							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Skipped, message: e.Message, console: console);
 						}
-						else if (test.ExpectedException is null || !test.ExpectedException.IsInstanceOfType(e))
+						else
 						{
 							if (_currentRun.CurrentRepeatCount < config.Attempts - 1 && !Debugger.IsAttached)
 							{
@@ -961,11 +951,6 @@ public sealed partial class UnitTestsControl : UserControl
 								_currentRun.Failed++;
 								ReportTestResult(fullTestName, sw.Elapsed, TestResult.Failed, e, console: console);
 							}
-						}
-						else
-						{
-							_currentRun.Succeeded++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, e, console: console);
 						}
 					}
 					finally

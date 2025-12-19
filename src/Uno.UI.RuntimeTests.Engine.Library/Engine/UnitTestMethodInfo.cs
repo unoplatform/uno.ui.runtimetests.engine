@@ -30,10 +30,6 @@ public record UnitTestMethodInfo
 		RequiresFullWindow =
 			HasCustomAttribute<RequiresFullWindowAttribute>(method) ||
 			HasCustomAttribute<RequiresFullWindowAttribute>(method.DeclaringType);
-		ExpectedException = method
-			.GetCustomAttributes<ExpectedExceptionAttribute>()
-			.SingleOrDefault()
-			?.ExceptionType;
 
 		_casesParameters = method
 			.GetCustomAttributes()
@@ -51,8 +47,6 @@ public record UnitTestMethodInfo
 	public string Name => Method.Name;
 
 	public MethodInfo Method { get; }
-
-	public Type? ExpectedException { get; }
 
 	public bool RequiresFullWindow { get; }
 

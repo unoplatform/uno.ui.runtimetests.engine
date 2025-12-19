@@ -24,7 +24,7 @@
 		<PackageReference Include="Uno.UI.DevServer" Version="5.0.0-dev.3552"/><!--Note: Keep the DevServer package also in release for hot reload tests (cf. HotReloadHelper).-->
 		<PackageReference Include="Uno.UI.Adapter.Microsoft.Extensions.Logging" Version="5.0.0-dev.3552" />
 
-		<PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+		<PackageReference Include="MSTest.TestFramework" Version="4.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 		<UpToDateCheckInput Include="..\..\shared\**\*.xaml" />
