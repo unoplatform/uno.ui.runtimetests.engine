@@ -4,7 +4,7 @@
 #pragma warning disable CA1848 // Log perf
 #nullable enable
 
-#if !UNO_RUNTIMETESTS_DISABLE_UI && HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
+#if !UNO_RUNTIMETESTS_DISABLE_UI
 using System;
 using System.Diagnostics;
 using System.Text;
