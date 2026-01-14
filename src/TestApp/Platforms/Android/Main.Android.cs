@@ -1,3 +1,4 @@
+using System;
 using Android.Runtime;
 
 namespace Uno.UI.RuntimeTests.Engine.Droid;

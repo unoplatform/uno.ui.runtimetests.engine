@@ -1,4 +1,4 @@
-using UIKit;
+using Uno.UI.Hosting;
 
 namespace Uno.UI.RuntimeTests.Engine.iOS;
 
@@ -6,13 +6,13 @@ public class EntryPoint
 {
 	static void Main(string[] args)
 	{
-		UIApplication.Main(args, null, typeof(AppDelegate));
-	}
-}
+		App.InitializeLogging();
 
-public class AppDelegate : Microsoft.UI.Xaml.ApplicationDelegate
-{
-	public AppDelegate() : base(() => new App())
-	{
+		var host = UnoPlatformHostBuilder.Create()
+			.App(() => new App())
+			.UseAppleUIKit()
+			.Build();
+
+		host.Run();
 	}
 }
