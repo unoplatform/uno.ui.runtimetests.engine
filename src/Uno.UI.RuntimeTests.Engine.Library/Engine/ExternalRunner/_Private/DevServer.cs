@@ -113,11 +113,7 @@ public sealed partial class DevServer : global::System.IAsyncDisposable
 			using (var log = _log.Scope<DevServer>("PULL_DEV_SERVER"))
 			{
 				var args = new global::System.Collections.Generic.List<string> { "add", "package" };
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 				args.Add("Uno.WinUI.DevServer");
-#else
-				args.Add("Uno.UI.DevServer");
-#endif
 				// If the assembly is not a debug version it should have a valid version
 				// Note: This is the version of the RemoteControl assembly, not the RemoteControl.Host, but they should be in sync (both are part of the DevServer package)
 				if (global::System.Type.GetType("Uno.UI.RemoteControl.RemoteControlClient, Uno.UI.RemoteControl", throwOnError: false)?.Assembly is { } devServerAssembly

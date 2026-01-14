@@ -22,11 +22,7 @@ internal static partial class SecondaryApp
 	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.
 	/// </summary>
 	public static bool IsSupported =>
-#if HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
 		global::System.OperatingSystem.IsWindows() || global::System.OperatingSystem.IsLinux() || global::System.OperatingSystem.IsFreeBSD();
-#else
-		false;
-#endif
 
 	/// <summary>
 	/// Run the tests defined by the given configuration in another instance of the current application.
@@ -42,11 +38,6 @@ internal static partial class SecondaryApp
 			throw new global::System.NotSupportedException("Secondary app is not supported on this platform.");
 		}
 
-#if !HAS_UNO_WINUI // HAS_UNO_WINUI: exclude non net7 platforms
-#pragma warning disable CA1825 // Array.Empty not available on UWP
-		return new TestCaseResult[0]; // Non reachable code.
-#pragma warning restore CA1825
-#else
 #pragma warning disable CA1416 // Validate platform compatibility => This is checked by the IsSupported property.
 		// First we fetch and start the dev-server (needed to HR tests for instance)
 		await using var devServer = await DevServer.Start(ct);
@@ -106,7 +97,6 @@ internal static partial class SecondaryApp
 
 		return testOutput;
 #pragma warning restore CA1416 // Validate platform compatibility
-#endif
 	}
 }
 #endif

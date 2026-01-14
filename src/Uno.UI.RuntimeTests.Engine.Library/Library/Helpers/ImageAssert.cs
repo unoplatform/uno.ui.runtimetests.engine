@@ -13,11 +13,7 @@ using Windows.UI;
 using Windows.Foundation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Microsoft.UI.Xaml.Markup;
-#else
-using Windows.UI.Xaml.Markup;
-#endif
 
 namespace Uno.UI.RuntimeTests;
 
