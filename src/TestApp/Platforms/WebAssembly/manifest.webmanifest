@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "RuntimeTests Engine",
+  "display": "standalone",
+  "name": "RuntimeTests Engine",
+  "short_name": "RuntimeTests",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}
