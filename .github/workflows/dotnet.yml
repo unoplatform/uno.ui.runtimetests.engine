@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
     
 env:
-  DotNetVersion: '8.0.403'
-  UnoCheck_Version: '1.26.1'
+  DotNetVersion: '10.0.100'
+  UnoCheck_Version: '1.33.1'
 
 jobs:
   build:
