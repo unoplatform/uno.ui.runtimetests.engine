@@ -13,6 +13,8 @@ env:
 jobs:
   build:
     runs-on: windows-2025
+    outputs:
+      semver: ${{ steps.nbgv.outputs.SemVer2 }}
 
     steps:
     - uses: actions/checkout@v3
@@ -26,6 +28,7 @@ jobs:
         dotnet-version: ${{ env.DotNetVersion }}
 
     - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
+      id: nbgv
       with:
         toolVersion: 3.6.139
         setAllVars: true
@@ -55,12 +58,72 @@ jobs:
         name: NuGet
         path: .\artifacts
 
+  test:
+    name: Runtime Tests
+    runs-on: ubuntu-latest
+    needs:
+      - build
+
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout sources
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DotNetVersion }}
+
+    - name: Download NuGet Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: NuGet
+        path: artifacts
+
+    - name: Setup local NuGet source
+      run: |
+        dotnet nuget add source ${{ github.workspace }}/artifacts --name local
+
+    - name: Run uno-check
+      run: |
+        dotnet tool install -g uno.check --version ${{ env.UnoCheck_Version }}
+        uno-check --target linux --fix --non-interactive --ci
+
+    - name: Build TestApp
+      run: dotnet build src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-desktop -p:Version=${{ needs.build.outputs.semver }}
+
+    - name: Run Runtime Tests
+      run: |
+        xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' \
+          dotnet src/TestApp/bin/Release/net10.0-desktop/Uno.UI.RuntimeTests.Engine.TestApp.dll
+      env:
+        UNO_RUNTIME_TESTS_RUN_TESTS: '{}'
+        UNO_RUNTIME_TESTS_OUTPUT_PATH: '${{ github.workspace }}/test-results/runtime-tests.xml'
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: TestResults
+        path: test-results/
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@a810f9bf83f2344124a920a7a0a85a6716e791f0
+      if: always()
+      with:
+        name: Runtime Tests
+        path: test-results/runtime-tests.xml
+        reporter: dotnet-nunit
+        fail-on-error: true
+
   publish:
     name: Publish
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
     runs-on: windows-2025
     needs:
       - build
+      - test
     steps:
       - name: Checkout
         uses: actions/checkout@v2
