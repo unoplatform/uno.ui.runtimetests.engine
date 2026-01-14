@@ -5,13 +5,8 @@ using System.Threading.Tasks;
 using Windows.Devices.Input;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-#else
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-#endif
 
 namespace Uno.UI.RuntimeTests.Engine;
 
