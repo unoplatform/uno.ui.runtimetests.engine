@@ -1,7 +1,6 @@
 <Project Sdk="Uno.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
-		<!-- Add mobile targets when workloads are installed: net10.0-android;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.22621 -->
+		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst;net10.0-windows10.0.22621;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
 
 		<OutputType>Exe</OutputType>
 		<UnoSingleProject>true</UnoSingleProject>
