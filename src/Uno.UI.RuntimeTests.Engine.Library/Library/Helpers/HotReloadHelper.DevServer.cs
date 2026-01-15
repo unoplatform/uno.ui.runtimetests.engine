@@ -29,7 +29,7 @@ partial class HotReloadHelper
 
 	partial record FileEdit
 	{
-		public UpdateFile ToMessage()
+		public UpdateFileRequest ToMessage()
 			=> new()
 			{
 				FilePath = FilePath,
