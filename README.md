@@ -173,16 +173,58 @@ You can also define some other configuration variables:
 
 * **UNO_RUNTIME_TESTS_OUTPUT_KIND**: Selects the kind of the test result file, possible values are `NUnit` (default) or `UnoRuntimeTests` (cf. [`TestResultKind`](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/ExternalRunner/RuntimeTestEmbeddedRunner.cs#L41))
 
-Currently, the easiest way to run runtime-tests on the CI is using the Skia-GTK head. Here is an example of an Azure pipeline configuration file:
+Currently, the easiest way to run runtime-tests on the CI is using the Desktop (Skia) target. Here is an example of a GitHub Actions workflow:
 
 ```yaml
 jobs:
-- job: Skia_Tests
-  displayName: 'Runtime Tests - Skia GTK'
+  runtime-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'  # Or your target .NET version
+
+    - name: Run uno-check
+      run: |
+        dotnet tool install -g uno.check
+        uno-check --target linux --fix --non-interactive --ci
+
+    - name: Build Runtime Tests app
+      run: dotnet build src/MyApp/MyApp.csproj -c Release -f net9.0-desktop
+
+    - name: Run Runtime Tests
+      run: |
+        mkdir -p test-results
+        xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' \
+          dotnet src/MyApp/bin/Release/net9.0-desktop/MyApp.dll
+      env:
+        UNO_RUNTIME_TESTS_RUN_TESTS: '{}'
+        UNO_RUNTIME_TESTS_OUTPUT_PATH: 'test-results/runtime-tests.xml'
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Runtime Tests
+        path: test-results/runtime-tests.xml
+        reporter: dotnet-nunit
+        fail-on-error: true
+```
+
+Here is the equivalent Azure DevOps pipeline configuration:
+
+```yaml
+jobs:
+- job: Runtime_Tests
+  displayName: 'Runtime Tests - Desktop'
   timeoutInMinutes: 60
-  
+
   pool:
-    vmImage: 'ubuntu-20.04'
+    vmImage: 'ubuntu-latest'
 
   variables:
     NUGET_PACKAGES: $(build.sourcesdirectory)/.nuget
@@ -190,52 +232,48 @@ jobs:
   steps:
   - checkout: self
     clean: true
-    
+
   - task: UseDotNet@2
     displayName: 'Use .NET'
     inputs:
       packageType: 'sdk'
-      version: '7.x'
-      
-  - script: |
-        dotnet tool install -g uno.check
-        uno-check --target skiagtk --fix --non-interactive --ci
-    
-    displayName: 'Run uno-check'    
+      version: '9.x'  # Or your target .NET version
 
-  - script: dotnet build Uno.Extensions.RuntimeTests.Skia.Gtk.csproj -c Release -p:UnoTargetFrameworkOverride=net7.0 -p:GeneratePackageOnBuild=false -bl:$(Build.ArtifactStagingDirectory)/skia-gtk-runtime-test-build.binlog
-    displayName: 'Build Runtime Tests app (GTK)'
-    workingDirectory: $(Build.SourcesDirectory)/src/Uno.Extensions.RuntimeTests/Uno.Extensions.RuntimeTests.Skia.Gtk
+  - script: |
+      dotnet tool install -g uno.check
+      uno-check --target linux --fix --non-interactive --ci
+    displayName: 'Run uno-check'
+
+  - script: dotnet build src/MyApp/MyApp.csproj -c Release -f net9.0-desktop -bl:$(Build.ArtifactStagingDirectory)/runtime-test-build.binlog
+    displayName: 'Build Runtime Tests app'
 
   - task: PublishBuildArtifacts@1
     displayName: Publish Build Logs
-    retryCountOnTaskFailure: 3
     condition: always()
     inputs:
-      PathtoPublish: $(build.artifactstagingdirectory)/skia-gtk-runtime-test-build.binlog
-      ArtifactName: skia-runtime-test-build
+      PathtoPublish: $(build.artifactstagingdirectory)/runtime-test-build.binlog
+      ArtifactName: runtime-test-build
       ArtifactType: Container
 
-  - script: xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' dotnet Uno.Extensions.RuntimeTests.Skia.Gtk.dll
-    displayName: 'Run Runtime Tests (GTK)'
-    workingDirectory: $(Build.SourcesDirectory)/src/Uno.Extensions.RuntimeTests/Uno.Extensions.RuntimeTests.Skia.Gtk/bin/Debug/net7.0
+  - script: xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' dotnet src/MyApp/bin/Release/net9.0-desktop/MyApp.dll
+    displayName: 'Run Runtime Tests'
     env:
       UNO_RUNTIME_TESTS_RUN_TESTS: '{}'
-      UNO_RUNTIME_TESTS_OUTPUT_PATH: '$(Common.TestResultsDirectory)/skia-gtk-runtime-tests-results.xml'
+      UNO_RUNTIME_TESTS_OUTPUT_PATH: '$(Common.TestResultsDirectory)/runtime-tests-results.xml'
 
   - task: PublishTestResults@2
-    displayName: 'Publish GTK Runtime Tests Results'
+    displayName: 'Publish Runtime Tests Results'
     condition: always()
-    retryCountOnTaskFailure: 3
     inputs:
-      testRunTitle: 'GTK Runtime Tests Run'
+      testRunTitle: 'Runtime Tests Run'
       testResultsFormat: 'NUnit'
-      testResultsFiles: '$(Common.TestResultsDirectory)/skia-gtk-runtime-tests-results.xml'
-      failTaskOnFailedTests: true 
+      testResultsFiles: '$(Common.TestResultsDirectory)/runtime-tests-results.xml'
+      failTaskOnFailedTests: true
 ```
 
 Notes:
-* This is running the GTK head using a virtual x-server (xvfb).
+* This uses the Desktop (Skia) target with `net9.0-desktop` (or `net10.0-desktop` for .NET 10).
+* The app runs headless using xvfb (virtual X server) on Linux.
 * We use `{}` for the `UNO_RUNTIME_TESTS_RUN_TESTS` in order to run all tests with default configuration.
 * If you want to test hot-reload scenarios (usually relevant only for library developers), you need to build your test project in debug (`-c Debug`).
 

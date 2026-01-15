@@ -13,11 +13,7 @@ using Windows.UI.Core;
 using Windows.UI.Input.Preview.Injection;
 using PointerDeviceType = Windows.Devices.Input.PointerDeviceType;
 
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Microsoft.UI.Xaml;
-#else
-using Windows.UI.Xaml;
-#endif
 
 namespace Uno.UI.RuntimeTests;
 

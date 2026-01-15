@@ -2,8 +2,7 @@
   "solution": {
     "path": "Uno.UI.RuntimeTests.Engine.sln",
     "projects": [
-      "TestApp\\uwp\\Uno.UI.RuntimeTests.Engine.UWP\\Uno.UI.RuntimeTests.Engine.Uwp.csproj",
-      "TestApp\\winui\\Uno.UI.RuntimeTests.Engine.Windows\\Uno.UI.RuntimeTests.Engine.Windows.csproj",
+      "TestApp\\Uno.UI.RuntimeTests.Engine.TestApp.csproj",
       "Uno.UI.RuntimeTests.Engine.Library\\Uno.UI.RuntimeTests.Engine.Library.shproj",
       "Uno.UI.RuntimeTests.Engine.Package\\Uno.UI.RuntimeTests.Engine.Package.csproj"
     ]

@@ -1,0 +1,48 @@
+<Project Sdk="Uno.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.22621;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
+
+		<!-- Required to build for a single target on Linux -->
+		<TargetFrameworks Condition="'$(TargetFrameworksOverride)' != ''">$(TargetFrameworksOverride)</TargetFrameworks>
+
+		<OutputType>Exe</OutputType>
+		<UnoSingleProject>true</UnoSingleProject>
+		<ApplicationTitle>RuntimeTests Engine</ApplicationTitle>
+		<ApplicationId>com.uno.runtimetests.engine</ApplicationId>
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+		<ApplicationPublisher>Uno Platform</ApplicationPublisher>
+		<RootNamespace>Uno.UI.RuntimeTests.Engine</RootNamespace>
+
+		<!-- Required otherwise lottie will not get included properly -->
+		<IsPackable>false</IsPackable>
+
+		<!-- Uno features -->
+		<UnoFeatures>
+			Logging;
+		</UnoFeatures>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<DefineConstants>$(DefineConstants);IS_UNO_RUNTIMETEST_PROJECT</DefineConstants>
+		<!-- Suppress warnings from the Library code -->
+		<NoWarn>$(NoWarn);CS8619;CS8602;Uno0001;IL2026;IL2070;IL2072;IL2075</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute">
+			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
+		</AssemblyAttribute>
+
+		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute" Condition="'$(PkgUno_WinUI_DevServer)' != ''">
+			<_Parameter1>$([System.IO.Path]::GetFileName(`$(PkgUno_WinUI_DevServer)`))</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<!-- Import the RuntimeTests Engine Library -->
+	<Import Project="..\Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems" Label="Shared" />
+</Project>

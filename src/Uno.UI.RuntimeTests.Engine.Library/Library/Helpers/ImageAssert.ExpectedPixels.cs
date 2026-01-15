@@ -13,12 +13,8 @@ using System.Runtime.CompilerServices;
 using Windows.Foundation;
 using Windows.UI;
 
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Markup;
-#else
-using Windows.UI.Xaml.Markup;
-#endif
 
 namespace Uno.UI.RuntimeTests;
 

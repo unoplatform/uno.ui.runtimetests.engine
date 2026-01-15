@@ -27,7 +27,6 @@ using Windows.Storage;
 using Uno.UI.RuntimeTests.Engine;
 using Uno.UI.RuntimeTests.Internal.Helpers;
 
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Text;
@@ -41,19 +40,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
 using XamlWindow = Microsoft.UI.Xaml.Window;
-#else
-using Windows.UI;
-using Windows.UI.Core;
-using Windows.UI.Text;
-using Windows.UI.ViewManagement;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Documents;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-
-using XamlWindow = Windows.UI.Xaml.Window;
-#endif
 
 namespace Uno.UI.RuntimeTests;
 
@@ -506,7 +492,7 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		}
 
-		using var w = new StringWriter();
+		using var w = new Utf8StringWriter();
 		doc.Save(w);
 
 		return w.ToString();
@@ -1140,6 +1126,14 @@ public sealed partial class UnitTestsControl : UserControl
 		data.SetText(NUnitTestResultsDocument);
 
 		Clipboard.SetContent(data);
+	}
+
+	/// <summary>
+	/// A StringWriter that uses UTF-8 encoding for the XML declaration.
+	/// </summary>
+	private sealed class Utf8StringWriter : StringWriter
+	{
+		public override Encoding Encoding => Encoding.UTF8;
 	}
 }
 

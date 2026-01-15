@@ -11,11 +11,7 @@ using global::System.Reflection;
 using global::Microsoft.Extensions.Logging;
 using global::Uno.Extensions;
 
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using global::Microsoft.UI.Xaml;
-#else
-using global::Windows.UI.Xaml;
-#endif
 
 namespace Uno.UI.RuntimeTests;
 

@@ -2,10 +2,6 @@
 #pragma warning disable
 #endif
 
-#if WINDOWS_UWP
-#define UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
-#endif
-
 #if !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
 #nullable enable
 
@@ -19,14 +15,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Threading;
 using Windows.UI.Core;
-
-#if HAS_UNO_WINUI || WINDOWS_WINUI
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-#else
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
-#endif
 
 namespace Uno.UI.RuntimeTests.Engine;
 
@@ -203,7 +193,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			default:
 			case TestResultKind.NUnit:
-				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.Unicode, ct);
+				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.UTF8, ct);
 				break;
 		}
 	}
