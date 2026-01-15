@@ -150,18 +150,18 @@ internal static partial class RuntimeTestEmbeddedRunner
 		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			LogError("Runtime-tests has been cancelled.");
-			Environment.Exit(-1);
+			ExitApplication(-1);
 		}
 		catch (Exception error)
 		{
 			LogError("Failed to run runtime-test.");
 			LogError(error.ToString());
-			Environment.Exit(1);
+			ExitApplication(1);
 		}
 		finally
 		{
 			Log("Runtime-test completed, exiting app.");
-			Environment.Exit(0);
+			ExitApplication(0);
 		}
 	}
 
@@ -196,6 +196,14 @@ internal static partial class RuntimeTestEmbeddedRunner
 				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.UTF8, ct);
 				break;
 		}
+	}
+
+	private static void ExitApplication(int exitCode)
+	{
+		// Set the exit code first, then exit gracefully via Application.Current.Exit()
+		// to allow Skia/X11 to clean up properly and avoid segfaults on Linux.
+		Environment.ExitCode = exitCode;
+		Application.Current.Exit();
 	}
 
 	[Conditional("DEBUG")]
