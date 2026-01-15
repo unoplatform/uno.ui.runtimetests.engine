@@ -17,6 +17,7 @@
 		<!-- Uno features -->
 		<UnoFeatures>
 			Logging;
+			Skia;
 		</UnoFeatures>
 	</PropertyGroup>
 
