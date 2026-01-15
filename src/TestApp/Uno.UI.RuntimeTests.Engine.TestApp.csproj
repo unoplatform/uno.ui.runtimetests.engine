@@ -14,10 +14,12 @@
 		<ApplicationPublisher>Uno Platform</ApplicationPublisher>
 		<RootNamespace>Uno.UI.RuntimeTests.Engine</RootNamespace>
 
+		<!-- Required otherwise lottie will not get included properly -->
+		<IsPackable>false</IsPackable>
+
 		<!-- Uno features -->
 		<UnoFeatures>
 			Logging;
-			Skia;
 		</UnoFeatures>
 	</PropertyGroup>
 
