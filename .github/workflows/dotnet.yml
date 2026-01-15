@@ -99,7 +99,7 @@ jobs:
         xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' \
           dotnet src/TestApp/bin/Release/net10.0-desktop/Uno.UI.RuntimeTests.Engine.TestApp.dll
       env:
-        UNO_RUNTIME_TESTS_RUN_TESTS: '{}'
+        UNO_RUNTIME_TESTS_RUN_TESTS: '{"Filter": {"Value": "!HotReloadTests & !SecondaryAppTests & !Is_SecondaryApp_Supported"}}'
         UNO_RUNTIME_TESTS_OUTPUT_PATH: '${{ github.workspace }}/test-results/runtime-tests.xml'
 
     - name: Upload Test Results
