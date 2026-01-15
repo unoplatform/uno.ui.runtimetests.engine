@@ -2,6 +2,9 @@
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.22621;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
 
+		<!-- Required to build for a single target on Linux -->
+		<TargetFrameworks Condition="'$(TargetFrameworksOverride)' != ''">$(TargetFrameworksOverride)</TargetFrameworks>
+
 		<OutputType>Exe</OutputType>
 		<UnoSingleProject>true</UnoSingleProject>
 		<ApplicationTitle>RuntimeTests Engine</ApplicationTitle>

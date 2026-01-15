@@ -91,7 +91,7 @@ jobs:
         uno-check --target linux --fix --non-interactive --ci
 
     - name: Build TestApp
-      run: dotnet build src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-desktop -p:TargetFrameworks=net10.0-desktop -p:Version=${{ needs.build.outputs.semver }}
+      run: dotnet build src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-desktop -p:TargetFrameworksOverride=net10.0-desktop -p:Version=${{ needs.build.outputs.semver }}
 
     - name: Run Runtime Tests
       run: |
