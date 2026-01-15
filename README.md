@@ -198,6 +198,7 @@ jobs:
 
     - name: Run Runtime Tests
       run: |
+        mkdir -p test-results
         xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' \
           dotnet src/MyApp/bin/Release/net9.0-desktop/MyApp.dll
       env:

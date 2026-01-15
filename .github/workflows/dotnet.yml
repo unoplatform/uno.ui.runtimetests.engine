@@ -95,6 +95,7 @@ jobs:
 
     - name: Run Runtime Tests
       run: |
+        mkdir -p test-results
         xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' \
           dotnet src/TestApp/bin/Release/net10.0-desktop/Uno.UI.RuntimeTests.Engine.TestApp.dll
       env:
