@@ -492,7 +492,7 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		}
 
-		using var w = new StringWriter();
+		using var w = new Utf8StringWriter();
 		doc.Save(w);
 
 		return w.ToString();
@@ -1126,6 +1126,14 @@ public sealed partial class UnitTestsControl : UserControl
 		data.SetText(NUnitTestResultsDocument);
 
 		Clipboard.SetContent(data);
+	}
+
+	/// <summary>
+	/// A StringWriter that uses UTF-8 encoding for the XML declaration.
+	/// </summary>
+	private sealed class Utf8StringWriter : StringWriter
+	{
+		public override Encoding Encoding => Encoding.UTF8;
 	}
 }
 

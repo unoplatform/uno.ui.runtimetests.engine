@@ -193,7 +193,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			default:
 			case TestResultKind.NUnit:
-				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.Unicode, ct);
+				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.UTF8, ct);
 				break;
 		}
 	}
