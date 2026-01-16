@@ -154,19 +154,27 @@ jobs:
         with:
           dotnet-version: ${{ env.DotNetVersion }}
 
+      - name: 'Az CLI login'
+        uses: azure/login@v1
+        with:
+          allow-no-subscriptions: true
+          client-id: ${{ secrets.SIGN_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.SIGN_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.SIGN_AZURE_SUBSCRIPTION_ID }}
+
       - name: Sign NuGet packages
         shell: pwsh
-        env:
-          ArtifactDirectory: artifacts
-          SignPackageName: Uno.UI.RuntimeTests.Engine
-          SignPackageDescription: Uno.UI.RuntimeTests.Engine
-          build_repository_uri: https://github.com/unoplatform/uno.ui.runtimetests.engine
-          VaultSignTenantId: ${{ secrets.VAULT_SIGN_TENANT_ID }}
-          VaultSignClientId: ${{ secrets.VAULT_SIGN_CLIENT_ID }}
-          VaultSignClientSecret: ${{ secrets.VAULT_SIGN_CLIENT_SECRET }}
-          VaultSignCertificate: ${{ secrets.VAULT_SIGN_CERTIFICATE }}
-          VaultSignUrl: ${{ secrets.VAULT_SIGN_URL }}
-        run: ./build/sign-package.ps1
+        run: |
+          dotnet tool install --tool-path . sign --version 0.9.1-beta.25278.1
+          ./sign code azure-key-vault `
+            artifacts\*.nupkg `
+            --publisher-name "Uno.UI.RuntimeTests.Engine" `
+            --description "Uno.UI.RuntimeTests.Engine" `
+            --description-url "https://github.com/${{ github.repository }}" `
+            --azure-key-vault-managed-identity true `
+            --azure-key-vault-url "${{ secrets.SIGN_KEY_VAULT_URL }}" `
+            --azure-key-vault-certificate "${{ secrets.SIGN_KEY_VAULT_CERTIFICATE_ID }}" `
+            --verbosity information
 
       - name: NuGet Push
         run: |
