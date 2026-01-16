@@ -125,6 +125,7 @@ jobs:
     needs:
       - build
       - test
+    environment: Publish
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -140,16 +141,20 @@ jobs:
         with:
           dotnet-version: ${{ env.DotNetVersion }}
 
-      - name: Setup SignClient
-        run: |
-          dotnet tool install --tool-path build SignClient
-
-      - name: SignClient
-        run: |
-          if ("${{ secrets.SIGN_CLIENT_USER }}" -ne "")
-          {
-            build\SignClient sign -i artifacts\*.nupkg -c build\SignClient.json -r "${{ secrets.SIGN_CLIENT_USER }}" -s "${{ secrets.SIGN_CLIENT_SECRET }}" -n "Uno.UI.RuntimeTests.Engine" -d "Uno.UI.RuntimeTests.Engine" -u "https://github.com/unoplatform/uno.ui.runtimetests.engine"
-          }
+      - name: Sign NuGet packages
+        if: ${{ secrets.VAULT_SIGN_CLIENT_SECRET != '' }}
+        shell: pwsh
+        env:
+          ArtifactDirectory: artifacts
+          SignPackageName: Uno.UI.RuntimeTests.Engine
+          SignPackageDescription: Uno.UI.RuntimeTests.Engine
+          build_repository_uri: https://github.com/unoplatform/uno.ui.runtimetests.engine
+          VaultSignTenantId: ${{ secrets.VAULT_SIGN_TENANT_ID }}
+          VaultSignClientId: ${{ secrets.VAULT_SIGN_CLIENT_ID }}
+          VaultSignClientSecret: ${{ secrets.VAULT_SIGN_CLIENT_SECRET }}
+          VaultSignCertificate: ${{ secrets.VAULT_SIGN_CERTIFICATE }}
+          VaultSignUrl: ${{ secrets.VAULT_SIGN_URL }}
+        run: ./build/sign-package.ps1
 
       - name: NuGet Push
         run: |
