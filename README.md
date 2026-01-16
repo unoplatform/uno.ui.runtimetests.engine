@@ -283,7 +283,7 @@ Notes:
 For WebAssembly targets, a dedicated .NET tool (`Uno.UI.RuntimeTests.Engine.Wasm.Runner`) is available that:
 1. Serves the WASM app via an embedded HTTP server
 2. Provides an endpoint to receive test results (since WASM apps cannot write files to disk)
-3. Launches a headless browser using Playwright
+3. Launches a headless Chromium browser to run the tests
 4. Collects results and writes them to disk
 
 #### Installation
@@ -299,12 +299,20 @@ dotnet new tool-manifest  # if you don't have one
 dotnet tool install Uno.UI.RuntimeTests.Engine.Wasm.Runner
 ```
 
+#### Prerequisites
+
+A Chromium-based browser must be available. The tool will search for:
+1. Browsers installed via Playwright (`npx playwright install chromium`)
+2. System-installed browsers (Chrome, Chromium, Edge)
+
+To install Chromium via Playwright (recommended for CI):
+```bash
+npx playwright install chromium
+```
+
 #### Usage
 
 ```bash
-# Install Playwright browsers (required once)
-uno-runtimetests-wasm install-browsers
-
 # Run tests
 uno-runtimetests-wasm --app-path ./publish/wwwroot --output ./results.xml
 ```
@@ -332,8 +340,8 @@ jobs:
     - name: Install WASM Runner tool
       run: dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner
 
-    - name: Install Playwright browsers
-      run: uno-runtimetests-wasm install-browsers
+    - name: Install Chromium browser
+      run: npx playwright install chromium
 
     - name: Build WASM app
       run: dotnet publish src/MyApp/MyApp.csproj -c Release -f net10.0-browserwasm -p:PublishTrimmed=false
@@ -358,7 +366,6 @@ jobs:
 
 #### Command-line Options
 
-**Run tests (default command):**
 * `--app-path`: Path to the published WASM app directory (required)
 * `--output`: Path where test results will be written (required)
 * `--filter`: Test filter expression (optional)
@@ -366,11 +373,9 @@ jobs:
 * `--port`: Port to serve the WASM app on (default: auto-assign)
 * `--headless`: Run browser in headless mode (default: true)
 
-**Install browsers:**
-* `install-browsers --browser <name>`: Install Playwright browser (chromium, firefox, webkit, or all; default: chromium)
-
 **Important notes for WASM testing:**
 * Trimming must be disabled (`-p:PublishTrimmed=false`) when building the WASM app for runtime tests. The test engine uses reflection to discover and run tests, which is incompatible with trimming.
+* A Chromium-based browser (Chrome, Chromium, or Edge) must be installed. Use `npx playwright install chromium` to install one.
 
 ### Running the tests automatically during CI on mobile targets
 Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.

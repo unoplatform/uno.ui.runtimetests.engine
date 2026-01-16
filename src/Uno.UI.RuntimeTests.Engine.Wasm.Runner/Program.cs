@@ -1,7 +1,7 @@
 using System.CommandLine;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
-using Microsoft.Playwright;
 
 namespace Uno.UI.RuntimeTests.Engine.Wasm.Runner;
 
@@ -9,22 +9,7 @@ class Program
 {
 	static async Task<int> Main(string[] args)
 	{
-		var rootCommand = new RootCommand("Uno Platform WASM Runtime Tests Runner");
-
-		// Install-browsers subcommand
-		var installBrowsersCommand = new Command("install-browsers", "Install Playwright browsers (Chromium by default)");
-		var browserOption = new Option<string>(
-			name: "--browser",
-			description: "Browser to install (chromium, firefox, webkit, or all)",
-			getDefaultValue: () => "chromium");
-		installBrowsersCommand.AddOption(browserOption);
-		installBrowsersCommand.SetHandler((browser) =>
-		{
-			Console.WriteLine($"[WasmRunner] Installing Playwright browser: {browser}");
-			var exitCode = Microsoft.Playwright.Program.Main(new[] { "install", browser });
-			Environment.ExitCode = exitCode;
-		}, browserOption);
-		rootCommand.AddCommand(installBrowsersCommand);
+		var rootCommand = new RootCommand("Uno Platform WASM Runtime Tests Runner\n\nPrerequisites:\n  - Install Playwright: npx playwright install chromium\n  - Or: dotnet tool install -g Microsoft.Playwright.CLI && playwright install chromium");
 
 		// Run subcommand (also the default)
 		var runCommand = new Command("run", "Run WASM runtime tests");
@@ -153,37 +138,77 @@ class Program
 
 		Console.WriteLine($"[WasmRunner] Test URL: {testUrl}");
 
-		// Install and launch Playwright browser
-		Console.WriteLine($"[WasmRunner] Installing Playwright browsers if needed...");
-		var exitCode = Microsoft.Playwright.Program.Main(new[] { "install", "chromium" });
-		if (exitCode != 0)
+		// Find and launch browser
+		var browserPath = FindChromiumBrowser();
+		if (browserPath is null)
 		{
-			Console.Error.WriteLine($"[WasmRunner] Warning: Playwright install returned {exitCode}");
+			Console.Error.WriteLine($"[WasmRunner] Error: No Chromium-based browser found.");
+			Console.Error.WriteLine($"[WasmRunner] Please install Chromium/Chrome or run: npx playwright install chromium");
+			Console.Error.WriteLine($"[WasmRunner] Searched locations:");
+			Console.Error.WriteLine($"[WasmRunner]   - PLAYWRIGHT_BROWSERS_PATH environment variable");
+			Console.Error.WriteLine($"[WasmRunner]   - Standard Playwright browser cache locations");
+			Console.Error.WriteLine($"[WasmRunner]   - System-installed browsers (chromium, google-chrome, etc.)");
+			return 1;
 		}
 
+		Console.WriteLine($"[WasmRunner] Using browser: {browserPath}");
 		Console.WriteLine($"[WasmRunner] Launching browser...");
-		using var playwright = await Playwright.CreateAsync();
-		await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+
+		// Build browser arguments
+		var browserArgs = new List<string>
 		{
-			Headless = headless
-		});
+			testUrl,
+			"--no-first-run",
+			"--no-default-browser-check",
+			"--disable-background-networking",
+			"--disable-sync",
+			"--disable-translate",
+			"--disable-extensions",
+			"--disable-infobars",
+			"--disable-popup-blocking",
+			"--disable-features=TranslateUI",
+			"--autoplay-policy=no-user-gesture-required"
+		};
 
-		var context = await browser.NewContextAsync();
-		var page = await context.NewPageAsync();
-
-		// Set up console logging from the browser
-		page.Console += (_, msg) => Console.WriteLine($"[Browser] {msg.Text}");
-		page.PageError += (_, error) => Console.Error.WriteLine($"[Browser Error] {error}");
+		if (headless)
+		{
+			browserArgs.Add("--headless=new");
+		}
 
 		// Create cancellation token for timeout
 		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
 		var ct = cts.Token;
 
+		Process? browserProcess = null;
 		try
 		{
-			// Navigate to test URL
-			Console.WriteLine($"[WasmRunner] Navigating to test URL...");
-			await page.GotoAsync(testUrl);
+			browserProcess = Process.Start(new ProcessStartInfo
+			{
+				FileName = browserPath,
+				Arguments = string.Join(" ", browserArgs),
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true
+			});
+
+			if (browserProcess is null)
+			{
+				Console.Error.WriteLine($"[WasmRunner] Error: Failed to start browser process");
+				return 1;
+			}
+
+			// Log browser output asynchronously
+			_ = Task.Run(async () =>
+			{
+				while (!browserProcess.HasExited && !ct.IsCancellationRequested)
+				{
+					var line = await browserProcess.StandardError.ReadLineAsync(ct);
+					if (line is not null)
+					{
+						Console.WriteLine($"[Browser] {line}");
+					}
+				}
+			}, ct);
 
 			// Wait for results
 			Console.WriteLine($"[WasmRunner] Waiting for test results (timeout: {timeoutSeconds}s)...");
@@ -216,6 +241,182 @@ class Program
 			Console.Error.WriteLine($"[WasmRunner] Error: {ex.Message}");
 			return 1;
 		}
+		finally
+		{
+			// Clean up browser process
+			if (browserProcess is not null && !browserProcess.HasExited)
+			{
+				try
+				{
+					browserProcess.Kill(entireProcessTree: true);
+					await browserProcess.WaitForExitAsync();
+				}
+				catch
+				{
+					// Ignore errors during cleanup
+				}
+			}
+			browserProcess?.Dispose();
+		}
+	}
+
+	/// <summary>
+	/// Finds a Chromium-based browser to use for testing.
+	/// </summary>
+	static string? FindChromiumBrowser()
+	{
+		// Check for Playwright-installed browsers first
+		var playwrightBrowsers = GetPlaywrightBrowserPaths();
+		foreach (var path in playwrightBrowsers)
+		{
+			if (File.Exists(path))
+			{
+				return path;
+			}
+		}
+
+		// Fall back to system-installed browsers
+		var systemBrowsers = GetSystemBrowserPaths();
+		foreach (var browser in systemBrowsers)
+		{
+			var path = FindExecutable(browser);
+			if (path is not null)
+			{
+				return path;
+			}
+		}
+
+		return null;
+	}
+
+	static IEnumerable<string> GetPlaywrightBrowserPaths()
+	{
+		// Check PLAYWRIGHT_BROWSERS_PATH first
+		var customPath = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH");
+		if (!string.IsNullOrEmpty(customPath))
+		{
+			foreach (var chromiumPath in FindChromiumInPlaywrightCache(customPath))
+			{
+				yield return chromiumPath;
+			}
+		}
+
+		// Standard Playwright cache locations
+		var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+		if (OperatingSystem.IsWindows())
+		{
+			var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			foreach (var chromiumPath in FindChromiumInPlaywrightCache(Path.Combine(localAppData, "ms-playwright")))
+			{
+				yield return chromiumPath;
+			}
+		}
+		else if (OperatingSystem.IsMacOS())
+		{
+			foreach (var chromiumPath in FindChromiumInPlaywrightCache(Path.Combine(home, "Library", "Caches", "ms-playwright")))
+			{
+				yield return chromiumPath;
+			}
+		}
+		else // Linux
+		{
+			foreach (var chromiumPath in FindChromiumInPlaywrightCache(Path.Combine(home, ".cache", "ms-playwright")))
+			{
+				yield return chromiumPath;
+			}
+		}
+	}
+
+	static IEnumerable<string> FindChromiumInPlaywrightCache(string cacheDir)
+	{
+		if (!Directory.Exists(cacheDir))
+		{
+			yield break;
+		}
+
+		// Look for chromium-* directories
+		var chromiumDirs = Directory.GetDirectories(cacheDir, "chromium-*")
+			.OrderByDescending(d => d); // Get newest version first
+
+		foreach (var dir in chromiumDirs)
+		{
+			if (OperatingSystem.IsWindows())
+			{
+				yield return Path.Combine(dir, "chrome-win", "chrome.exe");
+			}
+			else if (OperatingSystem.IsMacOS())
+			{
+				yield return Path.Combine(dir, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium");
+			}
+			else // Linux
+			{
+				yield return Path.Combine(dir, "chrome-linux", "chrome");
+			}
+		}
+	}
+
+	static IEnumerable<string> GetSystemBrowserPaths()
+	{
+		if (OperatingSystem.IsWindows())
+		{
+			yield return "chrome";
+			yield return "chromium";
+			yield return @"C:\Program Files\Google\Chrome\Application\chrome.exe";
+			yield return @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
+			yield return @"C:\Program Files\Microsoft\Edge\Application\msedge.exe";
+		}
+		else if (OperatingSystem.IsMacOS())
+		{
+			yield return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+			yield return "/Applications/Chromium.app/Contents/MacOS/Chromium";
+			yield return "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
+			yield return "chromium";
+			yield return "google-chrome";
+		}
+		else // Linux
+		{
+			yield return "chromium-browser";
+			yield return "chromium";
+			yield return "google-chrome-stable";
+			yield return "google-chrome";
+			yield return "microsoft-edge-stable";
+			yield return "microsoft-edge";
+		}
+	}
+
+	static string? FindExecutable(string name)
+	{
+		// If it's an absolute path, check if it exists
+		if (Path.IsPathRooted(name))
+		{
+			return File.Exists(name) ? name : null;
+		}
+
+		// Search in PATH
+		var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+		var paths = pathEnv.Split(Path.PathSeparator);
+
+		foreach (var path in paths)
+		{
+			var fullPath = Path.Combine(path, name);
+			if (File.Exists(fullPath))
+			{
+				return fullPath;
+			}
+
+			// On Windows, try with .exe extension
+			if (OperatingSystem.IsWindows())
+			{
+				var exePath = fullPath + ".exe";
+				if (File.Exists(exePath))
+				{
+					return exePath;
+				}
+			}
+		}
+
+		return null;
 	}
 }
 

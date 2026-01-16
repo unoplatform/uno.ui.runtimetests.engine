@@ -86,16 +86,21 @@ A .NET global tool that orchestrates WASM test execution:
 **Responsibilities:**
 1. Serve the WASM app via embedded HTTP server (HttpListener)
 2. Provide an endpoint to receive POSTed results (`/results`)
-3. Launch headless browser (Chromium via Playwright)
+3. Launch headless Chromium browser to run tests
 4. Write results to disk when received
 5. Exit with appropriate code based on test results
 
 **Key Features:**
 - Distributed as a standalone .NET global tool
 - Cross-platform (Linux, macOS, Windows)
-- Built-in browser installation command
+- Auto-detects Playwright-installed or system browsers
 - Configurable ports and output paths via command line
 - Timeout handling for stuck tests
+
+**Prerequisites:**
+A Chromium-based browser must be available. The tool searches for:
+1. Browsers installed via Playwright (`npx playwright install chromium`)
+2. System-installed browsers (Chrome, Chromium, Edge)
 
 **Distribution:**
 The WASM Runner is distributed as a separate NuGet package `Uno.UI.RuntimeTests.Engine.Wasm.Runner` and can be installed as a .NET global tool:
@@ -111,8 +116,8 @@ dotnet tool install Uno.UI.RuntimeTests.Engine.Wasm.Runner
 
 **Usage:**
 ```bash
-# Install Playwright browsers (required once)
-uno-runtimetests-wasm install-browsers
+# Install Chromium (required once, recommended for CI)
+npx playwright install chromium
 
 # Run tests
 uno-runtimetests-wasm \
@@ -123,16 +128,12 @@ uno-runtimetests-wasm \
 
 **Command-line Options:**
 
-Run tests (default command):
 - `--app-path`: Path to the published WASM app directory (required)
 - `--output`: Path where test results will be written (required)
 - `--filter`: Test filter expression (optional)
 - `--timeout`: Timeout in seconds for test execution (default: 300)
 - `--port`: Port to serve the WASM app on (default: auto-assign)
 - `--headless`: Run browser in headless mode (default: true)
-
-Install browsers:
-- `install-browsers --browser <name>`: Install Playwright browser (chromium, firefox, webkit, or all; default: chromium)
 
 ## CI Configuration
 
@@ -177,8 +178,8 @@ test-wasm:
     run: |
       dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner --version ${{ needs.build.outputs.semver }}
 
-  - name: Install Playwright browsers
-    run: pwsh -Command "uno-runtimetests-wasm install-browsers"
+  - name: Install Chromium browser
+    run: npx playwright install chromium
 
   - name: Build WASM TestApp
     run: dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-browserwasm -p:PublishTrimmed=false
@@ -231,11 +232,11 @@ test-wasm:
 
 1. **Local Testing:**
    - Build TestApp for `net10.0-browserwasm`: `dotnet publish src/TestApp -c Release -f net10.0-browserwasm -p:PublishTrimmed=false`
+   - Install Chromium browser: `npx playwright install chromium`
    - Install and run the .NET tool:
      ```bash
      dotnet pack src/Uno.UI.RuntimeTests.Engine.Wasm.Runner -c Release
      dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner --add-source ./src/Uno.UI.RuntimeTests.Engine.Wasm.Runner/bin/Release
-     uno-runtimetests-wasm install-browsers
      uno-runtimetests-wasm --app-path ./src/TestApp/bin/Release/net10.0-browserwasm/publish/wwwroot --output ./results.xml
      ```
    - Verify test results are received and written to disk

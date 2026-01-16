@@ -6,23 +6,25 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Uno.UI.RuntimeTests.Engine.Wasm.Runner</RootNamespace>
-		<!-- Suppress code analysis warnings and NuGet pack warnings for Playwright scripts -->
-		<NoWarn>$(NoWarn);CA1849;CA1852;CA1861;NU5111;NU5048</NoWarn>
+		<!-- Suppress code analysis warnings -->
+		<NoWarn>$(NoWarn);CA1849;CA1852;CA1861</NoWarn>
 
 		<!-- .NET Tool configuration -->
 		<IsPackable>true</IsPackable>
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>uno-runtimetests-wasm</ToolCommandName>
 		<PackageId>Uno.UI.RuntimeTests.Engine.Wasm.Runner</PackageId>
-		<Description>WASM runtime tests runner for Uno Platform applications. Serves WASM apps and collects test results via HTTP.</Description>
+		<Description>WASM runtime tests runner for Uno Platform applications. Serves WASM apps and collects test results via HTTP. Requires Playwright to be installed separately.</Description>
 		<PackageProjectUrl>https://github.com/unoplatform/uno.ui.runtimetests.engine</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/unoplatform/uno.ui.runtimetests.engine</RepositoryUrl>
 		<PackageTags>uno;wasm;testing;runtime-tests</PackageTags>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+
+		<!-- Don't bundle Playwright - it should be installed separately -->
+		<PlaywrightSkipBrowserDownload>true</PlaywrightSkipBrowserDownload>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Playwright" Version="1.52.0" />
 		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
 	</ItemGroup>
 

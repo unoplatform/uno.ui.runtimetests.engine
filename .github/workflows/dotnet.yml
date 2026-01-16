@@ -167,8 +167,8 @@ jobs:
       run: |
         dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner --version ${{ needs.build.outputs.semver }}
 
-    - name: Install Playwright browsers
-      run: pwsh -Command "uno-runtimetests-wasm install-browsers"
+    - name: Install Chromium browser
+      run: npx playwright install chromium
 
     - name: Build WASM TestApp
       run: dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-browserwasm -p:TargetFrameworksOverride=net10.0-browserwasm -p:Version=${{ needs.build.outputs.semver }} -p:PublishTrimmed=false
