@@ -1,0 +1,32 @@
+name: 'Setup Build Cache'
+description: 'Setup caching for EMSDK and .NET installations'
+
+inputs:
+  uno-check-version:
+    description: 'The uno-check version used for cache key'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache EMSDK
+      id: cache-emsdk
+      uses: actions/cache@v4
+      env:
+        cache-name: cache-emsdk-modules
+      with:
+        path: ~/.emsdk
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-emsdk-${{ inputs.uno-check-version }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-emsdk-${{ inputs.uno-check-version }}
+
+    - name: Cache .NET
+      id: cache-dotnet
+      uses: actions/cache@v4
+      env:
+        cache-name: cache-dotnet-install
+      with:
+        path: ${{ github.workspace }}/.dotnet
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-dotnet-${{ inputs.uno-check-version }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-dotnet-${{ inputs.uno-check-version }}
