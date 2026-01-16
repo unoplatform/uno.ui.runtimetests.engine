@@ -155,7 +155,6 @@ jobs:
           dotnet-version: ${{ env.DotNetVersion }}
 
       - name: Sign NuGet packages
-        if: ${{ secrets.VAULT_SIGN_CLIENT_SECRET != '' }}
         shell: pwsh
         env:
           ArtifactDirectory: artifacts
