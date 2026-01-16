@@ -336,7 +336,7 @@ jobs:
       run: uno-runtimetests-wasm install-browsers
 
     - name: Build WASM app
-      run: dotnet publish src/MyApp/MyApp.csproj -c Release -f net10.0-browserwasm
+      run: dotnet publish src/MyApp/MyApp.csproj -c Release -f net10.0-browserwasm -p:PublishTrimmed=false
 
     - name: Run WASM Runtime Tests
       run: |
@@ -368,6 +368,9 @@ jobs:
 
 **Install browsers:**
 * `install-browsers --browser <name>`: Install Playwright browser (chromium, firefox, webkit, or all; default: chromium)
+
+**Important notes for WASM testing:**
+* Trimming must be disabled (`-p:PublishTrimmed=false`) when building the WASM app for runtime tests. The test engine uses reflection to discover and run tests, which is incompatible with trimming.
 
 ### Running the tests automatically during CI on mobile targets
 Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.

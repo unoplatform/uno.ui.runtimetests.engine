@@ -181,7 +181,7 @@ test-wasm:
     run: pwsh -Command "uno-runtimetests-wasm install-browsers"
 
   - name: Build WASM TestApp
-    run: dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-browserwasm
+    run: dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-browserwasm -p:PublishTrimmed=false
 
   - name: Run WASM Runtime Tests
     run: |
@@ -230,7 +230,7 @@ test-wasm:
 ## Testing Plan
 
 1. **Local Testing:**
-   - Build TestApp for `net10.0-browserwasm`: `dotnet publish src/TestApp -c Release -f net10.0-browserwasm`
+   - Build TestApp for `net10.0-browserwasm`: `dotnet publish src/TestApp -c Release -f net10.0-browserwasm -p:PublishTrimmed=false`
    - Install and run the .NET tool:
      ```bash
      dotnet pack src/Uno.UI.RuntimeTests.Engine.Wasm.Runner -c Release
@@ -243,6 +243,10 @@ test-wasm:
 2. **CI Testing:**
    - Run new WASM job in GitHub Actions
    - Verify test results are collected and reported
+
+## Build Requirements
+
+- **Trimming must be disabled:** The WASM app must be built with `-p:PublishTrimmed=false`. The runtime test engine uses reflection to discover and invoke test methods, which is incompatible with IL trimming.
 
 ## Error Handling
 

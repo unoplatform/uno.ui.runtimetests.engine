@@ -171,7 +171,7 @@ jobs:
       run: pwsh -Command "uno-runtimetests-wasm install-browsers"
 
     - name: Build WASM TestApp
-      run: dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-browserwasm -p:TargetFrameworksOverride=net10.0-browserwasm -p:Version=${{ needs.build.outputs.semver }}
+      run: dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-browserwasm -p:TargetFrameworksOverride=net10.0-browserwasm -p:Version=${{ needs.build.outputs.semver }} -p:PublishTrimmed=false
 
     - name: Run WASM Runtime Tests
       run: |
