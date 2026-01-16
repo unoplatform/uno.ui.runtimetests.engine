@@ -48,12 +48,34 @@ class Program
 			description: "Run browser in headless mode",
 			getDefaultValue: () => true);
 
+		var browserPathOption = new Option<FileInfo?>(
+			name: "--browser-path",
+			description: "Path to the browser executable (auto-detected if not specified)",
+			getDefaultValue: () => null);
+
+		var browserArgOption = new Option<string[]>(
+			name: "--browser-arg",
+			description: "Additional argument to pass to the browser (can be specified multiple times)")
+		{
+			AllowMultipleArgumentsPerToken = true
+		};
+
+		var queryParamOption = new Option<string[]>(
+			name: "--query-param",
+			description: "Additional query parameter to pass to the app URL in key=value format (can be specified multiple times)")
+		{
+			AllowMultipleArgumentsPerToken = true
+		};
+
 		runCommand.AddOption(appPathOption);
 		runCommand.AddOption(outputOption);
 		runCommand.AddOption(filterOption);
 		runCommand.AddOption(timeoutOption);
 		runCommand.AddOption(portOption);
 		runCommand.AddOption(headlessOption);
+		runCommand.AddOption(browserPathOption);
+		runCommand.AddOption(browserArgOption);
+		runCommand.AddOption(queryParamOption);
 
 		runCommand.SetHandler(async (context) =>
 		{
@@ -63,8 +85,11 @@ class Program
 			var timeout = context.ParseResult.GetValueForOption(timeoutOption);
 			var port = context.ParseResult.GetValueForOption(portOption);
 			var headless = context.ParseResult.GetValueForOption(headlessOption);
+			var browserPath = context.ParseResult.GetValueForOption(browserPathOption);
+			var browserArgs = context.ParseResult.GetValueForOption(browserArgOption) ?? [];
+			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams);
 			context.ExitCode = exitCode;
 		});
 
@@ -77,6 +102,9 @@ class Program
 		rootCommand.AddOption(timeoutOption);
 		rootCommand.AddOption(portOption);
 		rootCommand.AddOption(headlessOption);
+		rootCommand.AddOption(browserPathOption);
+		rootCommand.AddOption(browserArgOption);
+		rootCommand.AddOption(queryParamOption);
 
 		rootCommand.SetHandler(async (context) =>
 		{
@@ -93,8 +121,11 @@ class Program
 			var timeout = context.ParseResult.GetValueForOption(timeoutOption);
 			var port = context.ParseResult.GetValueForOption(portOption);
 			var headless = context.ParseResult.GetValueForOption(headlessOption);
+			var browserPath = context.ParseResult.GetValueForOption(browserPathOption);
+			var browserArgs = context.ParseResult.GetValueForOption(browserArgOption) ?? [];
+			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams);
 			context.ExitCode = exitCode;
 		});
 
@@ -107,7 +138,10 @@ class Program
 		string? filter,
 		int timeoutSeconds,
 		int port,
-		bool headless)
+		bool headless,
+		FileInfo? browserPathOverride,
+		string[] additionalBrowserArgs,
+		string[] queryParams)
 	{
 		Console.WriteLine($"[WasmRunner] Starting WASM runtime tests runner");
 		Console.WriteLine($"[WasmRunner] App path: {appPath.FullName}");
@@ -115,6 +149,18 @@ class Program
 		Console.WriteLine($"[WasmRunner] Filter: {filter ?? "(none)"}");
 		Console.WriteLine($"[WasmRunner] Timeout: {timeoutSeconds}s");
 		Console.WriteLine($"[WasmRunner] Headless: {headless}");
+		if (browserPathOverride is not null)
+		{
+			Console.WriteLine($"[WasmRunner] Browser path: {browserPathOverride.FullName}");
+		}
+		if (additionalBrowserArgs.Length > 0)
+		{
+			Console.WriteLine($"[WasmRunner] Additional browser args: {string.Join(" ", additionalBrowserArgs)}");
+		}
+		if (queryParams.Length > 0)
+		{
+			Console.WriteLine($"[WasmRunner] Additional query params: {string.Join(" ", queryParams)}");
+		}
 
 		if (!appPath.Exists)
 		{
@@ -132,23 +178,54 @@ class Program
 
 		// Build the test URL with parameters
 		var testConfig = string.IsNullOrEmpty(filter) ? "true" : filter;
-		var testUrl = $"http://localhost:{serverPort}/" +
-			$"?UNO_RUNTIME_TESTS_RUN_TESTS={Uri.EscapeDataString(testConfig)}" +
-			$"&UNO_RUNTIME_TESTS_OUTPUT_URL={Uri.EscapeDataString($"http://localhost:{serverPort}/results")}";
+		var testUrlBuilder = new StringBuilder();
+		testUrlBuilder.Append($"http://localhost:{serverPort}/");
+		testUrlBuilder.Append($"?UNO_RUNTIME_TESTS_RUN_TESTS={Uri.EscapeDataString(testConfig)}");
+		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_OUTPUT_URL={Uri.EscapeDataString($"http://localhost:{serverPort}/results")}");
 
+		// Add any additional query parameters
+		foreach (var param in queryParams)
+		{
+			var separatorIndex = param.IndexOf('=');
+			if (separatorIndex > 0)
+			{
+				var key = param[..separatorIndex];
+				var value = param[(separatorIndex + 1)..];
+				testUrlBuilder.Append($"&{Uri.EscapeDataString(key)}={Uri.EscapeDataString(value)}");
+			}
+			else
+			{
+				Console.Error.WriteLine($"[WasmRunner] Warning: Invalid query parameter format '{param}' (expected key=value), skipping");
+			}
+		}
+
+		var testUrl = testUrlBuilder.ToString();
 		Console.WriteLine($"[WasmRunner] Test URL: {testUrl}");
 
 		// Find and launch browser
-		var browserPath = FindChromiumBrowser();
-		if (browserPath is null)
+		string? browserPath;
+		if (browserPathOverride is not null)
 		{
-			Console.Error.WriteLine($"[WasmRunner] Error: No Chromium-based browser found.");
-			Console.Error.WriteLine($"[WasmRunner] Please install Chromium/Chrome or run: npx playwright install chromium");
-			Console.Error.WriteLine($"[WasmRunner] Searched locations:");
-			Console.Error.WriteLine($"[WasmRunner]   - PLAYWRIGHT_BROWSERS_PATH environment variable");
-			Console.Error.WriteLine($"[WasmRunner]   - Standard Playwright browser cache locations");
-			Console.Error.WriteLine($"[WasmRunner]   - System-installed browsers (chromium, google-chrome, etc.)");
-			return 1;
+			if (!browserPathOverride.Exists)
+			{
+				Console.Error.WriteLine($"[WasmRunner] Error: Specified browser path does not exist: {browserPathOverride.FullName}");
+				return 1;
+			}
+			browserPath = browserPathOverride.FullName;
+		}
+		else
+		{
+			browserPath = FindChromiumBrowser();
+			if (browserPath is null)
+			{
+				Console.Error.WriteLine($"[WasmRunner] Error: No Chromium-based browser found.");
+				Console.Error.WriteLine($"[WasmRunner] Please install Chromium/Chrome or run: npx playwright install chromium");
+				Console.Error.WriteLine($"[WasmRunner] Searched locations:");
+				Console.Error.WriteLine($"[WasmRunner]   - PLAYWRIGHT_BROWSERS_PATH environment variable");
+				Console.Error.WriteLine($"[WasmRunner]   - Standard Playwright browser cache locations");
+				Console.Error.WriteLine($"[WasmRunner]   - System-installed browsers (chromium, google-chrome, etc.)");
+				return 1;
+			}
 		}
 
 		Console.WriteLine($"[WasmRunner] Using browser: {browserPath}");
@@ -176,6 +253,9 @@ class Program
 		{
 			browserArgs.Add("--headless=new");
 		}
+
+		// Add any additional browser arguments from CLI
+		browserArgs.AddRange(additionalBrowserArgs);
 
 		// Create cancellation token for timeout
 		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));

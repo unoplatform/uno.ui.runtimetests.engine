@@ -45,7 +45,7 @@ jobs:
 
     - run: |
         & dotnet tool update --global uno.check --version $env:UnoCheck_Version --add-source https://api.nuget.org/v3/index.json
-        & uno-check -v --ci --non-interactive --fix --skip xcode --skip gtk3 --skip vswin --skip vswinworkloads --skip vsmac
+        & uno-check -v --ci --non-interactive --fix --skip androidemulator --skip androidsdk --skip gtk3 --skip xcode --skip vswin --skip vswinworkloads --skip vsmac --skip unosdk --skip dotnetnewunotemplates
 
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.1
