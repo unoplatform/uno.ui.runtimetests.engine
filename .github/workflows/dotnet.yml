@@ -21,11 +21,16 @@ jobs:
       name: Checkout sources
       with:
         fetch-depth: 0
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+
+    - name: Install .NET
+      uses: ./.github/actions/dotnet-install
       with:
         dotnet-version: ${{ env.DotNetVersion }}
+
+    - name: Setup Build Cache
+      uses: ./.github/actions/cache-setup
+      with:
+        uno-check-version: ${{ env.UnoCheck_Version }}
 
     - uses: dotnet/nbgv@f088059084cb5d872e9d1a994433ca6440c2bf72 # v0.4.2
       id: nbgv
@@ -70,10 +75,18 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    - name: Cleanup Linux
+      uses: ./.github/actions/cleanup-linux
+
+    - name: Install .NET
+      uses: ./.github/actions/dotnet-install
       with:
         dotnet-version: ${{ env.DotNetVersion }}
+
+    - name: Setup Build Cache
+      uses: ./.github/actions/cache-setup
+      with:
+        uno-check-version: ${{ env.UnoCheck_Version }}
 
     - name: Download NuGet Artifacts
       uses: actions/download-artifact@v4
