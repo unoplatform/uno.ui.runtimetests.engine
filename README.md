@@ -172,6 +172,7 @@ When your application references the runtime-test engine, as soon as you start i
 You can also define some other configuration variables:
 
 * **UNO_RUNTIME_TESTS_OUTPUT_KIND**: Selects the kind of the test result file, possible values are `NUnit` (default) or `UnoRuntimeTests` (cf. [`TestResultKind`](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/ExternalRunner/RuntimeTestEmbeddedRunner.cs#L41))
+* **UNO_RUNTIME_TESTS_OUTPUT_URL**: (For WebAssembly) An HTTP endpoint URL where results will be POSTed instead of written to a file. This is required for WASM targets since they cannot write files to disk.
 
 Currently, the easiest way to run runtime-tests on the CI is using the Desktop (Skia) target. Here is an example of a GitHub Actions workflow:
 
@@ -277,5 +278,96 @@ Notes:
 * We use `{}` for the `UNO_RUNTIME_TESTS_RUN_TESTS` in order to run all tests with default configuration.
 * If you want to test hot-reload scenarios (usually relevant only for library developers), you need to build your test project in debug (`-c Debug`).
 
-### Running the tests automatically during CI on WASM and mobile targets
+### Running the tests automatically during CI on WebAssembly
+
+For WebAssembly targets, a dedicated .NET tool (`Uno.UI.RuntimeTests.Engine.Wasm.Runner`) is available that:
+1. Serves the WASM app via an embedded HTTP server
+2. Provides an endpoint to receive test results (since WASM apps cannot write files to disk)
+3. Launches a headless browser using Playwright
+4. Collects results and writes them to disk
+
+#### Installation
+
+Install the tool globally:
+```bash
+dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner
+```
+
+Or as a local tool in your project:
+```bash
+dotnet new tool-manifest  # if you don't have one
+dotnet tool install Uno.UI.RuntimeTests.Engine.Wasm.Runner
+```
+
+#### Usage
+
+```bash
+# Install Playwright browsers (required once)
+uno-runtimetests-wasm install-browsers
+
+# Run tests
+uno-runtimetests-wasm --app-path ./publish/wwwroot --output ./results.xml
+```
+
+#### GitHub Actions Example
+
+```yaml
+jobs:
+  wasm-runtime-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Run uno-check
+      run: |
+        dotnet tool install -g uno.check
+        uno-check --target wasm --fix --non-interactive --ci
+
+    - name: Install WASM Runner tool
+      run: dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner
+
+    - name: Install Playwright browsers
+      run: uno-runtimetests-wasm install-browsers
+
+    - name: Build WASM app
+      run: dotnet publish src/MyApp/MyApp.csproj -c Release -f net10.0-browserwasm
+
+    - name: Run WASM Runtime Tests
+      run: |
+        mkdir -p test-results
+        uno-runtimetests-wasm \
+          --app-path ./src/MyApp/bin/Release/net10.0-browserwasm/publish/wwwroot \
+          --output ./test-results/wasm-runtime-tests.xml \
+          --timeout 600
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: WASM Runtime Tests
+        path: test-results/wasm-runtime-tests.xml
+        reporter: dotnet-nunit
+        fail-on-error: true
+```
+
+#### Command-line Options
+
+**Run tests (default command):**
+* `--app-path`: Path to the published WASM app directory (required)
+* `--output`: Path where test results will be written (required)
+* `--filter`: Test filter expression (optional)
+* `--timeout`: Timeout in seconds for test execution (default: 300)
+* `--port`: Port to serve the WASM app on (default: auto-assign)
+* `--headless`: Run browser in headless mode (default: true)
+
+**Install browsers:**
+* `install-browsers --browser <name>`: Install Playwright browser (chromium, firefox, webkit, or all; default: chromium)
+
+### Running the tests automatically during CI on mobile targets
 Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.

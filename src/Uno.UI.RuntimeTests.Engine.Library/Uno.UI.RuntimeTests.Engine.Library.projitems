@@ -28,6 +28,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestEmbeddedRunner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestsSourceProjectAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\SecondaryApp.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\WasmTestResultReporter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\AsyncAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.Local.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\Helpers\HotReloadHelper.DevServer.cs" />
