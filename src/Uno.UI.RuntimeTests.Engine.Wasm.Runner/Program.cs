@@ -167,7 +167,9 @@ class Program
 			"--disable-infobars",
 			"--disable-popup-blocking",
 			"--disable-features=TranslateUI",
-			"--autoplay-policy=no-user-gesture-required"
+			"--autoplay-policy=no-user-gesture-required",
+			"--no-sandbox", // Required for CI environments (GitHub Actions, Docker, etc.)
+			"--disable-dev-shm-usage" // Use /tmp instead of /dev/shm (helps in containerized environments)
 		};
 
 		if (headless)
