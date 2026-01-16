@@ -180,5 +180,8 @@ jobs:
             --verbosity information
 
       - name: NuGet Push
+        shell: pwsh
         run: |
-          dotnet nuget push artifacts\*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }}
+          Get-ChildItem artifacts\*.nupkg -Exclude *.symbols.nupkg,*.snupkg | ForEach-Object {
+            dotnet nuget push $_.FullName -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }}
+          }
