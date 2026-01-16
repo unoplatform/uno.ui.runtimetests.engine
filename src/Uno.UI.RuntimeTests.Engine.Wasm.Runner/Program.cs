@@ -2,8 +2,42 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
+using Spectre.Console;
 
 namespace Uno.UI.RuntimeTests.Engine.Wasm.Runner;
+
+/// <summary>
+/// Colored console logging helper using Spectre.Console.
+/// </summary>
+internal static class Log
+{
+	public static void Info(string message) =>
+		AnsiConsole.MarkupLine($"[blue][[WasmRunner]][/] {Markup.Escape(message)}");
+
+	public static void Success(string message) =>
+		AnsiConsole.MarkupLine($"[green][[WasmRunner]][/] {Markup.Escape(message)}");
+
+	public static void Warning(string message) =>
+		AnsiConsole.MarkupLine($"[yellow][[WasmRunner]][/] {Markup.Escape(message)}");
+
+	public static void Error(string message) =>
+		AnsiConsole.MarkupLine($"[red][[WasmRunner]] Error:[/] {Markup.Escape(message)}");
+
+	public static void Server(string message) =>
+		AnsiConsole.MarkupLine($"[magenta][[Server]][/] {Markup.Escape(message)}");
+
+	public static void ServerError(string message) =>
+		AnsiConsole.MarkupLine($"[red][[Server]] Error:[/] {Markup.Escape(message)}");
+
+	public static void Browser(string stream, string message) =>
+		AnsiConsole.MarkupLine($"[grey][[Browser:{stream}]][/] [dim]{Markup.Escape(message)}[/]");
+
+	public static void Status(string message) =>
+		AnsiConsole.MarkupLine($"[cyan][[Status]][/] {Markup.Escape(message)}");
+
+	public static void Detail(string label, string value) =>
+		AnsiConsole.MarkupLine($"[blue][[WasmRunner]][/] [grey]{Markup.Escape(label)}:[/] {Markup.Escape(value)}");
+}
 
 class Program
 {
@@ -143,30 +177,50 @@ class Program
 		string[] additionalBrowserArgs,
 		string[] queryParams)
 	{
-		Console.WriteLine($"[WasmRunner] Starting WASM runtime tests runner");
-		Console.WriteLine($"[WasmRunner] App path: {appPath.FullName}");
-		Console.WriteLine($"[WasmRunner] Output: {output.FullName}");
-		Console.WriteLine($"[WasmRunner] Filter: {filter ?? "(none)"}");
-		Console.WriteLine($"[WasmRunner] Timeout: {timeoutSeconds}s");
-		Console.WriteLine($"[WasmRunner] Headless: {headless}");
+		AnsiConsole.MarkupLine("[bold blue]Uno Platform WASM Runtime Tests Runner[/]");
+		AnsiConsole.WriteLine();
+		Log.Detail("App path", appPath.FullName);
+		Log.Detail("Output", output.FullName);
+		Log.Detail("Filter", filter ?? "(none)");
+		Log.Detail("Timeout", $"{timeoutSeconds}s");
+		Log.Detail("Headless", headless.ToString());
 		if (browserPathOverride is not null)
 		{
-			Console.WriteLine($"[WasmRunner] Browser path: {browserPathOverride.FullName}");
+			Log.Detail("Browser path", browserPathOverride.FullName);
 		}
 		if (additionalBrowserArgs.Length > 0)
 		{
-			Console.WriteLine($"[WasmRunner] Additional browser args: {string.Join(" ", additionalBrowserArgs)}");
+			Log.Detail("Browser args", string.Join(" ", additionalBrowserArgs));
 		}
 		if (queryParams.Length > 0)
 		{
-			Console.WriteLine($"[WasmRunner] Additional query params: {string.Join(" ", queryParams)}");
+			Log.Detail("Query params", string.Join(" ", queryParams));
 		}
+		AnsiConsole.WriteLine();
 
 		if (!appPath.Exists)
 		{
-			Console.Error.WriteLine($"[WasmRunner] Error: App path does not exist: {appPath.FullName}");
+			Log.Error($"App path does not exist: {appPath.FullName}");
 			return 1;
 		}
+
+		// Verify index.html exists
+		var indexPath = Path.Combine(appPath.FullName, "index.html");
+		if (!File.Exists(indexPath))
+		{
+			Log.Error($"index.html not found at: {indexPath}");
+			AnsiConsole.MarkupLine("[yellow]Contents of app directory:[/]");
+			foreach (var file in Directory.GetFiles(appPath.FullName).Take(20))
+			{
+				AnsiConsole.MarkupLine($"  [grey]{Markup.Escape(Path.GetFileName(file))}[/]");
+			}
+			foreach (var dir in Directory.GetDirectories(appPath.FullName).Take(10))
+			{
+				AnsiConsole.MarkupLine($"  [blue]{Markup.Escape(Path.GetFileName(dir))}/[/]");
+			}
+			return 1;
+		}
+		Log.Success($"Found index.html ({new FileInfo(indexPath).Length} bytes)");
 
 		// Ensure output directory exists
 		output.Directory?.Create();
@@ -174,7 +228,7 @@ class Program
 		// Start HTTP server
 		using var server = new TestServer(appPath.FullName, port);
 		var serverPort = await server.StartAsync();
-		Console.WriteLine($"[WasmRunner] Server started on port {serverPort}");
+		Log.Success($"Server started on port {serverPort}");
 
 		// Build the test URL with parameters
 		var testConfig = string.IsNullOrEmpty(filter) ? "true" : filter;
@@ -195,12 +249,12 @@ class Program
 			}
 			else
 			{
-				Console.Error.WriteLine($"[WasmRunner] Warning: Invalid query parameter format '{param}' (expected key=value), skipping");
+				Log.Warning($"Invalid query parameter format '{param}' (expected key=value), skipping");
 			}
 		}
 
 		var testUrl = testUrlBuilder.ToString();
-		Console.WriteLine($"[WasmRunner] Test URL: {testUrl}");
+		Log.Detail("Test URL", testUrl);
 
 		// Find and launch browser
 		string? browserPath;
@@ -208,7 +262,7 @@ class Program
 		{
 			if (!browserPathOverride.Exists)
 			{
-				Console.Error.WriteLine($"[WasmRunner] Error: Specified browser path does not exist: {browserPathOverride.FullName}");
+				Log.Error($"Specified browser path does not exist: {browserPathOverride.FullName}");
 				return 1;
 			}
 			browserPath = browserPathOverride.FullName;
@@ -218,18 +272,17 @@ class Program
 			browserPath = FindChromiumBrowser();
 			if (browserPath is null)
 			{
-				Console.Error.WriteLine($"[WasmRunner] Error: No Chromium-based browser found.");
-				Console.Error.WriteLine($"[WasmRunner] Please install Chromium/Chrome or run: npx playwright install chromium");
-				Console.Error.WriteLine($"[WasmRunner] Searched locations:");
-				Console.Error.WriteLine($"[WasmRunner]   - PLAYWRIGHT_BROWSERS_PATH environment variable");
-				Console.Error.WriteLine($"[WasmRunner]   - Standard Playwright browser cache locations");
-				Console.Error.WriteLine($"[WasmRunner]   - System-installed browsers (chromium, google-chrome, etc.)");
+				Log.Error("No Chromium-based browser found.");
+				AnsiConsole.MarkupLine("[yellow]Please install Chromium/Chrome or run:[/] [green]npx playwright install chromium[/]");
+				AnsiConsole.MarkupLine("[grey]Searched locations:[/]");
+				AnsiConsole.MarkupLine("[grey]  - PLAYWRIGHT_BROWSERS_PATH environment variable[/]");
+				AnsiConsole.MarkupLine("[grey]  - Standard Playwright browser cache locations[/]");
+				AnsiConsole.MarkupLine("[grey]  - System-installed browsers (chromium, google-chrome, etc.)[/]");
 				return 1;
 			}
 		}
 
-		Console.WriteLine($"[WasmRunner] Using browser: {browserPath}");
-		Console.WriteLine($"[WasmRunner] Launching browser...");
+		Log.Detail("Browser", browserPath);
 
 		// Build browser arguments
 		var browserArgs = new List<string>
@@ -246,7 +299,9 @@ class Program
 			"--disable-features=TranslateUI",
 			"--autoplay-policy=no-user-gesture-required",
 			"--no-sandbox", // Required for CI environments (GitHub Actions, Docker, etc.)
-			"--disable-dev-shm-usage" // Use /tmp instead of /dev/shm (helps in containerized environments)
+			"--disable-dev-shm-usage", // Use /tmp instead of /dev/shm (helps in containerized environments)
+			"--enable-logging=stderr", // Enable Chrome logging to stderr
+			"--v=1" // Verbose logging level
 		};
 
 		if (headless)
@@ -256,6 +311,8 @@ class Program
 
 		// Add any additional browser arguments from CLI
 		browserArgs.AddRange(additionalBrowserArgs);
+
+		Log.Info($"Launching browser with {browserArgs.Count} arguments...");
 
 		// Create cancellation token for timeout
 		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
@@ -275,11 +332,26 @@ class Program
 
 			if (browserProcess is null)
 			{
-				Console.Error.WriteLine($"[WasmRunner] Error: Failed to start browser process");
+				Log.Error("Failed to start browser process");
 				return 1;
 			}
 
-			// Log browser output asynchronously
+			Log.Success($"Browser started (PID: {browserProcess.Id})");
+
+			// Log browser stdout asynchronously
+			_ = Task.Run(async () =>
+			{
+				while (!browserProcess.HasExited && !ct.IsCancellationRequested)
+				{
+					var line = await browserProcess.StandardOutput.ReadLineAsync(ct);
+					if (line is not null)
+					{
+						Log.Browser("stdout", line);
+					}
+				}
+			}, ct);
+
+			// Log browser stderr asynchronously
 			_ = Task.Run(async () =>
 			{
 				while (!browserProcess.HasExited && !ct.IsCancellationRequested)
@@ -287,40 +359,87 @@ class Program
 					var line = await browserProcess.StandardError.ReadLineAsync(ct);
 					if (line is not null)
 					{
-						Console.WriteLine($"[Browser] {line}");
+						Log.Browser("stderr", line);
 					}
 				}
 			}, ct);
 
-			// Wait for results
-			Console.WriteLine($"[WasmRunner] Waiting for test results (timeout: {timeoutSeconds}s)...");
+			// Wait for results, but also monitor if browser exits early
+			Log.Info($"Waiting for test results (timeout: {timeoutSeconds}s)...");
+			AnsiConsole.WriteLine();
+
+			// Start a task to monitor browser exit
+			var browserExitTask = Task.Run(async () =>
+			{
+				await browserProcess.WaitForExitAsync(ct);
+				Log.Warning($"Browser process exited with code: {browserProcess.ExitCode}");
+			}, ct);
+
+			// Start a task to periodically log status
+			var statusLogTask = Task.Run(async () =>
+			{
+				var startTime = DateTime.UtcNow;
+				var lastRequestCount = 0;
+				while (!ct.IsCancellationRequested)
+				{
+					await Task.Delay(TimeSpan.FromSeconds(30), ct);
+					var elapsed = DateTime.UtcNow - startTime;
+					var currentRequests = server.RequestCount;
+					var newRequests = currentRequests - lastRequestCount;
+					lastRequestCount = currentRequests;
+					Log.Status($"{elapsed.TotalSeconds:F0}s elapsed | {currentRequests} requests (+{newRequests}) | browser: {(browserProcess.HasExited ? "exited" : "running")}");
+				}
+			}, ct);
+
 			var results = await server.WaitForResultsAsync(ct);
 
 			if (results is null)
 			{
-				Console.Error.WriteLine($"[WasmRunner] Error: No results received");
+				AnsiConsole.WriteLine();
+				Log.Error($"No results received");
+				AnsiConsole.MarkupLine($"[grey]Total HTTP requests received:[/] [yellow]{server.RequestCount}[/]");
+				// Check if browser already exited
+				if (browserProcess.HasExited)
+				{
+					Log.Error($"Browser exited with code {browserProcess.ExitCode} before providing results");
+				}
+				else
+				{
+					Log.Warning("Browser is still running - possible hang or navigation failure");
+				}
 				return 1;
 			}
 
+			AnsiConsole.WriteLine();
+
 			// Write results to output file
-			Console.WriteLine($"[WasmRunner] Writing results to {output.FullName}...");
+			Log.Info($"Writing results to {output.FullName}...");
 			await File.WriteAllTextAsync(output.FullName, results, ct);
 
 			// Parse results to determine exit code
 			var hasFailures = results.Contains("result=\"Failed\"") || results.Contains("\"TestResult\":\"Failed\"");
 			var exitCodeFromResults = hasFailures ? 1 : 0;
 
-			Console.WriteLine($"[WasmRunner] Tests completed with exit code {exitCodeFromResults}");
+			if (hasFailures)
+			{
+				AnsiConsole.MarkupLine($"[red]Tests completed with failures (exit code {exitCodeFromResults})[/]");
+			}
+			else
+			{
+				AnsiConsole.MarkupLine($"[green]Tests completed successfully![/]");
+			}
 			return exitCodeFromResults;
 		}
 		catch (OperationCanceledException)
 		{
-			Console.Error.WriteLine($"[WasmRunner] Error: Test execution timed out after {timeoutSeconds} seconds");
+			AnsiConsole.WriteLine();
+			Log.Error($"Test execution timed out after {timeoutSeconds} seconds");
+			AnsiConsole.MarkupLine($"[grey]Total HTTP requests received:[/] [yellow]{server.RequestCount}[/]");
 			return 2;
 		}
 		catch (Exception ex)
 		{
-			Console.Error.WriteLine($"[WasmRunner] Error: {ex.Message}");
+			Log.Error(ex.Message);
 			return 1;
 		}
 		finally
@@ -513,6 +632,9 @@ internal sealed class TestServer : IDisposable
 	private readonly TaskCompletionSource<string> _resultsTcs = new();
 	private CancellationTokenSource? _serverCts;
 	private Task? _serverTask;
+	private int _requestCount;
+
+	public int RequestCount => _requestCount;
 
 	public TestServer(string appPath, int port)
 	{
@@ -559,7 +681,7 @@ internal sealed class TestServer : IDisposable
 			}
 			catch (Exception ex)
 			{
-				Console.Error.WriteLine($"[Server] Error handling request: {ex.Message}");
+				Log.ServerError($"Error handling request: {ex.Message}");
 			}
 		}
 	}
@@ -569,6 +691,9 @@ internal sealed class TestServer : IDisposable
 		var request = context.Request;
 		var response = context.Response;
 
+		var count = Interlocked.Increment(ref _requestCount);
+		Log.Server($"#{count} {request.HttpMethod} {request.Url?.AbsolutePath}");
+
 		try
 		{
 			if (request.HttpMethod == "POST" && request.Url?.AbsolutePath == "/results")
@@ -577,7 +702,7 @@ internal sealed class TestServer : IDisposable
 				using var reader = new StreamReader(request.InputStream, Encoding.UTF8);
 				var results = await reader.ReadToEndAsync();
 
-				Console.WriteLine($"[Server] Received test results ({results.Length} bytes)");
+				AnsiConsole.MarkupLine($"[magenta][[Server]][/] [green]Received test results ({results.Length} bytes)[/]");
 				_resultsTcs.TrySetResult(results);
 
 				response.StatusCode = 200;
@@ -597,7 +722,7 @@ internal sealed class TestServer : IDisposable
 		}
 		catch (Exception ex)
 		{
-			Console.Error.WriteLine($"[Server] Error: {ex.Message}");
+			Log.ServerError(ex.Message);
 			response.StatusCode = 500;
 		}
 		finally
