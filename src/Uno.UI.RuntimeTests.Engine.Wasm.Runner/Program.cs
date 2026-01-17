@@ -227,14 +227,31 @@ class Program
 
 		// Start HTTP server
 		using var server = new TestServer(appPath.FullName, port);
+
+		// Inject environment variables into uno-config.js
+		// This is the primary mechanism for passing test configuration to the WASM app
+		// Note: URL query parameters are also passed for backward compatibility,
+		// but Uno WASM doesn't automatically map them to Environment.GetEnvironmentVariable()
+		var testConfig = string.IsNullOrEmpty(filter) ? "true" : filter;
 		var serverPort = await server.StartAsync();
+
+		// Now that we know the port, set up the injected environment variables
+		var injectedEnvVars = new Dictionary<string, string>
+		{
+			["UNO_RUNTIME_TESTS_RUN_TESTS"] = testConfig,
+			["UNO_RUNTIME_TESTS_OUTPUT_URL"] = $"http://localhost:{serverPort}/results"
+		};
+		server.SetInjectedEnvironmentVariables(injectedEnvVars);
+
 		Log.Success($"Server started on port {serverPort}");
 
-		// Build the test URL with parameters
-		var testConfig = string.IsNullOrEmpty(filter) ? "true" : filter;
+		// Build the test URL with parameters (for backward compatibility and debugging)
+		// Add cache-busting parameter to bypass service worker caching
+		var cacheBuster = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 		var testUrlBuilder = new StringBuilder();
 		testUrlBuilder.Append($"http://localhost:{serverPort}/");
-		testUrlBuilder.Append($"?UNO_RUNTIME_TESTS_RUN_TESTS={Uri.EscapeDataString(testConfig)}");
+		testUrlBuilder.Append($"?_cb={cacheBuster}"); // Cache buster
+		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_RUN_TESTS={Uri.EscapeDataString(testConfig)}");
 		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_OUTPUT_URL={Uri.EscapeDataString($"http://localhost:{serverPort}/results")}");
 
 		// Add any additional query parameters
@@ -285,9 +302,14 @@ class Program
 		Log.Detail("Browser", browserPath);
 
 		// Build browser arguments
+		// Create a unique temp directory for each run to ensure fresh browser state (no cached data)
+		var tempUserDataDir = Path.Combine(Path.GetTempPath(), $"uno-wasm-runner-{Guid.NewGuid():N}");
+		Directory.CreateDirectory(tempUserDataDir);
+
 		var browserArgs = new List<string>
 		{
 			testUrl,
+			$"--user-data-dir={tempUserDataDir}", // Fresh profile for each run to avoid cached data
 			"--no-first-run",
 			"--no-default-browser-check",
 			"--disable-background-networking",
@@ -296,10 +318,12 @@ class Program
 			"--disable-extensions",
 			"--disable-infobars",
 			"--disable-popup-blocking",
-			"--disable-features=TranslateUI",
+			"--disable-features=TranslateUI", // Don't disable ServiceWorker as it might cause issues
 			"--autoplay-policy=no-user-gesture-required",
 			"--no-sandbox", // Required for CI environments (GitHub Actions, Docker, etc.)
 			"--disable-dev-shm-usage", // Use /tmp instead of /dev/shm (helps in containerized environments)
+			"--disable-application-cache", // Disable application cache
+			"--disk-cache-size=0", // No disk cache
 			"--enable-logging=stderr", // Enable Chrome logging to stderr
 			"--v=1" // Verbose logging level
 		};
@@ -552,6 +576,8 @@ class Program
 			}
 			else // Linux
 			{
+				// Newer Playwright uses chrome-linux64, older uses chrome-linux
+				yield return Path.Combine(dir, "chrome-linux64", "chrome");
 				yield return Path.Combine(dir, "chrome-linux", "chrome");
 			}
 		}
@@ -633,6 +659,7 @@ internal sealed class TestServer : IDisposable
 	private CancellationTokenSource? _serverCts;
 	private Task? _serverTask;
 	private int _requestCount;
+	private Dictionary<string, string>? _injectedEnvVars;
 
 	public int RequestCount => _requestCount;
 
@@ -641,6 +668,15 @@ internal sealed class TestServer : IDisposable
 		_appPath = appPath;
 		_requestedPort = port;
 		_listener = new HttpListener();
+	}
+
+	/// <summary>
+	/// Sets environment variables to inject into the uno-config.js when served.
+	/// This allows the WASM app to read test configuration via Environment.GetEnvironmentVariable().
+	/// </summary>
+	public void SetInjectedEnvironmentVariables(Dictionary<string, string> envVars)
+	{
+		_injectedEnvVars = envVars;
 	}
 
 	public async Task<int> StartAsync()
@@ -773,13 +809,66 @@ internal sealed class TestServer : IDisposable
 			_ => "application/octet-stream"
 		};
 
-		// Add CORS and caching headers for WASM
+		// Add CORS headers for WASM
 		response.AddHeader("Cross-Origin-Opener-Policy", "same-origin");
 		response.AddHeader("Cross-Origin-Embedder-Policy", "require-corp");
 
-		var content = await File.ReadAllBytesAsync(safePath);
+		byte[] content;
+		var fileName = Path.GetFileName(safePath);
+
+		// If this is uno-config.js and we have injected environment variables, modify the content
+		// Also add aggressive no-cache headers to prevent service worker from serving stale config
+		if (fileName == "uno-config.js" && _injectedEnvVars?.Count > 0)
+		{
+			// Add aggressive no-cache headers to prevent service worker from serving stale config
+			response.AddHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+			response.AddHeader("Pragma", "no-cache");
+			response.AddHeader("Expires", "0");
+
+			var originalContent = await File.ReadAllTextAsync(safePath);
+			var modifiedContent = InjectEnvironmentVariables(originalContent);
+			content = Encoding.UTF8.GetBytes(modifiedContent);
+			Log.Server("Injected environment variables into uno-config.js");
+		}
+		else
+		{
+			content = await File.ReadAllBytesAsync(safePath);
+		}
+
 		response.ContentLength64 = content.Length;
 		await response.OutputStream.WriteAsync(content);
+	}
+
+	/// <summary>
+	/// Injects environment variables into the uno-config.js content.
+	/// </summary>
+	private string InjectEnvironmentVariables(string configContent)
+	{
+		if (_injectedEnvVars is null || _injectedEnvVars.Count == 0)
+		{
+			return configContent;
+		}
+
+		// Build JavaScript code to add environment variables
+		var sb = new StringBuilder();
+		sb.AppendLine();
+		sb.AppendLine("// Injected by WASM Runtime Tests Runner");
+		foreach (var kvp in _injectedEnvVars)
+		{
+			// Escape the value for JavaScript string
+			var escapedValue = kvp.Value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+			sb.AppendLine($"config.environmentVariables[\"{kvp.Key}\"] = \"{escapedValue}\";");
+		}
+
+		// Find the export statement and insert before it
+		var exportIndex = configContent.LastIndexOf("export { config };");
+		if (exportIndex >= 0)
+		{
+			return configContent.Insert(exportIndex, sb.ToString());
+		}
+
+		// Fallback: append to the end
+		return configContent + sb.ToString();
 	}
 
 	public async Task<string?> WaitForResultsAsync(CancellationToken ct)

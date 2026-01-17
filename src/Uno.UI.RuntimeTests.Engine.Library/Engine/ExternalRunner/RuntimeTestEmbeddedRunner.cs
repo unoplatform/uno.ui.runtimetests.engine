@@ -42,10 +42,10 @@ internal static partial class RuntimeTestEmbeddedRunner
 	{
 		Trace("Initializing runtime-tests module.");
 
-		if (Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig)
+		if (GetConfigValue("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig)
 		{
-			var outputPath = Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_PATH");
-			var outputUrl = Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_URL");
+			var outputPath = GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_PATH");
+			var outputUrl = GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_URL");
 
 			// At least one output destination must be configured
 			if (string.IsNullOrEmpty(outputPath) && string.IsNullOrEmpty(outputUrl))
@@ -69,10 +69,10 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			Trace($"Application configured to start runtime-tests (OutputPath={outputPath} | OutputUrl={outputUrl} | Config={testsConfig}).");
 
-			var outputKind = Enum.TryParse<TestResultKind>(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
+			var outputKind = Enum.TryParse<TestResultKind>(GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
 				? kind
 				: TestResultKind.NUnit;
-			var isSecondaryApp = Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_IS_SECONDARY_APP")?.ToLowerInvariant() switch
+			var isSecondaryApp = GetConfigValue("UNO_RUNTIME_TESTS_IS_SECONDARY_APP")?.ToLowerInvariant() switch
 			{
 				null => false,
 				"false" => false,
@@ -96,9 +96,12 @@ internal static partial class RuntimeTestEmbeddedRunner
 		{
 			Log("Waiting for app to init before running runtime-tests.");
 
+#if !__WASM__
+			// Console.CancelKeyPress is not supported in WebAssembly
 #pragma warning disable CA1416 // Validate platform compatibility
 			Console.CancelKeyPress += (_, _) => ct.Cancel(true);
 #pragma warning restore CA1416 // Validate platform compatibility
+#endif
 
 			// Wait for the app to init it-self
 			await Task.Delay(2000, ct.Token).ConfigureAwait(false);
@@ -234,6 +237,70 @@ internal static partial class RuntimeTestEmbeddedRunner
 		// to allow Skia/X11 to clean up properly and avoid segfaults on Linux.
 		Environment.ExitCode = exitCode;
 		Application.Current.Exit();
+	}
+
+	/// <summary>
+	/// Gets a configuration value from environment variables, or from URL query parameters on WASM.
+	/// </summary>
+	/// <remarks>
+	/// On WebAssembly, URL query parameters are checked FIRST because they always contain
+	/// the current server address. Environment variables from uno-config.js may be stale
+	/// due to browser/service worker caching. For the output URL specifically, we always
+	/// prefer the URL query parameter to ensure results are sent to the correct server.
+	/// </remarks>
+	private static string? GetConfigValue(string name)
+	{
+#if __WASM__
+		// On WASM, check URL query parameters FIRST for output URL to avoid stale cached values.
+		// The uno-config.js environment variables may be cached by the browser or service worker
+		// with an old server port, causing results to be sent to the wrong destination.
+		if (name == "UNO_RUNTIME_TESTS_OUTPUT_URL" || name == "UNO_RUNTIME_TESTS_OUTPUT_PATH")
+		{
+			try
+			{
+				var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
+				var urlValue = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+				if (!string.IsNullOrEmpty(urlValue))
+				{
+					Trace($"Got config value from URL query param (preferred for output): {name}");
+					return urlValue;
+				}
+			}
+			catch (Exception ex)
+			{
+				Trace($"Failed to get URL query param '{name}': {ex.Message}");
+			}
+		}
+#endif
+
+		// Try environment variables (works on all platforms)
+		// On WASM, the test runner injects these into uno-config.js
+		var value = Environment.GetEnvironmentVariable(name);
+		if (!string.IsNullOrEmpty(value))
+		{
+			return value;
+		}
+
+#if __WASM__
+		// On WASM, also check URL query parameters as fallback for other config values
+		try
+		{
+			// Use inline JavaScript to get query parameter
+			var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
+			value = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+			if (!string.IsNullOrEmpty(value))
+			{
+				Trace($"Got config value from URL query param: {name}");
+				return value;
+			}
+		}
+		catch (Exception ex)
+		{
+			Trace($"Failed to get URL query param '{name}': {ex.Message}");
+		}
+#endif
+
+		return null;
 	}
 
 	[Conditional("DEBUG")]
