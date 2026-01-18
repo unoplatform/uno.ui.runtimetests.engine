@@ -42,9 +42,18 @@ internal static partial class RuntimeTestEmbeddedRunner
 	{
 		Trace("Initializing runtime-tests module.");
 
-		if (Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig
-			&& Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_PATH") is { } outputPath)
+		if (GetConfigValue("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig)
 		{
+			var outputPath = GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_PATH");
+			var outputUrl = GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_URL");
+
+			// At least one output destination must be configured
+			if (string.IsNullOrEmpty(outputPath) && string.IsNullOrEmpty(outputUrl))
+			{
+				Trace("Application has not been configured with output destination, aborting runtime-test embedded runner.");
+				return;
+			}
+
 			if (bool.TryParse(testsConfig, out var runTests))
 			{
 				if (runTests)
@@ -58,12 +67,12 @@ internal static partial class RuntimeTestEmbeddedRunner
 				}
 			}
 
-			Trace($"Application configured to start runtime-tests (Output={outputPath} | Config={testsConfig}).");
+			Trace($"Application configured to start runtime-tests (OutputPath={outputPath} | OutputUrl={outputUrl} | Config={testsConfig}).");
 
-			var outputKind = Enum.TryParse<TestResultKind>(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
+			var outputKind = Enum.TryParse<TestResultKind>(GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
 				? kind
 				: TestResultKind.NUnit;
-			var isSecondaryApp = Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_IS_SECONDARY_APP")?.ToLowerInvariant() switch
+			var isSecondaryApp = GetConfigValue("UNO_RUNTIME_TESTS_IS_SECONDARY_APP")?.ToLowerInvariant() switch
 			{
 				null => false,
 				"false" => false,
@@ -71,7 +80,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 				_ => true
 			};
 
-			_ = RunTestsAndExit(testsConfig, outputPath, outputKind, isSecondaryApp);
+			_ = RunTestsAndExit(testsConfig, outputPath, outputUrl, outputKind, isSecondaryApp);
 		}
 		else
 		{
@@ -79,7 +88,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 	}
 
-	private static async Task RunTestsAndExit(string testsConfigRaw, string outputPath, TestResultKind outputKind, bool isSecondaryApp)
+	private static async Task RunTestsAndExit(string testsConfigRaw, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp)
 	{
 		var ct = new CancellationTokenSource();
 
@@ -87,9 +96,12 @@ internal static partial class RuntimeTestEmbeddedRunner
 		{
 			Log("Waiting for app to init before running runtime-tests.");
 
+#if !__WASM__
+			// Console.CancelKeyPress is not supported in WebAssembly
 #pragma warning disable CA1416 // Validate platform compatibility
 			Console.CancelKeyPress += (_, _) => ct.Cancel(true);
 #pragma warning restore CA1416 // Validate platform compatibility
+#endif
 
 			// Wait for the app to init it-self
 			await Task.Delay(2000, ct.Token).ConfigureAwait(false);
@@ -130,7 +142,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 						{
 							Trace("Got dispatcher access, init the runtime-test engine.");
 
-							await RunTests(window, config, outputPath, outputKind, isSecondaryApp, ct.Token);
+							await RunTests(window, config, outputPath, outputUrl, outputKind, isSecondaryApp, ct.Token);
 							tcs.TrySetResult();
 						}
 						catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -165,7 +177,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 	}
 
-	private static async Task RunTests(Window window, UnitTestEngineConfig config, string outputPath, TestResultKind outputKind, bool isSecondaryApp, CancellationToken ct)
+	private static async Task RunTests(Window window, UnitTestEngineConfig config, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp, CancellationToken ct)
 	{
 		// Wait for the app to init it-self
 		for (var i = 0; window.Content is null or { ActualSize.X: 0 } or { ActualSize.Y: 0 } && i < 20; i++)
@@ -183,18 +195,39 @@ internal static partial class RuntimeTestEmbeddedRunner
 		Log($"Running runtime-tests ({config})");
 		await engine.RunTests(ct, config).ConfigureAwait(false);
 
-		// Finally save the test results
-		Log($"Saving runtime-tests results to {outputPath}.");
+		// Generate results content based on output kind
+		string resultsContent;
+		string contentType;
 		switch (outputKind)
 		{
 			case TestResultKind.UnoRuntimeTests:
-				await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(engine.Results), Encoding.UTF8, ct);
+				resultsContent = JsonSerializer.Serialize(engine.Results);
+				contentType = "application/json";
 				break;
 
 			default:
 			case TestResultKind.NUnit:
-				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.UTF8, ct);
+				resultsContent = engine.NUnitTestResultsDocument;
+				contentType = "application/xml";
 				break;
+		}
+
+		// Save to file if path is configured (non-WASM platforms)
+		if (!string.IsNullOrEmpty(outputPath))
+		{
+			Log($"Saving runtime-tests results to {outputPath}.");
+			await File.WriteAllTextAsync(outputPath, resultsContent, Encoding.UTF8, ct);
+		}
+
+		// POST to URL if configured (WASM platform or dual output)
+		if (!string.IsNullOrEmpty(outputUrl))
+		{
+			Log($"Posting runtime-tests results to {outputUrl}.");
+			var success = await WasmTestResultReporter.PostResultsAsync(outputUrl, resultsContent, contentType, ct);
+			if (!success)
+			{
+				LogError($"Failed to POST results to {outputUrl}");
+			}
 		}
 	}
 
@@ -204,6 +237,70 @@ internal static partial class RuntimeTestEmbeddedRunner
 		// to allow Skia/X11 to clean up properly and avoid segfaults on Linux.
 		Environment.ExitCode = exitCode;
 		Application.Current.Exit();
+	}
+
+	/// <summary>
+	/// Gets a configuration value from environment variables, or from URL query parameters on WASM.
+	/// </summary>
+	/// <remarks>
+	/// On WebAssembly, URL query parameters are checked FIRST because they always contain
+	/// the current server address. Environment variables from uno-config.js may be stale
+	/// due to browser/service worker caching. For the output URL specifically, we always
+	/// prefer the URL query parameter to ensure results are sent to the correct server.
+	/// </remarks>
+	private static string? GetConfigValue(string name)
+	{
+#if __WASM__
+		// On WASM, check URL query parameters FIRST for output URL to avoid stale cached values.
+		// The uno-config.js environment variables may be cached by the browser or service worker
+		// with an old server port, causing results to be sent to the wrong destination.
+		if (name == "UNO_RUNTIME_TESTS_OUTPUT_URL" || name == "UNO_RUNTIME_TESTS_OUTPUT_PATH")
+		{
+			try
+			{
+				var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
+				var urlValue = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+				if (!string.IsNullOrEmpty(urlValue))
+				{
+					Trace($"Got config value from URL query param (preferred for output): {name}");
+					return urlValue;
+				}
+			}
+			catch (Exception ex)
+			{
+				Trace($"Failed to get URL query param '{name}': {ex.Message}");
+			}
+		}
+#endif
+
+		// Try environment variables (works on all platforms)
+		// On WASM, the test runner injects these into uno-config.js
+		var value = Environment.GetEnvironmentVariable(name);
+		if (!string.IsNullOrEmpty(value))
+		{
+			return value;
+		}
+
+#if __WASM__
+		// On WASM, also check URL query parameters as fallback for other config values
+		try
+		{
+			// Use inline JavaScript to get query parameter
+			var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
+			value = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+			if (!string.IsNullOrEmpty(value))
+			{
+				Trace($"Got config value from URL query param: {name}");
+				return value;
+			}
+		}
+		catch (Exception ex)
+		{
+			Trace($"Failed to get URL query param '{name}': {ex.Message}");
+		}
+#endif
+
+		return null;
 	}
 
 	[Conditional("DEBUG")]

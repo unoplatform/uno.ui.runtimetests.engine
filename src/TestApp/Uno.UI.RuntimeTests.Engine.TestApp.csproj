@@ -20,6 +20,7 @@
 		<!-- Uno features -->
 		<UnoFeatures>
 			Logging;
+      		SkiaRenderer;
 		</UnoFeatures>
 	</PropertyGroup>
 
