@@ -247,6 +247,12 @@ jobs:
             --azure-key-vault-certificate "${{ secrets.SIGN_KEY_VAULT_CERTIFICATE_ID }}" `
             --verbosity information
 
+      - name: Upload Signed Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: NuGet-Signed
+          path: artifacts
+
       - name: NuGet Push
         shell: pwsh
         run: |
