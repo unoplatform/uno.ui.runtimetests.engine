@@ -104,16 +104,61 @@ internal static partial class RuntimeTestEmbeddedRunner
 #endif
 
 			// Wait for the app to init it-self
+			// On Skia/WebGPU, initialization can take longer due to GPU surface setup
 			await Task.Delay(2000, ct.Token).ConfigureAwait(false);
-			for (var i = 0; Window.Current is null && i < 100; i++)
+
+			// Wait for Window.Current to be available with a dispatcher
+			Window? window = null;
+			for (var i = 0; i < 300; i++)
 			{
-				await Task.Delay(50, ct.Token).ConfigureAwait(false);
+				window = Window.Current;
+				if (window is { Dispatcher: not null })
+				{
+					break;
+				}
+				await Task.Delay(100, ct.Token).ConfigureAwait(false);
+				if (i > 0 && i % 50 == 0)
+				{
+					Log($"Still waiting for Window.Current... ({i * 100 / 1000}s)");
+				}
 			}
 
-			var window = Window.Current;
 			if (window is null or { Dispatcher: null })
 			{
 				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher");
+			}
+
+			// Try to wait for Window.Current to have content (app's OnLaunched to complete)
+			// Re-check Window.Current each iteration as the app may create a new window
+			// Note: On Skia WASM with WebGPU, the app's content might not be set immediately
+			// In that case, we'll proceed anyway and set our own content
+			for (var i = 0; i < 50; i++) // Wait up to 5 seconds for app content
+			{
+				window = Window.Current;
+				if (window?.Content is not null)
+				{
+					Log($"Window.Current has content after {i * 100}ms");
+					break;
+				}
+				await Task.Delay(100, ct.Token).ConfigureAwait(false);
+				if (i > 0 && i % 10 == 0)
+				{
+					Log($"Still waiting for Window.Current.Content... ({i * 100 / 1000.0}s)");
+				}
+			}
+
+			// Final check with the latest Window.Current reference
+			window = Window.Current;
+			if (window is null or { Dispatcher: null })
+			{
+				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher after waiting for content");
+			}
+
+			// If content is still null after waiting, log a warning but continue
+			// We'll set our own content which should work
+			if (window.Content is null)
+			{
+				Log("Window.Current.Content is still null after waiting - proceeding anyway (may be expected on Skia/WebGPU)");
 			}
 
 			Trace("Got window (and dispatcher), continuing runtime-test initialization on it.");
@@ -179,55 +224,84 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 	private static async Task RunTests(Window window, UnitTestEngineConfig config, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp, CancellationToken ct)
 	{
-		// Wait for the app to init it-self
-		for (var i = 0; window.Content is null or { ActualSize.X: 0 } or { ActualSize.Y: 0 } && i < 20; i++)
-		{
-			await Task.Delay(20, ct);
-		}
+		// Re-get the current window to ensure we have the active one
+		// (the app may have created a new window after we captured the reference)
+		window = Window.Current ?? window;
+		Log($"RunTests: Using window={window}, Content={window.Content?.GetType().Name}");
 
 		// Then override the app content by the test control
-		Trace("Initializing runtime-tests engine.");
-		var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
-		Window.Current.Content = engine;
-		await UIHelper.WaitForLoaded(engine, ct);
-
-		// Run the test !
-		Log($"Running runtime-tests ({config})");
-		await engine.RunTests(ct, config).ConfigureAwait(false);
-
-		// Generate results content based on output kind
-		string resultsContent;
-		string contentType;
-		switch (outputKind)
+		Log("RunTests: Creating UnitTestsControl...");
+		try
 		{
-			case TestResultKind.UnoRuntimeTests:
-				resultsContent = JsonSerializer.Serialize(engine.Results);
-				contentType = "application/json";
-				break;
+			var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
+			Log("RunTests: UnitTestsControl created, setting as window content...");
+			// Use Window.Current to ensure we're setting content on the active window
+			var activeWindow = Window.Current ?? window;
+			activeWindow.Content = engine;
+			Log("RunTests: Waiting for UnitTestsControl to initialize...");
 
-			default:
-			case TestResultKind.NUnit:
-				resultsContent = engine.NUnitTestResultsDocument;
-				contentType = "application/xml";
-				break;
-		}
-
-		// Save to file if path is configured (non-WASM platforms)
-		if (!string.IsNullOrEmpty(outputPath))
-		{
-			Log($"Saving runtime-tests results to {outputPath}.");
-			await File.WriteAllTextAsync(outputPath, resultsContent, Encoding.UTF8, ct);
-		}
-
-		// POST to URL if configured (WASM platform or dual output)
-		if (!string.IsNullOrEmpty(outputUrl))
-		{
-			Log($"Posting runtime-tests results to {outputUrl}.");
-			var success = await WasmTestResultReporter.PostResultsAsync(outputUrl, resultsContent, contentType, ct);
-			if (!success)
+			// On Skia WASM with WebGPU, the Loaded event may not fire because the rendering
+			// surface initialization happens asynchronously. Try waiting for Loaded first,
+			// but fall back to a simple delay if it doesn't fire.
+			try
 			{
-				LogError($"Failed to POST results to {outputUrl}");
+				// Short timeout - if Loaded fires, great; if not, we'll proceed anyway
+				await WaitForLoadedWithTimeout(engine, TimeSpan.FromSeconds(5), ct);
+				Log("RunTests: UnitTestsControl loaded successfully");
 			}
+			catch (TimeoutException)
+			{
+				// On Skia WASM, the Loaded event may never fire due to WebGPU initialization timing
+				// Give the rendering surface time to initialize, then proceed
+				Log("RunTests: UnitTestsControl.Loaded event did not fire (expected on Skia/WebGPU) - waiting for renderer...");
+				await Task.Delay(3000, ct);  // Wait for WebGPU initialization
+				Log("RunTests: Proceeding with test execution after renderer delay");
+			}
+
+			// Run the test !
+			Log($"RunTests: Starting test execution ({config})");
+			await engine.RunTests(ct, config).ConfigureAwait(false);
+			Log("RunTests: Test execution completed");
+
+			// Generate results content based on output kind
+			string resultsContent;
+			string contentType;
+			switch (outputKind)
+			{
+				case TestResultKind.UnoRuntimeTests:
+					resultsContent = JsonSerializer.Serialize(engine.Results);
+					contentType = "application/json";
+					break;
+
+				default:
+				case TestResultKind.NUnit:
+					resultsContent = engine.NUnitTestResultsDocument;
+					contentType = "application/xml";
+					break;
+			}
+
+			// Save to file if path is configured (non-WASM platforms)
+			if (!string.IsNullOrEmpty(outputPath))
+			{
+				Log($"Saving runtime-tests results to {outputPath}.");
+				await File.WriteAllTextAsync(outputPath, resultsContent, Encoding.UTF8, ct);
+			}
+
+			// POST to URL if configured (WASM platform or dual output)
+			if (!string.IsNullOrEmpty(outputUrl))
+			{
+				Log($"Posting runtime-tests results to {outputUrl}.");
+				var success = await WasmTestResultReporter.PostResultsAsync(outputUrl, resultsContent, contentType, ct);
+				if (!success)
+				{
+					LogError($"Failed to POST results to {outputUrl}");
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError($"RunTests: Exception during test execution: {ex}");
+			throw;
 		}
 	}
 
@@ -301,6 +375,50 @@ internal static partial class RuntimeTestEmbeddedRunner
 #endif
 
 		return null;
+	}
+
+	/// <summary>
+	/// Waits for a FrameworkElement to be loaded with a configurable timeout.
+	/// </summary>
+	/// <remarks>
+	/// This is a custom implementation with a longer timeout than UIHelper.WaitForLoaded,
+	/// needed for Skia/WebGPU initialization which can take longer than the default 1 second.
+	/// </remarks>
+	private static async Task WaitForLoadedWithTimeout(FrameworkElement element, TimeSpan timeout, CancellationToken ct)
+	{
+		if (element.IsLoaded)
+		{
+			return;
+		}
+
+		var tcs = new TaskCompletionSource<bool>();
+		using var _ = ct.CanBeCanceled ? ct.Register(() => tcs.TrySetCanceled()) : default;
+
+		void OnLoaded(object sender, RoutedEventArgs e)
+		{
+			element.Loaded -= OnLoaded;
+			tcs.TrySetResult(true);
+		}
+
+		try
+		{
+			element.Loaded += OnLoaded;
+
+			if (!element.IsLoaded)
+			{
+				var timeoutTask = Task.Delay(timeout, ct);
+				var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+
+				if (completedTask == timeoutTask)
+				{
+					throw new TimeoutException($"Failed to load element within {timeout}. IsLoaded={element.IsLoaded}");
+				}
+			}
+		}
+		finally
+		{
+			element.Loaded -= OnLoaded;
+		}
 	}
 
 	[Conditional("DEBUG")]
