@@ -42,9 +42,18 @@ internal static partial class RuntimeTestEmbeddedRunner
 	{
 		Trace("Initializing runtime-tests module.");
 
-		if (Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig
-			&& Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_PATH") is { } outputPath)
+		if (GetConfigValue("UNO_RUNTIME_TESTS_RUN_TESTS") is { } testsConfig)
 		{
+			var outputPath = GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_PATH");
+			var outputUrl = GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_URL");
+
+			// At least one output destination must be configured
+			if (string.IsNullOrEmpty(outputPath) && string.IsNullOrEmpty(outputUrl))
+			{
+				Trace("Application has not been configured with output destination, aborting runtime-test embedded runner.");
+				return;
+			}
+
 			if (bool.TryParse(testsConfig, out var runTests))
 			{
 				if (runTests)
@@ -58,12 +67,12 @@ internal static partial class RuntimeTestEmbeddedRunner
 				}
 			}
 
-			Trace($"Application configured to start runtime-tests (Output={outputPath} | Config={testsConfig}).");
+			Trace($"Application configured to start runtime-tests (OutputPath={outputPath} | OutputUrl={outputUrl} | Config={testsConfig}).");
 
-			var outputKind = Enum.TryParse<TestResultKind>(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
+			var outputKind = Enum.TryParse<TestResultKind>(GetConfigValue("UNO_RUNTIME_TESTS_OUTPUT_KIND"), ignoreCase: true, out var kind)
 				? kind
 				: TestResultKind.NUnit;
-			var isSecondaryApp = Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_IS_SECONDARY_APP")?.ToLowerInvariant() switch
+			var isSecondaryApp = GetConfigValue("UNO_RUNTIME_TESTS_IS_SECONDARY_APP")?.ToLowerInvariant() switch
 			{
 				null => false,
 				"false" => false,
@@ -71,7 +80,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 				_ => true
 			};
 
-			_ = RunTestsAndExit(testsConfig, outputPath, outputKind, isSecondaryApp);
+			_ = RunTestsAndExit(testsConfig, outputPath, outputUrl, outputKind, isSecondaryApp);
 		}
 		else
 		{
@@ -79,7 +88,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 	}
 
-	private static async Task RunTestsAndExit(string testsConfigRaw, string outputPath, TestResultKind outputKind, bool isSecondaryApp)
+	private static async Task RunTestsAndExit(string testsConfigRaw, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp)
 	{
 		var ct = new CancellationTokenSource();
 
@@ -87,21 +96,69 @@ internal static partial class RuntimeTestEmbeddedRunner
 		{
 			Log("Waiting for app to init before running runtime-tests.");
 
+#if !__WASM__
+			// Console.CancelKeyPress is not supported in WebAssembly
 #pragma warning disable CA1416 // Validate platform compatibility
 			Console.CancelKeyPress += (_, _) => ct.Cancel(true);
 #pragma warning restore CA1416 // Validate platform compatibility
+#endif
 
 			// Wait for the app to init it-self
+			// On Skia/WebGPU, initialization can take longer due to GPU surface setup
 			await Task.Delay(2000, ct.Token).ConfigureAwait(false);
-			for (var i = 0; Window.Current is null && i < 100; i++)
+
+			// Wait for Window.Current to be available with a dispatcher
+			Window? window = null;
+			for (var i = 0; i < 300; i++)
 			{
-				await Task.Delay(50, ct.Token).ConfigureAwait(false);
+				window = Window.Current;
+				if (window is { Dispatcher: not null })
+				{
+					break;
+				}
+				await Task.Delay(100, ct.Token).ConfigureAwait(false);
+				if (i > 0 && i % 50 == 0)
+				{
+					Log($"Still waiting for Window.Current... ({i * 100 / 1000}s)");
+				}
 			}
 
-			var window = Window.Current;
 			if (window is null or { Dispatcher: null })
 			{
 				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher");
+			}
+
+			// Try to wait for Window.Current to have content (app's OnLaunched to complete)
+			// Re-check Window.Current each iteration as the app may create a new window
+			// Note: On Skia WASM with WebGPU, the app's content might not be set immediately
+			// In that case, we'll proceed anyway and set our own content
+			for (var i = 0; i < 50; i++) // Wait up to 5 seconds for app content
+			{
+				window = Window.Current;
+				if (window?.Content is not null)
+				{
+					Log($"Window.Current has content after {i * 100}ms");
+					break;
+				}
+				await Task.Delay(100, ct.Token).ConfigureAwait(false);
+				if (i > 0 && i % 10 == 0)
+				{
+					Log($"Still waiting for Window.Current.Content... ({i * 100 / 1000.0}s)");
+				}
+			}
+
+			// Final check with the latest Window.Current reference
+			window = Window.Current;
+			if (window is null or { Dispatcher: null })
+			{
+				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher after waiting for content");
+			}
+
+			// If content is still null after waiting, log a warning but continue
+			// We'll set our own content which should work
+			if (window.Content is null)
+			{
+				Log("Window.Current.Content is still null after waiting - proceeding anyway (may be expected on Skia/WebGPU)");
 			}
 
 			Trace("Got window (and dispatcher), continuing runtime-test initialization on it.");
@@ -130,7 +187,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 						{
 							Trace("Got dispatcher access, init the runtime-test engine.");
 
-							await RunTests(window, config, outputPath, outputKind, isSecondaryApp, ct.Token);
+							await RunTests(window, config, outputPath, outputUrl, outputKind, isSecondaryApp, ct.Token);
 							tcs.TrySetResult();
 						}
 						catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -165,36 +222,86 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 	}
 
-	private static async Task RunTests(Window window, UnitTestEngineConfig config, string outputPath, TestResultKind outputKind, bool isSecondaryApp, CancellationToken ct)
+	private static async Task RunTests(Window window, UnitTestEngineConfig config, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp, CancellationToken ct)
 	{
-		// Wait for the app to init it-self
-		for (var i = 0; window.Content is null or { ActualSize.X: 0 } or { ActualSize.Y: 0 } && i < 20; i++)
-		{
-			await Task.Delay(20, ct);
-		}
+		// Re-get the current window to ensure we have the active one
+		// (the app may have created a new window after we captured the reference)
+		window = Window.Current ?? window;
+		Log($"RunTests: Using window={window}, Content={window.Content?.GetType().Name}");
 
 		// Then override the app content by the test control
-		Trace("Initializing runtime-tests engine.");
-		var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
-		Window.Current.Content = engine;
-		await UIHelper.WaitForLoaded(engine, ct);
-
-		// Run the test !
-		Log($"Running runtime-tests ({config})");
-		await engine.RunTests(ct, config).ConfigureAwait(false);
-
-		// Finally save the test results
-		Log($"Saving runtime-tests results to {outputPath}.");
-		switch (outputKind)
+		Log("RunTests: Creating UnitTestsControl...");
+		try
 		{
-			case TestResultKind.UnoRuntimeTests:
-				await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(engine.Results), Encoding.UTF8, ct);
-				break;
+			var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
+			Log("RunTests: UnitTestsControl created, setting as window content...");
+			// Use Window.Current to ensure we're setting content on the active window
+			var activeWindow = Window.Current ?? window;
+			activeWindow.Content = engine;
+			Log("RunTests: Waiting for UnitTestsControl to initialize...");
 
-			default:
-			case TestResultKind.NUnit:
-				await File.WriteAllTextAsync(outputPath, engine.NUnitTestResultsDocument, Encoding.UTF8, ct);
-				break;
+			// On Skia WASM with WebGPU, the Loaded event may not fire because the rendering
+			// surface initialization happens asynchronously. Try waiting for Loaded first,
+			// but fall back to a simple delay if it doesn't fire.
+			try
+			{
+				// Short timeout - if Loaded fires, great; if not, we'll proceed anyway
+				await WaitForLoadedWithTimeout(engine, TimeSpan.FromSeconds(5), ct);
+				Log("RunTests: UnitTestsControl loaded successfully");
+			}
+			catch (TimeoutException)
+			{
+				// On Skia WASM, the Loaded event may never fire due to WebGPU initialization timing
+				// Give the rendering surface time to initialize, then proceed
+				Log("RunTests: UnitTestsControl.Loaded event did not fire (expected on Skia/WebGPU) - waiting for renderer...");
+				await Task.Delay(3000, ct);  // Wait for WebGPU initialization
+				Log("RunTests: Proceeding with test execution after renderer delay");
+			}
+
+			// Run the test !
+			Log($"RunTests: Starting test execution ({config})");
+			await engine.RunTests(ct, config).ConfigureAwait(false);
+			Log("RunTests: Test execution completed");
+
+			// Generate results content based on output kind
+			string resultsContent;
+			string contentType;
+			switch (outputKind)
+			{
+				case TestResultKind.UnoRuntimeTests:
+					resultsContent = JsonSerializer.Serialize(engine.Results);
+					contentType = "application/json";
+					break;
+
+				default:
+				case TestResultKind.NUnit:
+					resultsContent = engine.NUnitTestResultsDocument;
+					contentType = "application/xml";
+					break;
+			}
+
+			// Save to file if path is configured (non-WASM platforms)
+			if (!string.IsNullOrEmpty(outputPath))
+			{
+				Log($"Saving runtime-tests results to {outputPath}.");
+				await File.WriteAllTextAsync(outputPath, resultsContent, Encoding.UTF8, ct);
+			}
+
+			// POST to URL if configured (WASM platform or dual output)
+			if (!string.IsNullOrEmpty(outputUrl))
+			{
+				Log($"Posting runtime-tests results to {outputUrl}.");
+				var success = await WasmTestResultReporter.PostResultsAsync(outputUrl, resultsContent, contentType, ct);
+				if (!success)
+				{
+					LogError($"Failed to POST results to {outputUrl}");
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError($"RunTests: Exception during test execution: {ex}");
+			throw;
 		}
 	}
 
@@ -204,6 +311,114 @@ internal static partial class RuntimeTestEmbeddedRunner
 		// to allow Skia/X11 to clean up properly and avoid segfaults on Linux.
 		Environment.ExitCode = exitCode;
 		Application.Current.Exit();
+	}
+
+	/// <summary>
+	/// Gets a configuration value from environment variables, or from URL query parameters on WASM.
+	/// </summary>
+	/// <remarks>
+	/// On WebAssembly, URL query parameters are checked FIRST because they always contain
+	/// the current server address. Environment variables from uno-config.js may be stale
+	/// due to browser/service worker caching. For the output URL specifically, we always
+	/// prefer the URL query parameter to ensure results are sent to the correct server.
+	/// </remarks>
+	private static string? GetConfigValue(string name)
+	{
+#if __WASM__
+		// On WASM, check URL query parameters FIRST for output URL to avoid stale cached values.
+		// The uno-config.js environment variables may be cached by the browser or service worker
+		// with an old server port, causing results to be sent to the wrong destination.
+		if (name == "UNO_RUNTIME_TESTS_OUTPUT_URL" || name == "UNO_RUNTIME_TESTS_OUTPUT_PATH")
+		{
+			try
+			{
+				var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
+				var urlValue = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+				if (!string.IsNullOrEmpty(urlValue))
+				{
+					Trace($"Got config value from URL query param (preferred for output): {name}");
+					return urlValue;
+				}
+			}
+			catch (Exception ex)
+			{
+				Trace($"Failed to get URL query param '{name}': {ex.Message}");
+			}
+		}
+#endif
+
+		// Try environment variables (works on all platforms)
+		// On WASM, the test runner injects these into uno-config.js
+		var value = Environment.GetEnvironmentVariable(name);
+		if (!string.IsNullOrEmpty(value))
+		{
+			return value;
+		}
+
+#if __WASM__
+		// On WASM, also check URL query parameters as fallback for other config values
+		try
+		{
+			// Use inline JavaScript to get query parameter
+			var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
+			value = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+			if (!string.IsNullOrEmpty(value))
+			{
+				Trace($"Got config value from URL query param: {name}");
+				return value;
+			}
+		}
+		catch (Exception ex)
+		{
+			Trace($"Failed to get URL query param '{name}': {ex.Message}");
+		}
+#endif
+
+		return null;
+	}
+
+	/// <summary>
+	/// Waits for a FrameworkElement to be loaded with a configurable timeout.
+	/// </summary>
+	/// <remarks>
+	/// This is a custom implementation with a longer timeout than UIHelper.WaitForLoaded,
+	/// needed for Skia/WebGPU initialization which can take longer than the default 1 second.
+	/// </remarks>
+	private static async Task WaitForLoadedWithTimeout(FrameworkElement element, TimeSpan timeout, CancellationToken ct)
+	{
+		if (element.IsLoaded)
+		{
+			return;
+		}
+
+		var tcs = new TaskCompletionSource<bool>();
+		using var _ = ct.CanBeCanceled ? ct.Register(() => tcs.TrySetCanceled()) : default;
+
+		void OnLoaded(object sender, RoutedEventArgs e)
+		{
+			element.Loaded -= OnLoaded;
+			tcs.TrySetResult(true);
+		}
+
+		try
+		{
+			element.Loaded += OnLoaded;
+
+			if (!element.IsLoaded)
+			{
+				var timeoutTask = Task.Delay(timeout, ct);
+				var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+
+				if (completedTask == timeoutTask)
+				{
+					throw new TimeoutException($"Failed to load element within {timeout}. IsLoaded={element.IsLoaded}");
+				}
+			}
+		}
+		finally
+		{
+			element.Loaded -= OnLoaded;
+		}
 	}
 
 	[Conditional("DEBUG")]

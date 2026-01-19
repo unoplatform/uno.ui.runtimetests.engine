@@ -1,15 +1,18 @@
+using Uno.UI.Hosting;
+
 namespace Uno.UI.RuntimeTests.Engine.Wasm;
 
 public sealed class Program
 {
-	private static App? _app;
-
-	public static int Main(string[] args)
+    public static async System.Threading.Tasks.Task Main(string[] args)
 	{
-		App.InitializeLogging();
+        App.InitializeLogging();
 
-		Microsoft.UI.Xaml.Application.Start(_ => _app = new App());
+        var host = UnoPlatformHostBuilder.Create()
+            .App(() => new App())
+            .UseWebAssembly()
+            .Build();
 
-		return 0;
+        await host.RunAsync();
 	}
 }

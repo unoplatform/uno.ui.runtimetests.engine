@@ -4,7 +4,8 @@
     "projects": [
       "TestApp\\Uno.UI.RuntimeTests.Engine.TestApp.csproj",
       "Uno.UI.RuntimeTests.Engine.Library\\Uno.UI.RuntimeTests.Engine.Library.shproj",
-      "Uno.UI.RuntimeTests.Engine.Package\\Uno.UI.RuntimeTests.Engine.Package.csproj"
+      "Uno.UI.RuntimeTests.Engine.Package\\Uno.UI.RuntimeTests.Engine.Package.csproj",
+      "Uno.UI.RuntimeTests.Engine.Wasm.Runner\\Uno.UI.RuntimeTests.Engine.Wasm.Runner.csproj"
     ]
   }
 }
