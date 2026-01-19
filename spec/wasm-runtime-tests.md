@@ -255,3 +255,127 @@ test-wasm:
 - **Timeout:** 30-second HTTP timeout per request
 - **Logging:** Detailed console output for debugging
 - **Exit Code:** Reflects test results, not POST success
+
+## Skia Renderer Considerations
+
+When using the Skia renderer on WASM (via WebGPU), the runtime test engine requires special handling due to asynchronous rendering surface initialization.
+
+### Key Findings
+
+#### 1. WebGPU Initialization is Asynchronous
+
+On Skia WASM, the WebGPU rendering surface initializes asynchronously. This affects:
+
+- **`Window.Current.Content`** - May remain `null` even after the app's `OnLaunched` completes
+- **`FrameworkElement.Loaded` event** - May never fire because the visual tree isn't fully connected until WebGPU is ready
+
+#### 2. Cached Build Artifacts Can Cause Issues
+
+When switching between native rendering and Skia rendering, cached build artifacts can cause `System.TypeInitializationException`:
+
+```
+System.TypeInitializationException: Unable to find Uno.UI.Runtime.WebAssembly.CompileAnchor
+```
+
+**Solution**: Clean `bin/` and `obj/` folders when switching renderer modes:
+```bash
+rm -rf bin obj
+dotnet build
+```
+
+#### 3. Default Timeouts Are Too Short
+
+The default 1-second timeout in `TestHelper.DefaultTimeout` is insufficient for Skia WASM initialization. WebGPU surface creation can take several seconds.
+
+### RuntimeTestEmbeddedRunner.cs Modifications
+
+The embedded runner was modified to handle Skia WASM initialization:
+
+#### 1. Extended Window Wait Loop
+
+```csharp
+// Wait for Window.Current to be available with a dispatcher
+Window? window = null;
+for (var i = 0; i < 300; i++)  // Up to 30 seconds
+{
+    window = Window.Current;
+    if (window is { Dispatcher: not null })
+    {
+        break;
+    }
+    await Task.Delay(100, ct.Token).ConfigureAwait(false);
+}
+```
+
+#### 2. Content Check with Fallback
+
+```csharp
+// Try to wait for content, but proceed if it's still null
+for (var i = 0; i < 50; i++)  // Up to 5 seconds
+{
+    window = Window.Current;
+    if (window?.Content is not null)
+    {
+        break;
+    }
+    await Task.Delay(100, ct.Token).ConfigureAwait(false);
+}
+
+// Proceed even if content is null (expected on Skia/WebGPU)
+if (window.Content is null)
+{
+    Log("Window.Current.Content is still null - proceeding anyway");
+}
+```
+
+#### 3. Loaded Event Fallback
+
+```csharp
+try
+{
+    await WaitForLoadedWithTimeout(engine, TimeSpan.FromSeconds(5), ct);
+}
+catch (TimeoutException)
+{
+    // On Skia WASM, Loaded event may never fire
+    // Wait for WebGPU initialization instead
+    await Task.Delay(3000, ct);
+}
+```
+
+### Known Platform Limitations
+
+The following tests are expected to fail on WASM with Skia renderer:
+
+| Test | Reason |
+|------|--------|
+| `HotReloadTests` | SecondaryApp not supported on WASM platform |
+| `When_TapCoordinates() [Mouse]` | Pointer injection requires fully loaded UI; timing issues with WebGPU |
+| `When_TapCoordinates() [Touch]` | Same as above |
+
+### URL Query Parameters Override
+
+On WASM, URL query parameters take precedence over environment variables for output configuration (`UNO_RUNTIME_TESTS_OUTPUT_URL`, `UNO_RUNTIME_TESTS_OUTPUT_PATH`). This avoids issues with cached `uno-config.js` files containing stale server addresses from previous test runs.
+
+### Troubleshooting
+
+#### Tests Not Starting
+
+1. Check browser console for WebGPU initialization errors
+2. Verify `UNO_RUNTIME_TESTS_RUN_TESTS` is set
+3. Ensure output URL/path is configured
+
+#### TypeInitializationException
+
+Clean build artifacts and rebuild:
+```bash
+rm -rf src/TestApp/bin src/TestApp/obj
+dotnet build src/TestApp -c Release
+```
+
+#### Timeout Errors
+
+If tests timeout waiting for UI elements, the WebGPU surface may not be initializing. Check:
+- Browser supports WebGPU
+- No GPU-related errors in console
+- Sufficient delay for renderer initialization

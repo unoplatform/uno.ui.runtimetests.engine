@@ -101,6 +101,11 @@ class Program
 			AllowMultipleArgumentsPerToken = true
 		};
 
+		var browserLogLevelOption = new Option<string>(
+			name: "--browser-log-level",
+			description: "Browser logging level: 'none' (suppress all), 'minimal' (errors only), 'verbose' (full logging)",
+			getDefaultValue: () => "minimal");
+
 		runCommand.AddOption(appPathOption);
 		runCommand.AddOption(outputOption);
 		runCommand.AddOption(filterOption);
@@ -110,6 +115,7 @@ class Program
 		runCommand.AddOption(browserPathOption);
 		runCommand.AddOption(browserArgOption);
 		runCommand.AddOption(queryParamOption);
+		runCommand.AddOption(browserLogLevelOption);
 
 		runCommand.SetHandler(async (context) =>
 		{
@@ -122,8 +128,9 @@ class Program
 			var browserPath = context.ParseResult.GetValueForOption(browserPathOption);
 			var browserArgs = context.ParseResult.GetValueForOption(browserArgOption) ?? [];
 			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
+			var browserLogLevel = context.ParseResult.GetValueForOption(browserLogLevelOption)!;
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel);
 			context.ExitCode = exitCode;
 		});
 
@@ -139,6 +146,7 @@ class Program
 		rootCommand.AddOption(browserPathOption);
 		rootCommand.AddOption(browserArgOption);
 		rootCommand.AddOption(queryParamOption);
+		rootCommand.AddOption(browserLogLevelOption);
 
 		rootCommand.SetHandler(async (context) =>
 		{
@@ -158,8 +166,9 @@ class Program
 			var browserPath = context.ParseResult.GetValueForOption(browserPathOption);
 			var browserArgs = context.ParseResult.GetValueForOption(browserArgOption) ?? [];
 			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
+			var browserLogLevel = context.ParseResult.GetValueForOption(browserLogLevelOption)!;
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel);
 			context.ExitCode = exitCode;
 		});
 
@@ -175,7 +184,8 @@ class Program
 		bool headless,
 		FileInfo? browserPathOverride,
 		string[] additionalBrowserArgs,
-		string[] queryParams)
+		string[] queryParams,
+		string browserLogLevel)
 	{
 		AnsiConsole.MarkupLine("[bold blue]Uno Platform WASM Runtime Tests Runner[/]");
 		AnsiConsole.WriteLine();
@@ -184,6 +194,7 @@ class Program
 		Log.Detail("Filter", filter ?? "(none)");
 		Log.Detail("Timeout", $"{timeoutSeconds}s");
 		Log.Detail("Headless", headless.ToString());
+		Log.Detail("Browser log level", browserLogLevel);
 		if (browserPathOverride is not null)
 		{
 			Log.Detail("Browser path", browserPathOverride.FullName);
@@ -323,10 +334,15 @@ class Program
 			"--no-sandbox", // Required for CI environments (GitHub Actions, Docker, etc.)
 			"--disable-dev-shm-usage", // Use /tmp instead of /dev/shm (helps in containerized environments)
 			"--disable-application-cache", // Disable application cache
-			"--disk-cache-size=0", // No disk cache
-			"--enable-logging=stderr", // Enable Chrome logging to stderr
-			"--v=1" // Verbose logging level
+			"--disk-cache-size=0" // No disk cache
 		};
+
+		// Add Chrome logging flags based on browser log level
+		if (browserLogLevel == "verbose")
+		{
+			browserArgs.Add("--enable-logging=stderr");
+			browserArgs.Add("--v=1");
+		}
 
 		if (headless)
 		{
@@ -362,26 +378,26 @@ class Program
 
 			Log.Success($"Browser started (PID: {browserProcess.Id})");
 
-			// Log browser stdout asynchronously
+			// Log browser stdout asynchronously (only for verbose level)
 			_ = Task.Run(async () =>
 			{
 				while (!browserProcess.HasExited && !ct.IsCancellationRequested)
 				{
 					var line = await browserProcess.StandardOutput.ReadLineAsync(ct);
-					if (line is not null)
+					if (line is not null && browserLogLevel == "verbose")
 					{
 						Log.Browser("stdout", line);
 					}
 				}
 			}, ct);
 
-			// Log browser stderr asynchronously
+			// Log browser stderr asynchronously (for verbose and minimal levels)
 			_ = Task.Run(async () =>
 			{
 				while (!browserProcess.HasExited && !ct.IsCancellationRequested)
 				{
 					var line = await browserProcess.StandardError.ReadLineAsync(ct);
-					if (line is not null)
+					if (line is not null && browserLogLevel != "none")
 					{
 						Log.Browser("stderr", line);
 					}

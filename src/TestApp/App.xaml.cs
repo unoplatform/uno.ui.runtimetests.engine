@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,25 +16,33 @@ public sealed partial class App : Application
 		this.InitializeComponent();
 	}
 
-	protected override void OnLaunched(LaunchActivatedEventArgs args)
+	protected override async void OnLaunched(LaunchActivatedEventArgs args)
 	{
-		_window = new Window();
-
-		var rootFrame = _window.Content as Frame;
-
-		if (rootFrame == null)
+		try
 		{
-			rootFrame = new Frame();
-			rootFrame.NavigationFailed += OnNavigationFailed;
-			_window.Content = rootFrame;
-		}
+			_window = new Window();
 
-		if (rootFrame.Content == null)
+			var rootFrame = _window.Content as Frame;
+
+			if (rootFrame == null)
+			{
+				rootFrame = new Frame();
+				rootFrame.NavigationFailed += OnNavigationFailed;
+				_window.Content = rootFrame;
+			}
+
+			if (rootFrame.Content == null)
+			{
+				rootFrame.Navigate(typeof(MainPage), args.Arguments);
+			}
+
+			_window.Activate();
+		}
+		catch(Exception ex)
 		{
-			rootFrame.Navigate(typeof(MainPage), args.Arguments);
+			Console.WriteLine($"Exception in OnLaunched: {ex}");
+			throw;
 		}
-
-		_window.Activate();
 	}
 
 	void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
@@ -46,7 +55,6 @@ public sealed partial class App : Application
 	/// </summary>
 	public static void InitializeLogging()
 	{
-#if DEBUG
 		var factory = LoggerFactory.Create(builder =>
 		{
 #if __WASM__
@@ -57,7 +65,7 @@ public sealed partial class App : Application
 			builder.AddConsole();
 #endif
 
-			builder.SetMinimumLevel(LogLevel.Information);
+			builder.SetMinimumLevel(LogLevel.Debug);
 
 			builder.AddFilter("Uno", LogLevel.Warning);
 			builder.AddFilter("Windows", LogLevel.Warning);
@@ -71,6 +79,5 @@ public sealed partial class App : Application
 		});
 
 		global::Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory = factory;
-#endif
 	}
 }
