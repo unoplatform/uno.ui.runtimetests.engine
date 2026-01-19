@@ -236,6 +236,12 @@ jobs:
           VaultSignUrl: ${{ secrets.VAULT_SIGN_URL }}
         run: ./build/sign-package.ps1
 
+      - name: Upload Signed Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: NuGet-Signed
+          path: artifacts
+
       - name: NuGet Push
         run: |
           dotnet nuget push artifacts\*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_ORG_API_KEY }}
