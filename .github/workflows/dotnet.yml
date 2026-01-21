@@ -103,7 +103,10 @@ jobs:
         dotnet tool install -g uno.check --version ${{ env.UnoCheck_Version }}
         uno-check --target linux --fix --non-interactive --ci
 
-    - name: Build TestApp
+    - name: Build TestApp (Debug)
+      run: dotnet build src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Debug -f net10.0-desktop -p:TargetFrameworksOverride=net10.0-desktop -p:Version=${{ needs.build.outputs.semver }}
+
+    - name: Build TestApp (Release)
       run: dotnet build src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj -c Release -f net10.0-desktop -p:TargetFrameworksOverride=net10.0-desktop -p:Version=${{ needs.build.outputs.semver }}
 
     - name: Run Runtime Tests

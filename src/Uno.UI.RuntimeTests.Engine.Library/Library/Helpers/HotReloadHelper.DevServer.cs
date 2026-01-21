@@ -7,6 +7,7 @@
 #if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && HAS_UNO_DEVSERVER // Set as soon as the DevServer package is referenced, cf. Uno.UI.RuntimeTests.Engine.targets
 using System;
 using System.Collections;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
@@ -19,6 +20,7 @@ using Uno.UI.RemoteControl; // DevServer
 using Uno.UI.RemoteControl.HotReload; // DevServer
 using Uno.UI.RemoteControl.HotReload.Messages; // DevServer
 using Uno.UI.RemoteControl.HotReload.MetadataUpdater; // DevServer
+using RemoteFileEdit = Uno.UI.RemoteControl.HotReload.FileEdit;
 
 namespace Uno.UI.RuntimeTests;
 
@@ -32,9 +34,7 @@ partial class HotReloadHelper
 		public UpdateFileRequest ToMessage()
 			=> new()
 			{
-				FilePath = FilePath,
-				OldText = OldText,
-				NewText = NewText
+				Edits = ImmutableArray.Create(new RemoteFileEdit(FilePath, OldText, NewText))
 			};
 	}
 
