@@ -201,6 +201,105 @@ jobs:
         reporter: dotnet-nunit
         fail-on-error: true
 
+  test-wasm-aot-profile:
+    name: WASM AOT Profile Extraction
+    runs-on: ubuntu-latest
+    needs:
+      - build
+
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout sources
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DotNetVersion }}
+
+    - name: Download NuGet Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: NuGet
+        path: artifacts
+
+    - name: Setup local NuGet source
+      run: |
+        dotnet nuget add source ${{ github.workspace }}/artifacts --name local
+
+    - name: Run uno-check
+      run: |
+        dotnet tool install -g uno.check --version ${{ env.UnoCheck_Version }}
+        uno-check --target wasm --fix --non-interactive --ci
+
+    - name: Install WASM Runner tool
+      run: |
+        dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner --version ${{ needs.build.outputs.semver }}
+
+    - name: Install Chromium browser
+      run: npx playwright install chromium
+
+    - name: Build WASM TestApp with AOT Profiling
+      run: |
+        dotnet publish src/TestApp/Uno.UI.RuntimeTests.Engine.TestApp.csproj \
+          -c Release \
+          -f net10.0-browserwasm \
+          -p:TargetFrameworksOverride=net10.0-browserwasm \
+          -p:Version=${{ needs.build.outputs.semver }} \
+          -p:PublishTrimmed=false \
+          -p:WasmShellGenerateAOTProfile=true
+
+    - name: Run WASM Tests with AOT Profile Extraction
+      run: |
+        mkdir -p test-results
+        uno-runtimetests-wasm \
+          --app-path ./src/TestApp/bin/Release/net10.0-browserwasm/publish/wwwroot \
+          --output ./test-results/wasm-aot-profile-tests.xml \
+          --aot-profile-output ./test-results/aot.profile \
+          --filter '!HotReloadTests & !SecondaryAppTests & !Is_SecondaryApp_Supported' \
+          --timeout 600
+
+    - name: Validate AOT Profile
+      run: |
+        if [ ! -f ./test-results/aot.profile ]; then
+          echo "ERROR: AOT profile file was not created"
+          exit 1
+        fi
+
+        PROFILE_SIZE=$(stat -c%s ./test-results/aot.profile)
+        echo "AOT profile size: $PROFILE_SIZE bytes"
+
+        if [ "$PROFILE_SIZE" -eq 0 ]; then
+          echo "ERROR: AOT profile file is empty"
+          exit 1
+        fi
+
+        # Verify the file has the correct AOTPROFILE header
+        HEADER=$(head -c 10 ./test-results/aot.profile)
+        if [ "$HEADER" != "AOTPROFILE" ]; then
+          echo "ERROR: AOT profile file has invalid header"
+          echo "Expected: AOTPROFILE"
+          echo "Got: $HEADER"
+          exit 1
+        fi
+
+        echo "SUCCESS: AOT profile is valid ($PROFILE_SIZE bytes)"
+
+    - name: Upload AOT Profile
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: AotProfile
+        path: test-results/aot.profile
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: WasmAotProfileTestResults
+        path: test-results/
+
   publish:
     name: Publish
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
@@ -209,6 +308,7 @@ jobs:
       - build
       - test
       - test-wasm
+      - test-wasm-aot-profile
     environment: Publish
     permissions:
       id-token: write
