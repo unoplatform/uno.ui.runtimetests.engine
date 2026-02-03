@@ -408,11 +408,15 @@ Add the profile to your production build to optimize AOT compilation:
 <PropertyGroup>
   <WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
 </PropertyGroup>
-
+```
+Then include the profile file in your project:
+```xml
 <ItemGroup>
   <WasmShellEnableAotProfile Include="aot.profile" />
 </ItemGroup>
 ```
+
+or place the `aot.profile` file at the root of the `Platfoms/WebAssembly` folder in your project.
 
 **GitHub Actions example with AOT profile extraction:**
 
