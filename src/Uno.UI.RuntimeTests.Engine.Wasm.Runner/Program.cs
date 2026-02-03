@@ -106,6 +106,11 @@ class Program
 			description: "Browser logging level: 'none' (suppress all), 'minimal' (errors only), 'verbose' (full logging)",
 			getDefaultValue: () => "minimal");
 
+		var aotProfileOutputOption = new Option<FileInfo?>(
+			name: "--aot-profile-output",
+			description: "Path where AOT profile data will be written (requires app built with WasmShellGenerateAOTProfile=true)",
+			getDefaultValue: () => null);
+
 		runCommand.AddOption(appPathOption);
 		runCommand.AddOption(outputOption);
 		runCommand.AddOption(filterOption);
@@ -116,6 +121,7 @@ class Program
 		runCommand.AddOption(browserArgOption);
 		runCommand.AddOption(queryParamOption);
 		runCommand.AddOption(browserLogLevelOption);
+		runCommand.AddOption(aotProfileOutputOption);
 
 		runCommand.SetHandler(async (context) =>
 		{
@@ -129,8 +135,9 @@ class Program
 			var browserArgs = context.ParseResult.GetValueForOption(browserArgOption) ?? [];
 			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
 			var browserLogLevel = context.ParseResult.GetValueForOption(browserLogLevelOption)!;
+			var aotProfileOutput = context.ParseResult.GetValueForOption(aotProfileOutputOption);
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput);
 			context.ExitCode = exitCode;
 		});
 
@@ -147,6 +154,7 @@ class Program
 		rootCommand.AddOption(browserArgOption);
 		rootCommand.AddOption(queryParamOption);
 		rootCommand.AddOption(browserLogLevelOption);
+		rootCommand.AddOption(aotProfileOutputOption);
 
 		rootCommand.SetHandler(async (context) =>
 		{
@@ -167,8 +175,9 @@ class Program
 			var browserArgs = context.ParseResult.GetValueForOption(browserArgOption) ?? [];
 			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
 			var browserLogLevel = context.ParseResult.GetValueForOption(browserLogLevelOption)!;
+			var aotProfileOutput = context.ParseResult.GetValueForOption(aotProfileOutputOption);
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput);
 			context.ExitCode = exitCode;
 		});
 
@@ -185,7 +194,8 @@ class Program
 		FileInfo? browserPathOverride,
 		string[] additionalBrowserArgs,
 		string[] queryParams,
-		string browserLogLevel)
+		string browserLogLevel,
+		FileInfo? aotProfileOutput)
 	{
 		AnsiConsole.MarkupLine("[bold blue]Uno Platform WASM Runtime Tests Runner[/]");
 		AnsiConsole.WriteLine();
@@ -195,6 +205,10 @@ class Program
 		Log.Detail("Timeout", $"{timeoutSeconds}s");
 		Log.Detail("Headless", headless.ToString());
 		Log.Detail("Browser log level", browserLogLevel);
+		if (aotProfileOutput is not null)
+		{
+			Log.Detail("AOT profile output", aotProfileOutput.FullName);
+		}
 		if (browserPathOverride is not null)
 		{
 			Log.Detail("Browser path", browserPathOverride.FullName);
@@ -252,6 +266,13 @@ class Program
 			["UNO_RUNTIME_TESTS_RUN_TESTS"] = testConfig,
 			["UNO_RUNTIME_TESTS_OUTPUT_URL"] = $"http://localhost:{serverPort}/results"
 		};
+
+		// If AOT profile output is requested, configure the profile extraction URL
+		if (aotProfileOutput is not null)
+		{
+			injectedEnvVars["UNO_RUNTIME_TESTS_AOT_PROFILE_OUTPUT_URL"] = $"http://localhost:{serverPort}/aot-profile";
+		}
+
 		server.SetInjectedEnvironmentVariables(injectedEnvVars);
 
 		Log.Success($"Server started on port {serverPort}");
@@ -455,6 +476,33 @@ class Program
 			// Write results to output file
 			Log.Info($"Writing results to {output.FullName}...");
 			await File.WriteAllTextAsync(output.FullName, results, ct);
+
+			// If AOT profile output is requested, wait for and save the profile data
+			if (aotProfileOutput is not null)
+			{
+				Log.Info("Waiting for AOT profile data...");
+				using var profileCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+				using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, profileCts.Token);
+
+				try
+				{
+					var profileData = await server.WaitForAotProfileAsync(linkedCts.Token);
+					if (profileData is not null && profileData.Length > 0)
+					{
+						aotProfileOutput.Directory?.Create();
+						await File.WriteAllBytesAsync(aotProfileOutput.FullName, profileData, ct);
+						Log.Success($"AOT profile saved to {aotProfileOutput.FullName} ({profileData.Length} bytes)");
+					}
+					else
+					{
+						Log.Warning("No AOT profile data available. Ensure the app was built with WasmShellGenerateAOTProfile=true");
+					}
+				}
+				catch (OperationCanceledException) when (profileCts.IsCancellationRequested)
+				{
+					Log.Warning("AOT profile extraction timed out after 30 seconds");
+				}
+			}
 
 			// Parse results to determine exit code
 			var hasFailures = results.Contains("result=\"Failed\"") || results.Contains("\"TestResult\":\"Failed\"");
@@ -672,6 +720,7 @@ internal sealed class TestServer : IDisposable
 	private readonly int _requestedPort;
 	private readonly HttpListener _listener;
 	private readonly TaskCompletionSource<string> _resultsTcs = new();
+	private readonly TaskCompletionSource<byte[]?> _aotProfileTcs = new();
 	private CancellationTokenSource? _serverCts;
 	private Task? _serverTask;
 	private int _requestCount;
@@ -756,6 +805,29 @@ internal sealed class TestServer : IDisposable
 
 				AnsiConsole.MarkupLine($"[magenta][[Server]][/] [green]Received test results ({results.Length} bytes)[/]");
 				_resultsTcs.TrySetResult(results);
+
+				response.StatusCode = 200;
+				response.ContentType = "text/plain";
+				var responseBytes = "OK"u8.ToArray();
+				await response.OutputStream.WriteAsync(responseBytes);
+			}
+			else if (request.HttpMethod == "POST" && request.Url?.AbsolutePath == "/aot-profile")
+			{
+				// Receive AOT profile data (binary)
+				using var ms = new MemoryStream();
+				await request.InputStream.CopyToAsync(ms);
+				var profileData = ms.ToArray();
+
+				if (profileData.Length > 0)
+				{
+					AnsiConsole.MarkupLine($"[magenta][[Server]][/] [green]Received AOT profile data ({profileData.Length} bytes)[/]");
+					_aotProfileTcs.TrySetResult(profileData);
+				}
+				else
+				{
+					AnsiConsole.MarkupLine($"[magenta][[Server]][/] [yellow]Received empty AOT profile data[/]");
+					_aotProfileTcs.TrySetResult(null);
+				}
 
 				response.StatusCode = 200;
 				response.ContentType = "text/plain";
@@ -892,6 +964,18 @@ internal sealed class TestServer : IDisposable
 		try
 		{
 			return await _resultsTcs.Task.WaitAsync(ct);
+		}
+		catch (OperationCanceledException)
+		{
+			return null;
+		}
+	}
+
+	public async Task<byte[]?> WaitForAotProfileAsync(CancellationToken ct)
+	{
+		try
+		{
+			return await _aotProfileTcs.Task.WaitAsync(ct);
 		}
 		catch (OperationCanceledException)
 		{

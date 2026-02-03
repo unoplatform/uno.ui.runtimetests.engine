@@ -297,12 +297,189 @@ internal static partial class RuntimeTestEmbeddedRunner
 					LogError($"Failed to POST results to {outputUrl}");
 				}
 			}
+
+			// Extract and POST AOT profile if configured (WASM only)
+			await ExtractAndPostAotProfile(ct);
 		}
 		catch (Exception ex)
 		{
 			LogError($"RunTests: Exception during test execution: {ex}");
 			throw;
 		}
+	}
+
+	/// <summary>
+	/// Extracts AOT profile data and POSTs it to the configured URL.
+	/// This is only applicable on WASM platforms when the app was built with AOT profiling enabled.
+	/// Supports both .NET WASM (WasmProfilers=aot) and Uno.Wasm.Bootstrap (WasmShellGenerateAOTProfile=true).
+	/// </summary>
+	private static async Task ExtractAndPostAotProfile(CancellationToken ct)
+	{
+		var aotProfileUrl = GetConfigValue("UNO_RUNTIME_TESTS_AOT_PROFILE_OUTPUT_URL");
+		if (string.IsNullOrEmpty(aotProfileUrl))
+		{
+			return;
+		}
+
+#if __WASM__
+		Log("Extracting AOT profile data...");
+
+		try
+		{
+			// Try to call Uno.AotProfilerSupport.StopProfile() if available
+			// This triggers the .NET runtime AOT profiler to dump its data
+			try
+			{
+				var aotProfilerType = Type.GetType("Uno.AotProfilerSupport, Uno.Wasm.AotProfiler");
+				if (aotProfilerType != null)
+				{
+					var stopProfileMethod = aotProfilerType.GetMethod("StopProfile", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+					if (stopProfileMethod != null)
+					{
+						Log("Calling Uno.AotProfilerSupport.StopProfile()...");
+						stopProfileMethod.Invoke(null, null);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Trace($"Uno.AotProfilerSupport.StopProfile not available: {ex.Message}");
+			}
+
+			// Give a small delay for the profile data to be populated
+			await Task.Delay(200, ct);
+
+			// Extract AOT profile data via JavaScript interop
+			// Check multiple possible locations for the profile data
+			var profileBase64 = Uno.Foundation.WebAssemblyRuntime.InvokeJS(@"
+				(function() {
+					try {
+						// Helper function to convert data to base64
+						function toBase64(data) {
+							if (!data || data.length === 0) return '';
+							let binary = '';
+							const bytes = new Uint8Array(data);
+							const chunkSize = 8192;
+							for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+								const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength));
+								binary += String.fromCharCode.apply(null, chunk);
+							}
+							return btoa(binary);
+						}
+
+						// Try .NET runtime INTERNAL.aotProfileData (populated after StopProfile)
+						if (typeof getDotnetRuntime === 'function') {
+							try {
+								const runtime = getDotnetRuntime(0);
+								if (runtime && runtime.INTERNAL && runtime.INTERNAL.aotProfileData) {
+									const data = runtime.INTERNAL.aotProfileData;
+									const result = toBase64(data);
+									if (result) {
+										console.log('Found AOT profile data in getDotnetRuntime().INTERNAL.aotProfileData (' + data.length + ' bytes)');
+										return result;
+									}
+								}
+							} catch (e) {
+								console.debug('getDotnetRuntime failed:', e);
+							}
+						}
+
+						// Try Uno.Wasm.Bootstrap Bootstrapper context
+						if (globalThis.Uno && globalThis.Uno.WebAssembly && globalThis.Uno.WebAssembly.Bootstrapper) {
+							const bootstrapper = globalThis.Uno.WebAssembly.Bootstrapper;
+							// Try direct getAotProfileData method
+							if (typeof bootstrapper.getAotProfileData === 'function') {
+								try {
+									const data = bootstrapper.getAotProfileData();
+									const result = toBase64(data);
+									if (result) {
+										console.log('Found AOT profile data in Bootstrapper.getAotProfileData() (' + data.length + ' bytes)');
+										return result;
+									}
+								} catch (e) {
+									console.debug('getAotProfileData failed:', e);
+								}
+							}
+							// Try internal context
+							if (bootstrapper._context && bootstrapper._context.INTERNAL && bootstrapper._context.INTERNAL.aotProfileData) {
+								const data = bootstrapper._context.INTERNAL.aotProfileData;
+								const result = toBase64(data);
+								if (result) {
+									console.log('Found AOT profile data in Bootstrapper._context.INTERNAL.aotProfileData (' + data.length + ' bytes)');
+									return result;
+								}
+							}
+						}
+
+						// Try Module.INTERNAL.aotProfileData
+						if (globalThis.Module && globalThis.Module.INTERNAL && globalThis.Module.INTERNAL.aotProfileData) {
+							const data = globalThis.Module.INTERNAL.aotProfileData;
+							const result = toBase64(data);
+							if (result) {
+								console.log('Found AOT profile data in Module.INTERNAL.aotProfileData (' + data.length + ' bytes)');
+								return result;
+							}
+						}
+
+						// Try globalThis.aotProfileData (some runtimes expose it here)
+						if (globalThis.aotProfileData) {
+							const result = toBase64(globalThis.aotProfileData);
+							if (result) {
+								console.log('Found AOT profile data in globalThis.aotProfileData');
+								return result;
+							}
+						}
+
+						console.log('No AOT profile data found in any known location');
+						return '';
+					} catch (e) {
+						console.error('Failed to extract AOT profile:', e);
+						return '';
+					}
+				})()
+			");
+
+			if (string.IsNullOrEmpty(profileBase64))
+			{
+				Log("No AOT profile data available. Ensure the app was built with WasmProfilers=aot or WasmShellGenerateAOTProfile=true");
+				// POST empty data to signal no profile was available
+				await WasmTestResultReporter.PostBinaryAsync(aotProfileUrl, Array.Empty<byte>(), ct);
+				return;
+			}
+
+			// Decode base64 to binary
+			var profileData = Convert.FromBase64String(profileBase64);
+			Log($"Extracted AOT profile data: {profileData.Length} bytes");
+
+			// POST the binary data
+			var success = await WasmTestResultReporter.PostBinaryAsync(aotProfileUrl, profileData, ct);
+			if (success)
+			{
+				Log("Successfully posted AOT profile data");
+			}
+			else
+			{
+				LogError("Failed to POST AOT profile data");
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError($"Failed to extract AOT profile: {ex.Message}");
+			// POST empty data to signal extraction failed
+			try
+			{
+				await WasmTestResultReporter.PostBinaryAsync(aotProfileUrl, Array.Empty<byte>(), ct);
+			}
+			catch
+			{
+				// Ignore errors when posting empty profile
+			}
+		}
+#else
+		Log("AOT profile extraction is only supported on WASM platforms");
+		// POST empty data to signal not supported
+		await WasmTestResultReporter.PostBinaryAsync(aotProfileUrl, Array.Empty<byte>(), ct);
+#endif
 	}
 
 	private static void ExitApplication(int exitCode)

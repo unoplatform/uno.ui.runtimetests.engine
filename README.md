@@ -372,10 +372,83 @@ jobs:
 * `--timeout`: Timeout in seconds for test execution (default: 300)
 * `--port`: Port to serve the WASM app on (default: auto-assign)
 * `--headless`: Run browser in headless mode (default: true)
+* `--aot-profile-output`: Path where AOT profile data will be written (optional, requires app built with AOT profiling enabled)
 
 **Important notes for WASM testing:**
 * Trimming must be disabled (`-p:PublishTrimmed=false`) when building the WASM app for runtime tests. The test engine uses reflection to discover and run tests, which is incompatible with trimming.
 * A Chromium-based browser (Chrome, Chromium, or Edge) must be installed. Use `npx playwright install chromium` to install one.
+
+#### AOT Profile Extraction
+
+The WASM runner supports extracting AOT (Ahead-of-Time) profile data during test execution. This profile captures which methods are called during the test run, allowing you to optimize subsequent builds by AOT-compiling frequently-used methods while keeping rarely-used code interpreted.
+
+**Prerequisites:**
+
+Build your WASM app with AOT profiling enabled:
+```xml
+<PropertyGroup>
+  <WasmShellGenerateAOTProfile>true</WasmShellGenerateAOTProfile>
+</PropertyGroup>
+```
+
+**Usage:**
+
+```bash
+uno-runtimetests-wasm \
+  --app-path ./publish/wwwroot \
+  --output ./test-results.xml \
+  --aot-profile-output ./aot.profile \
+  --timeout 600
+```
+
+**Using the extracted profile:**
+
+Add the profile to your production build to optimize AOT compilation:
+```xml
+<PropertyGroup>
+  <WasmShellMonoRuntimeExecutionMode>InterpreterAndAOT</WasmShellMonoRuntimeExecutionMode>
+</PropertyGroup>
+```
+Then include the profile file in your project:
+```xml
+<ItemGroup>
+  <WasmShellEnableAotProfile Include="aot.profile" />
+</ItemGroup>
+```
+
+or place the `aot.profile` file at the root of the `Platfoms/WebAssembly` folder in your project.
+
+**GitHub Actions example with AOT profile extraction:**
+
+```yaml
+- name: Build WASM app with AOT profiling
+  run: |
+    dotnet publish src/MyApp/MyApp.csproj \
+      -c Release \
+      -f net10.0-browserwasm \
+      -p:PublishTrimmed=false \
+      -p:WasmShellGenerateAOTProfile=true
+
+- name: Run tests and extract AOT profile
+  run: |
+    mkdir -p test-results
+    uno-runtimetests-wasm \
+      --app-path ./src/MyApp/bin/Release/net10.0-browserwasm/publish/wwwroot \
+      --output ./test-results/wasm-runtime-tests.xml \
+      --aot-profile-output ./test-results/aot.profile \
+      --timeout 600
+
+- name: Upload AOT Profile
+  uses: actions/upload-artifact@v4
+  with:
+    name: aot-profile
+    path: test-results/aot.profile
+```
+
+**Notes:**
+* Profile extraction has a 30-second timeout independent of the test execution timeout.
+* If AOT profiling is not enabled in the build, a warning will be logged but tests will complete successfully.
+* The profile file will only be created if profile data is available.
 
 ### Running the tests automatically during CI on mobile targets
 Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.
