@@ -583,12 +583,19 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			if (!element.IsLoaded)
 			{
-				var timeoutTask = Task.Delay(timeout, ct);
+				var timeoutTask = Task.Delay(timeout);
 				var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
 
 				if (completedTask == timeoutTask)
 				{
 					throw new TimeoutException($"Failed to load element within {timeout}. IsLoaded={element.IsLoaded}");
+				}
+
+				// If the TCS completed due to cancellation (via ct registration), propagate it
+				// instead of silently continuing.
+				if (completedTask.IsCanceled)
+				{
+					ct.ThrowIfCancellationRequested();
 				}
 			}
 		}
