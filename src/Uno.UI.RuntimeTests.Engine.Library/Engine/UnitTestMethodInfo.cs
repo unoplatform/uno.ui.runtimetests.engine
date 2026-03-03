@@ -35,6 +35,11 @@ public record UnitTestMethodInfo
 			.SingleOrDefault()
 			?.ExceptionType;
 
+		var timeoutAttr = method.GetCustomAttribute<TimeoutAttribute>();
+		Timeout = timeoutAttr is not null
+			? TimeSpan.FromMilliseconds(timeoutAttr.Timeout)
+			: null;
+
 		_casesParameters = method
 			.GetCustomAttributes()
 			.Where(x => x is ITestDataSource)
@@ -53,6 +58,8 @@ public record UnitTestMethodInfo
 	public MethodInfo Method { get; }
 
 	public Type? ExpectedException { get; }
+
+	public TimeSpan? Timeout { get; }
 
 	public bool RequiresFullWindow { get; }
 
