@@ -1006,8 +1006,15 @@ public sealed partial class UnitTestsControl : UserControl
 			if (returnValue is Task asyncResult)
 			{
 				var effectiveTimeout = timeout ?? DefaultUnitTestTimeout;
-				var timeoutTask = Task.Delay(effectiveTimeout, ct);
-				var resultingTask = await Task.WhenAny(asyncResult, timeoutTask);
+				var timeoutTask = Task.Delay(effectiveTimeout);
+				var cancelTcs = new TaskCompletionSource<object?>();
+				using var ctr = ct.Register(() => cancelTcs.TrySetResult(null));
+				var resultingTask = await Task.WhenAny(asyncResult, timeoutTask, cancelTcs.Task);
+
+				if (resultingTask == cancelTcs.Task)
+				{
+					ct.ThrowIfCancellationRequested();
+				}
 
 				if (resultingTask == timeoutTask)
 				{
