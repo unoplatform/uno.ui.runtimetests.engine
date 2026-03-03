@@ -35,8 +35,9 @@ public record UnitTestMethodInfo
 			.SingleOrDefault()
 			?.ExceptionType;
 
-		var timeoutAttribute = method.GetCustomAttribute<TimeoutAttribute>();
-		Timeout = timeoutAttribute is { Timeout: > 0 } ? TimeSpan.FromMilliseconds(timeoutAttribute.Timeout) : null;
+		Timeout = method.GetCustomAttribute<TimeoutAttribute>() is { Timeout: > 0 timeout }
+			? TimeSpan.FromMilliseconds(timeout)
+			: null;
 
 		_casesParameters = method
 			.GetCustomAttributes()
