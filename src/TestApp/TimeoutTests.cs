@@ -21,5 +21,15 @@ namespace Uno.UI.RuntimeTests.Engine
 		{
 			await Task.Delay(10_000);
 		}
+
+		[TestMethod]
+		[Timeout(120_000)]
+		public async Task When_Timeout_Is_Higher_Than_Default()
+		{
+			// This test validates that the [Timeout] attribute properly overrides
+			// the DefaultUnitTestTimeout (60s in Release). Without the fix, this
+			// test would fail at 60s with a TimeoutException.
+			await Task.Delay(TimeSpan.FromSeconds(65));
+		}
 	}
 }
