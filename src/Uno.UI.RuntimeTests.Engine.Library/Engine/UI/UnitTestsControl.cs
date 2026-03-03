@@ -891,7 +891,7 @@ public sealed partial class UnitTestsControl : UserControl
 						{
 							sw.Start();
 							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
-							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution");
+							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution", test.Timeout);
 							sw.Stop();
 						}
 
@@ -1001,16 +1001,17 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		}
 
-		async ValueTask WaitResult(object? returnValue, string step)
+		async ValueTask WaitResult(object? returnValue, string step, TimeSpan? timeout = null)
 		{
 			if (returnValue is Task asyncResult)
 			{
-				var timeoutTask = Task.Delay(DefaultUnitTestTimeout, ct);
+				var effectiveTimeout = timeout ?? DefaultUnitTestTimeout;
+				var timeoutTask = Task.Delay(effectiveTimeout, ct);
 				var resultingTask = await Task.WhenAny(asyncResult, timeoutTask);
 
 				if (resultingTask == timeoutTask)
 				{
-					throw new TimeoutException($"Test {step} timed out after {DefaultUnitTestTimeout}");
+					throw new TimeoutException($"Test {step} timed out after {effectiveTimeout}");
 				}
 
 				// Rethrow exception if failed OR task cancelled if task **internally** raised

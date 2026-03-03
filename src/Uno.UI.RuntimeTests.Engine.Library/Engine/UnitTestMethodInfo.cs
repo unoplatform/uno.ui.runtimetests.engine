@@ -35,6 +35,9 @@ public record UnitTestMethodInfo
 			.SingleOrDefault()
 			?.ExceptionType;
 
+		var timeoutAttribute = method.GetCustomAttribute<TimeoutAttribute>();
+		Timeout = timeoutAttribute is { Timeout: > 0 } ? TimeSpan.FromMilliseconds(timeoutAttribute.Timeout) : null;
+
 		_casesParameters = method
 			.GetCustomAttributes()
 			.Where(x => x is ITestDataSource)
@@ -57,6 +60,8 @@ public record UnitTestMethodInfo
 	public bool RequiresFullWindow { get; }
 
 	public bool RunsOnUIThread { get; }
+
+	public TimeSpan? Timeout { get; }
 
 	private static bool HasCustomAttribute<T>(MemberInfo? testMethod)
 		=> testMethod?.GetCustomAttribute(typeof(T)) != null;
