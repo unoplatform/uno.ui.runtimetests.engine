@@ -656,6 +656,7 @@ class Program
 			yield return @"C:\Program Files\Google\Chrome\Application\chrome.exe";
 			yield return @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
 			yield return @"C:\Program Files\Microsoft\Edge\Application\msedge.exe";
+			yield return @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe";
 		}
 		else if (OperatingSystem.IsMacOS())
 		{
