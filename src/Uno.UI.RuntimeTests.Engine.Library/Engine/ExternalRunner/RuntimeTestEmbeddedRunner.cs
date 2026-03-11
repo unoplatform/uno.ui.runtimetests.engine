@@ -105,7 +105,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			// Wait for the app to init it-self
 			// On Skia/WebGPU, initialization can take longer due to GPU surface setup
-			await Task.Delay(2000, ct.Token).ConfigureAwait(false);
+			await Task.Delay(2000, ct.Token);
 
 			// Wait for Window.Current to be available with a dispatcher
 			Window? window = null;
@@ -116,7 +116,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 				{
 					break;
 				}
-				await Task.Delay(100, ct.Token).ConfigureAwait(false);
+				await Task.Delay(100, ct.Token);
 				if (i > 0 && i % 50 == 0)
 				{
 					Log($"Still waiting for Window.Current... ({i * 100 / 1000}s)");
@@ -140,7 +140,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 					Log($"Window.Current has content after {i * 100}ms");
 					break;
 				}
-				await Task.Delay(100, ct.Token).ConfigureAwait(false);
+				await Task.Delay(100, ct.Token);
 				if (i > 0 && i % 10 == 0)
 				{
 					Log($"Still waiting for Window.Current.Content... ({i * 100 / 1000.0}s)");
