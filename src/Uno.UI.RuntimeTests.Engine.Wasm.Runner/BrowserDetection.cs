@@ -164,6 +164,11 @@ internal static class BrowserDetection
 
 		foreach (var path in paths)
 		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				continue;
+			}
+
 			var fullPath = Path.Combine(path, name);
 			if (File.Exists(fullPath))
 			{
