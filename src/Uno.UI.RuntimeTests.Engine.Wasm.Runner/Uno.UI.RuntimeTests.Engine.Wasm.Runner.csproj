@@ -29,4 +29,8 @@
 		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests" />
+	</ItemGroup>
+
 </Project>

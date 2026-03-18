@@ -57,6 +57,17 @@ jobs:
       run: |
         dotnet build src\Uno.UI.RuntimeTests.Engine-dotnet-build.slnf "/t:Build;Pack" /p:PackageVersion=$env:NBGV_SemVer2 /p:Version=$env:NBGV_SemVer2 "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
 
+    - name: Unit Tests
+      run: |
+        dotnet test src\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=runner-unit-tests.trx" --results-directory "$env:GITHUB_WORKSPACE\test-results"
+
+    - name: Upload Unit Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: UnitTestResults
+        path: test-results/
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
