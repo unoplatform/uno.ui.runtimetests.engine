@@ -59,7 +59,7 @@ jobs:
 
     - name: Unit Tests
       run: |
-        dotnet test src\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests.csproj -c Debug --logger "trx;LogFileName=runner-unit-tests.trx" --results-directory "$env:GITHUB_WORKSPACE\test-results"
+        dotnet test src\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=runner-unit-tests.trx" --results-directory "$env:GITHUB_WORKSPACE\test-results"
 
     - name: Upload Unit Test Results
       uses: actions/upload-artifact@v4
