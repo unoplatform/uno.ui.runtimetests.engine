@@ -86,7 +86,15 @@ internal static class BrowserDetection
 		{
 			chromiumDirs = Directory.GetDirectories(cacheDir, "chromium-*");
 		}
-		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Security.SecurityException)
+		catch (IOException)
+		{
+			yield break;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			yield break;
+		}
+		catch (System.Security.SecurityException)
 		{
 			// If we cannot enumerate the cache directory (e.g., due to permissions or IO errors),
 			// treat it as if no Chromium browsers were found in this location.
