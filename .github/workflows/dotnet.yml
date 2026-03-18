@@ -57,6 +57,12 @@ jobs:
       run: |
         dotnet build src\Uno.UI.RuntimeTests.Engine-dotnet-build.slnf "/t:Build;Pack" /p:PackageVersion=$env:NBGV_SemVer2 /p:Version=$env:NBGV_SemVer2 "/p:PackageOutputPath=$env:GITHUB_WORKSPACE\artifacts" "/p:PackageReleaseNotesFile=$env:GITHUB_WORKSPACE\build\changelog.md"
 
+    - name: Build Summary
+      run: |
+        echo "## NuGet Package Summary" >> $env:GITHUB_STEP_SUMMARY
+        echo "" >> $env:GITHUB_STEP_SUMMARY
+        echo "Package version: ``$env:NBGV_SemVer2``" >> $env:GITHUB_STEP_SUMMARY
+
     - name: Unit Tests
       run: |
         dotnet test src\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=runner-unit-tests.trx" --results-directory "$env:GITHUB_WORKSPACE\test-results"
