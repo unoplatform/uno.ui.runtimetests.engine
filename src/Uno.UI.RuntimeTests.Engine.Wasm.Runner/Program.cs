@@ -552,7 +552,7 @@ class Program
 	/// <summary>
 	/// Finds a Chromium-based browser to use for testing.
 	/// </summary>
-	static string? FindChromiumBrowser()
+	internal static string? FindChromiumBrowser()
 	{
 		// Check for Playwright-installed browsers first
 		var playwrightBrowsers = GetPlaywrightBrowserPaths();
@@ -578,7 +578,7 @@ class Program
 		return null;
 	}
 
-	static IEnumerable<string> GetPlaywrightBrowserPaths()
+	internal static IEnumerable<string> GetPlaywrightBrowserPaths()
 	{
 		// Check PLAYWRIGHT_BROWSERS_PATH first
 		var customPath = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH");
@@ -617,7 +617,7 @@ class Program
 		}
 	}
 
-	static IEnumerable<string> FindChromiumInPlaywrightCache(string cacheDir)
+	internal static IEnumerable<string> FindChromiumInPlaywrightCache(string cacheDir)
 	{
 		if (!Directory.Exists(cacheDir))
 		{
@@ -647,7 +647,7 @@ class Program
 		}
 	}
 
-	static IEnumerable<string> GetSystemBrowserPaths()
+	internal static IEnumerable<string> GetSystemBrowserPaths()
 	{
 		if (OperatingSystem.IsWindows())
 		{
@@ -656,6 +656,7 @@ class Program
 			yield return @"C:\Program Files\Google\Chrome\Application\chrome.exe";
 			yield return @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
 			yield return @"C:\Program Files\Microsoft\Edge\Application\msedge.exe";
+			yield return @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe";
 		}
 		else if (OperatingSystem.IsMacOS())
 		{
@@ -676,7 +677,7 @@ class Program
 		}
 	}
 
-	static string? FindExecutable(string name)
+	internal static string? FindExecutable(string name)
 	{
 		// If it's an absolute path, check if it exists
 		if (Path.IsPathRooted(name))
