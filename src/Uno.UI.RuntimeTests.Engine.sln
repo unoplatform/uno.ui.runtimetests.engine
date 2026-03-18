@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.UI.RuntimeTests.Engine.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.UI.RuntimeTests.Engine.Wasm.Runner", "Uno.UI.RuntimeTests.Engine.Wasm.Runner\Uno.UI.RuntimeTests.Engine.Wasm.Runner.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests", "Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests.csproj", "{AF707827-2FB1-47FB-B5CC-84EB7FD2980A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests", "Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests\Uno.UI.RuntimeTests.Engine.Wasm.Runner.Tests.csproj", "{AF707827-2FB1-47FB-B5CC-84EB7FD2980A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

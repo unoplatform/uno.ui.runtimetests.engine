@@ -15,7 +15,7 @@ public class BrowserDetectionTests
 			return;
 		}
 
-		var paths = Program.GetSystemBrowserPaths().ToList();
+		var paths = BrowserDetection.GetSystemBrowserPaths().ToList();
 
 		CollectionAssert.Contains(
 			paths,
@@ -32,17 +32,18 @@ public class BrowserDetectionTests
 			return;
 		}
 
-		var paths = Program.GetSystemBrowserPaths().ToList();
+		var paths = BrowserDetection.GetSystemBrowserPaths().ToList();
 
 		CollectionAssert.Contains(
 			paths,
-			@"C:\Program Files\Microsoft\Edge\Application\msedge.exe");
+			@"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+			"Edge x64 path must be included for Windows machines without Chrome");
 	}
 
 	[TestMethod]
 	public void GetSystemBrowserPaths_ReturnsNonEmptyPaths()
 	{
-		var paths = Program.GetSystemBrowserPaths().ToList();
+		var paths = BrowserDetection.GetSystemBrowserPaths().ToList();
 
 		Assert.IsTrue(paths.Count > 0, "Should return at least one browser path for any OS");
 	}
@@ -56,19 +57,21 @@ public class BrowserDetectionTests
 			return;
 		}
 
-		var paths = Program.GetSystemBrowserPaths().ToList();
+		var paths = BrowserDetection.GetSystemBrowserPaths().ToList();
 
 		// Verify both Chrome and Edge paths are present
-		Assert.IsTrue(paths.Any(p => p.Contains("Chrome", StringComparison.OrdinalIgnoreCase)),
+		Assert.IsTrue(
+			paths.Any(p => p.Contains("Chrome", StringComparison.OrdinalIgnoreCase)),
 			"Should contain at least one Chrome path");
-		Assert.IsTrue(paths.Any(p => p.Contains("Edge", StringComparison.OrdinalIgnoreCase)),
+		Assert.IsTrue(
+			paths.Any(p => p.Contains("Edge", StringComparison.OrdinalIgnoreCase)),
 			"Should contain at least one Edge path");
 	}
 
 	[TestMethod]
 	public void FindExecutable_AbsolutePath_NonExistent_ReturnsNull()
 	{
-		var result = Program.FindExecutable(@"C:\NonExistent\Path\browser.exe");
+		var result = BrowserDetection.FindExecutable(@"C:\NonExistent\Path\browser.exe");
 
 		Assert.IsNull(result);
 	}
@@ -76,7 +79,7 @@ public class BrowserDetectionTests
 	[TestMethod]
 	public void FindExecutable_RelativeName_NonExistent_ReturnsNull()
 	{
-		var result = Program.FindExecutable("definitely-not-a-real-browser-12345");
+		var result = BrowserDetection.FindExecutable("definitely-not-a-real-browser-12345");
 
 		Assert.IsNull(result);
 	}
@@ -84,18 +87,19 @@ public class BrowserDetectionTests
 	[TestMethod]
 	public void FindChromiumInPlaywrightCache_NonExistentDirectory_ReturnsEmpty()
 	{
-		var paths = Program.FindChromiumInPlaywrightCache(@"C:\NonExistent\Playwright\Cache").ToList();
+		var paths = BrowserDetection.FindChromiumInPlaywrightCache(@"C:\NonExistent\Playwright\Cache").ToList();
 
 		Assert.AreEqual(0, paths.Count, "Non-existent cache dir should yield no paths");
 	}
 
 	[TestMethod]
-	public void GetPlaywrightBrowserPaths_ReturnsEnumerable()
+	public void GetPlaywrightBrowserPaths_DoesNotThrowDuringEnumeration()
 	{
 		// Just verify it doesn't throw - actual paths depend on environment
-		var paths = Program.GetPlaywrightBrowserPaths().ToList();
+		var paths = BrowserDetection.GetPlaywrightBrowserPaths();
+		Assert.IsNotNull(paths, "GetPlaywrightBrowserPaths should never return null");
 
-		// No assertion on count - Playwright may or may not be installed
-		Assert.IsNotNull(paths);
+		// Force enumeration to ensure no exceptions during iteration.
+		_ = paths!.ToList();
 	}
 }
