@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.UI.RuntimeTests.Engine.Wasm.Runner;
 
@@ -71,7 +73,11 @@ public class BrowserDetectionTests
 	[TestMethod]
 	public void FindExecutable_AbsolutePath_NonExistent_ReturnsNull()
 	{
-		var result = BrowserDetection.FindExecutable(@"C:\NonExistent\Path\browser.exe");
+		var nonExistentAbsolutePath = Path.Combine(
+			Path.GetTempPath(),
+			Guid.NewGuid().ToString("N") + ".exe");
+
+		var result = BrowserDetection.FindExecutable(nonExistentAbsolutePath);
 
 		Assert.IsNull(result);
 	}
@@ -87,7 +93,13 @@ public class BrowserDetectionTests
 	[TestMethod]
 	public void FindChromiumInPlaywrightCache_NonExistentDirectory_ReturnsEmpty()
 	{
-		var paths = BrowserDetection.FindChromiumInPlaywrightCache(@"C:\NonExistent\Playwright\Cache").ToList();
+		var nonExistentCacheDir = Path.Combine(
+			Path.GetTempPath(),
+			Guid.NewGuid().ToString("N"),
+			"Playwright",
+			"Cache");
+
+		var paths = BrowserDetection.FindChromiumInPlaywrightCache(nonExistentCacheDir).ToList();
 
 		Assert.AreEqual(0, paths.Count, "Non-existent cache dir should yield no paths");
 	}

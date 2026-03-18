@@ -81,10 +81,19 @@ internal static class BrowserDetection
 		}
 
 		// Look for chromium-* directories
-		var chromiumDirs = Directory.GetDirectories(cacheDir, "chromium-*")
-			.OrderByDescending(d => d); // Get newest version first
+		string[] chromiumDirs;
+		try
+		{
+			chromiumDirs = Directory.GetDirectories(cacheDir, "chromium-*");
+		}
+		catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Security.SecurityException)
+		{
+			// If we cannot enumerate the cache directory (e.g., due to permissions or IO errors),
+			// treat it as if no Chromium browsers were found in this location.
+			yield break;
+		}
 
-		foreach (var dir in chromiumDirs)
+		foreach (var dir in chromiumDirs.OrderByDescending(d => d)) // Get newest version first
 		{
 			if (OperatingSystem.IsWindows())
 			{
