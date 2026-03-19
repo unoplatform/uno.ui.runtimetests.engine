@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Devices.Input;
-using Windows.Foundation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Microsoft.UI.Xaml;
