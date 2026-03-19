@@ -14,6 +14,14 @@ namespace Uno.UI.RuntimeTests.Engine;
 [RunsOnUIThread]
 public class PointersInjectionTests
 {
+#if HAS_UNO_SKIA || WINDOWS
+	[TestInitialize]
+	public void Setup() => InputInjectorHelper.Current.CleanupPointers();
+
+	[TestCleanup]
+	public void Cleanup() => InputInjectorHelper.Current.CleanupPointers();
+#endif
+
 	[TestMethod]
 	[InjectedPointer(PointerDeviceType.Mouse)]
 	[InjectedPointer(PointerDeviceType.Touch)]
@@ -72,7 +80,6 @@ public class PointersInjectionTests
 	public void When_MoveTo_GeneratesCorrectDeltas()
 	{
 		var injector = InputInjectorHelper.Current;
-		injector.CleanupPointers();
 
 		// Capture moves while injecting so position tracking updates between steps
 		var capturedMoves = new List<Windows.UI.Input.Preview.Injection.InjectedInputMouseInfo>();
@@ -99,7 +106,6 @@ public class PointersInjectionTests
 	public void When_MoveTo_Sequential_PositionTracksCorrectly()
 	{
 		var injector = InputInjectorHelper.Current;
-		injector.CleanupPointers();
 
 		// Move to (100, 100) first
 		injector.InjectMouseInput(injector.Mouse.MoveTo(100, 100));
