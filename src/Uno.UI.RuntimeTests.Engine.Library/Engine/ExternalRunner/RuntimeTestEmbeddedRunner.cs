@@ -459,10 +459,17 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 	private static void ExitApplication(int exitCode)
 	{
-		// Set the exit code first, then exit gracefully via Application.Current.Exit()
-		// to allow Skia/X11 to clean up properly and avoid segfaults on Linux.
-		Environment.ExitCode = exitCode;
-		Application.Current.Exit();
+		if (OperatingSystem.IsLinux())
+		{
+			// Exit gracefully via Application.Current.Exit() on Linux
+			// to allow Skia/X11 to clean up properly and avoid segfaults.
+			Environment.ExitCode = exitCode;
+			Application.Current.Exit();
+		}
+		else
+		{
+			Environment.Exit(exitCode);
+		}
 	}
 
 	/// <summary>
