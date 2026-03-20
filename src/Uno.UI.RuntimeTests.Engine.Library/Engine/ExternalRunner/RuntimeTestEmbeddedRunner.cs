@@ -12,11 +12,12 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Threading;
-using Windows.UI.Core;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
 
 namespace Uno.UI.RuntimeTests.Engine;
 
@@ -90,7 +91,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 	private static async Task RunTestsAndExit(string testsConfigRaw, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp)
 	{
-		var ct = new CancellationTokenSource();
+		var cts = new CancellationTokenSource();
 
 		try
 		{
@@ -99,57 +100,38 @@ internal static partial class RuntimeTestEmbeddedRunner
 #if !__WASM__
 			// Console.CancelKeyPress is not supported in WebAssembly
 #pragma warning disable CA1416 // Validate platform compatibility
-			Console.CancelKeyPress += (_, _) => ct.Cancel(true);
+			Console.CancelKeyPress += (_, _) => cts.Cancel(true);
 #pragma warning restore CA1416 // Validate platform compatibility
 #endif
 
 			// Wait for the app to init it-self
 			// On Skia/WebGPU, initialization can take longer due to GPU surface setup
-			await Task.Delay(2000, ct.Token);
+			await Task.Delay(2000, cts.Token);
+
+			// Wait for Application.Current to be available
+			await WaitForCheckSafe(() => Application.Current is not null, ct: cts.Token, timeout: TimeSpan.FromSeconds(5));
+
+			// OnLaunched() runs synchronously on the main thread during startup,
+			// blocking the event loop until it returns. Dispatching at Idle priority ensures our
+			// callback is queued after all Normal-priority startup work (including OnLaunched) has
+			// completed, so Window.Current reflects the real window created there — not the spurious
+			// one that Window.Current's getter creates via EnsureWindowCurrent() when _current is null.
+			await WaitForIdle(cts.Token);
 
 			// Wait for Window.Current to be available with a dispatcher
-			Window? window = null;
-			for (var i = 0; i < 300; i++)
-			{
-				window = Window.Current;
-				if (window is { Dispatcher: not null })
-				{
-					break;
-				}
-				await Task.Delay(100, ct.Token);
-				if (i > 0 && i % 50 == 0)
-				{
-					Log($"Still waiting for Window.Current... ({i * 100 / 1000}s)");
-				}
-			}
-
-			if (window is null or { Dispatcher: null })
-			{
-				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher");
-			}
+			await WaitForCheckSafe(() => Window.Current?.Dispatcher is not null, ct: cts.Token, timeout: TimeSpan.FromSeconds(30));
 
 			// Try to wait for Window.Current to have content (app's OnLaunched to complete)
 			// Re-check Window.Current each iteration as the app may create a new window
 			// Note: On Skia WASM with WebGPU, the app's content might not be set immediately
 			// In that case, we'll proceed anyway and set our own content
-			for (var i = 0; i < 50; i++) // Wait up to 5 seconds for app content
+			if (!await WaitForCheckSafe(() => Window.Current?.Content is not null, ct: cts.Token, timeout: TimeSpan.FromSeconds(5), throwOnTimeout: false))
 			{
-				window = Window.Current;
-				if (window?.Content is not null)
-				{
-					Log($"Window.Current has content after {i * 100}ms");
-					break;
-				}
-				await Task.Delay(100, ct.Token);
-				if (i > 0 && i % 10 == 0)
-				{
-					Log($"Still waiting for Window.Current.Content... ({i * 100 / 1000.0}s)");
-				}
+				Log("Window.Current.Content is still null after timeout.");
 			}
 
 			// Final check with the latest Window.Current reference
-			window = Window.Current;
-			if (window is null or { Dispatcher: null })
+			if (Window.Current is not { Dispatcher: null } window)
 			{
 				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher after waiting for content");
 			}
@@ -164,16 +146,9 @@ internal static partial class RuntimeTestEmbeddedRunner
 			Trace("Got window (and dispatcher), continuing runtime-test initialization on it.");
 
 			// While the app init, parse the tests config
-			var config = default(UnitTestEngineConfig?);
-			if (testsConfigRaw.StartsWith('{'))
-			{
-				try
-				{
-					config = JsonSerializer.Deserialize<UnitTestEngineConfig>(testsConfigRaw);
-				}
-				catch { }
-			}
-			config ??= new UnitTestEngineConfig { Filter = testsConfigRaw };
+			var config =
+				TryParseConfig(testsConfigRaw) ??
+				new UnitTestEngineConfig { Filter = testsConfigRaw };
 
 			// Let continue on the dispatcher thread
 			var tcs = new TaskCompletionSource();
@@ -187,10 +162,10 @@ internal static partial class RuntimeTestEmbeddedRunner
 						{
 							Trace("Got dispatcher access, init the runtime-test engine.");
 
-							await RunTests(window, config, outputPath, outputUrl, outputKind, isSecondaryApp, ct.Token);
+							await RunTests(window, config, outputPath, outputUrl, outputKind, isSecondaryApp, cts.Token);
 							tcs.TrySetResult();
 						}
-						catch (OperationCanceledException) when (ct.IsCancellationRequested)
+						catch (OperationCanceledException) when (cts.IsCancellationRequested)
 						{
 							tcs.TrySetCanceled();
 						}
@@ -199,12 +174,12 @@ internal static partial class RuntimeTestEmbeddedRunner
 							tcs.TrySetException(error);
 						}
 					})
-				.AsTask(ct.Token)
+				.AsTask(cts.Token)
 				.ConfigureAwait(false);
 
 			await tcs.Task.ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (ct.IsCancellationRequested)
+		catch (OperationCanceledException) when (cts.IsCancellationRequested)
 		{
 			LogError("Runtime-tests has been cancelled.");
 			ExitApplication(-1);
@@ -484,10 +459,17 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 	private static void ExitApplication(int exitCode)
 	{
-		// Set the exit code first, then exit gracefully via Application.Current.Exit()
-		// to allow Skia/X11 to clean up properly and avoid segfaults on Linux.
-		Environment.ExitCode = exitCode;
-		Application.Current.Exit();
+		if (OperatingSystem.IsLinux())
+		{
+			// Exit gracefully via Application.Current.Exit() on Linux
+			// to allow Skia/X11 to clean up properly and avoid segfaults.
+			Environment.ExitCode = exitCode;
+			Application.Current.Exit();
+		}
+		else
+		{
+			Environment.Exit(exitCode);
+		}
 	}
 
 	/// <summary>
@@ -554,6 +536,81 @@ internal static partial class RuntimeTestEmbeddedRunner
 		return null;
 	}
 
+	private static async Task WaitForIdle(CancellationToken ct = default, TimeSpan timeout = default)
+	{
+		using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+		if (timeout != default)
+			cts.CancelAfter(timeout);
+
+		var tcs = new TaskCompletionSource();
+		cts.Token.Register(() => tcs.TrySetCanceled(cts.Token));
+		await CoreApplication.MainView.Dispatcher.RunAsync(CoreDispatcherPriority.Idle, () => tcs.TrySetResult());
+		await tcs.Task;
+	}
+
+	private static async Task<bool> WaitForCheckSafe(
+		Func<bool> condition,
+		CancellationToken ct = default,
+		TimeSpan? timeout = null,
+		TimeSpan? cooldown = null, // cooldown between condition check
+		int logWaitFrequency = 10, // how often "Still waiting for..." is logged per cooldown
+		bool throwOnTimeout = true,
+		[CallerArgumentExpression(nameof(condition))] string? expression = null)
+	{
+		var sw = Stopwatch.StartNew();
+		expression = expression?.Split("=>", 2).Last().Trim() ?? "MISSING_EXPRESSION";
+
+		for (int i = 0; ; i++)
+		{
+			// timing out
+			if (sw.Elapsed > timeout)
+			{
+				if (TestSafe(condition))
+				{
+					Log($"Condition '{expression}' succeeded after {sw.Elapsed.TotalMilliseconds}ms");
+					return true;
+				}
+				else if (throwOnTimeout)
+				{
+					throw new TimeoutException($"Timeout waiting for condition '{expression}' after {timeout.Value.TotalMilliseconds}ms");
+				}
+				else
+				{
+					Log($"Timeout waiting for condition '{expression}' after {timeout.Value.TotalMilliseconds}ms");
+					return false;
+				}
+			}
+
+			// throw for caller cancellation
+			ct.ThrowIfCancellationRequested();
+
+			// test
+			if (TestSafe(condition))
+			{
+				Log($"Condition '{expression}' succeeded after {sw.Elapsed.TotalMilliseconds}ms");
+				return true;
+			}
+
+			// wait
+			if (i > 0 && i % logWaitFrequency == 0) Log($"Still waiting for condition '{expression}'... {sw.Elapsed.TotalMilliseconds}ms");
+			await Task.Delay(cooldown ?? TimeSpan.FromMilliseconds(100), ct);
+		}
+
+		static bool TestSafe(Func<bool> condition)
+		{
+			try
+			{
+				if (condition())
+				{
+					return true;
+				}
+			}
+			catch { }
+
+			return false;
+		}
+	}
+
 	/// <summary>
 	/// Waits for a FrameworkElement to be loaded with a configurable timeout.
 	/// </summary>
@@ -603,6 +660,20 @@ internal static partial class RuntimeTestEmbeddedRunner
 		{
 			element.Loaded -= OnLoaded;
 		}
+	}
+
+	private static UnitTestEngineConfig? TryParseConfig(string? maybeJson)
+	{
+		if (maybeJson.StartsWith('{'))
+		{
+			try
+			{
+				return JsonSerializer.Deserialize<UnitTestEngineConfig>(maybeJson);
+			}
+			catch { }
+		}
+
+		return null;
 	}
 
 	[Conditional("DEBUG")]
