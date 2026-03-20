@@ -38,12 +38,14 @@ public partial class InputInjectorHelper
 
 		private Func<Point> CurrentPosition;
 #else
+		private Point _trackedPosition;
+
 		public MouseHelper(InputInjector input)
 		{
 		}
 
 		private Point CurrentPosition()
-			=> Windows.UI.Core.CoreWindow.GetForCurrentThread().PointerPosition;
+			=> _trackedPosition;
 #endif
 
 		/// <summary>
@@ -114,13 +116,18 @@ public partial class InputInjectorHelper
 		/// Create an injected pointer info which moves the mouse by the given offests
 		/// </summary>
 		public InjectedInputMouseInfo MoveBy(int deltaX, int deltaY)
-			=> new()
+		{
+#if !HAS_UNO
+			_trackedPosition = new Point(_trackedPosition.X + deltaX, _trackedPosition.Y + deltaY);
+#endif
+			return new()
 			{
 				DeltaX = deltaX,
 				DeltaY = deltaY,
 				TimeOffsetInMilliseconds = 1,
 				MouseOptions = InjectedInputMouseOptions.MoveNoCoalesce,
 			};
+		}
 
 		/// <summary>
 		/// Create some injected pointer infos which moves the mouse to the given coordinates
