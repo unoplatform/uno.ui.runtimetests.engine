@@ -1131,8 +1131,26 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private void CopyFailedTestDetails(object sender, RoutedEventArgs e)
 	{
+		var sb = new StringBuilder();
+
+		if (runStatus.Text is { Length: > 0 } status)
+		{
+			sb.AppendLine($"Status: {status}");
+		}
+
+		if (_currentRun is not null)
+		{
+			sb.AppendLine($"Run: {_currentRun.Run} | Ignored: {_currentRun.Ignored} | Success: {_currentRun.Succeeded} | Failed: {_currentRun.Failed}");
+		}
+
+		if (failedTestDetails.Text is { Length: > 0 } details)
+		{
+			sb.AppendLine();
+			sb.Append(details);
+		}
+
 		var data = new DataPackage();
-		data.SetText(failedTestDetails.Text);
+		data.SetText(sb.ToString());
 
 		Clipboard.SetContent(data);
 	}
