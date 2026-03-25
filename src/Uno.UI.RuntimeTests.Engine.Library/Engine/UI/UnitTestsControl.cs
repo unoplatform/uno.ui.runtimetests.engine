@@ -1140,9 +1140,83 @@ public sealed partial class UnitTestsControl : UserControl
 	private void CopyTestResults(object sender, RoutedEventArgs e)
 	{
 		var data = new DataPackage();
+		data.SetText(GenerateTestLog());
+
+		Clipboard.SetContent(data);
+	}
+
+	private void CopyTestResultsXml(object sender, RoutedEventArgs e)
+	{
+		var data = new DataPackage();
 		data.SetText(NUnitTestResultsDocument);
 
 		Clipboard.SetContent(data);
+	}
+
+	private string GenerateTestLog()
+	{
+		var sb = new StringBuilder();
+
+		if (_currentRun is not null)
+		{
+			sb.AppendLine($"Run: {_currentRun.Run} | Ignored: {_currentRun.Ignored} | Success: {_currentRun.Succeeded} | Failed: {_currentRun.Failed}");
+		}
+
+		if (runStatus.Text is { Length: > 0 } status)
+		{
+			sb.AppendLine($"Status: {status}");
+		}
+
+		if (failedTestDetails.Text is { Length: > 0 } details)
+		{
+			sb.AppendLine();
+			sb.AppendLine("Failed test details:");
+			sb.AppendLine(details);
+		}
+
+		sb.AppendLine();
+
+		string? currentClass = null;
+		foreach (var tc in _testCases)
+		{
+			var className = tc.TestName?.Contains('.') == true
+				? tc.TestName[..tc.TestName.LastIndexOf('.')]
+				: null;
+
+			if (className is not null && className != currentClass)
+			{
+				currentClass = className;
+				sb.AppendLine();
+				sb.AppendLine(className);
+			}
+
+			var icon = tc.TestResult switch
+			{
+				TestResult.Passed => "S",
+				TestResult.Skipped => "I",
+				_ => "F"
+			};
+
+			sb.Append($"  {icon} ({tc.Duration.TotalSeconds:F1}s) {tc.TestName}");
+			sb.AppendLine();
+
+			if (tc.Message is { Length: > 0 })
+			{
+				sb.AppendLine($"    ...{tc.Message}");
+			}
+
+			if (tc.Error is { } error)
+			{
+				sb.AppendLine($"    EXCEPTION>{error.Message}");
+			}
+
+			if (tc.ConsoleOutput is { Length: > 0 } console)
+			{
+				sb.AppendLine($"    OUT>{console}");
+			}
+		}
+
+		return sb.ToString();
 	}
 
 	/// <summary>
