@@ -572,6 +572,7 @@ public sealed partial class UnitTestsControl : UserControl
 			IsRunningIgnored = isRunningIgnored,
 			IsSecondaryAppVisible = isSecondaryAppVisible,
 			Attempts = attempts,
+			IsSecondaryApp = IsSecondaryApp,
 		};
 	}
 
@@ -725,7 +726,7 @@ public sealed partial class UnitTestsControl : UserControl
 		_ = ReportMessage($"Running {tests.Length} test methods");
 
 		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp
-			&& !IsSecondaryApp
+			&& !config.IsSecondaryApp
 			&& (config.IsRunningIgnored || testClassInfo.Tests.Any(test => !test.IsIgnored(out _))))
 		{
 			try
