@@ -110,13 +110,13 @@ public partial class InputInjectorHelper
 	/// Injects some mouse infos to simulate mouse interaction on the application
 	/// </summary>
 	public void InjectMouseInput(IEnumerable<InjectedInputMouseInfo?> input)
-		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>());
+		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>().ToArray());
 
 	/// <summary>
 	/// Injects some mouse infos to simulate mouse interaction on the application
 	/// </summary>
 	public void InjectMouseInput(params InjectedInputMouseInfo?[] input)
-		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>());
+		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>().ToArray());
 
 	private sealed record PointerSubscription(InputInjectorHelper Injector, PointerDeviceType Previous, PointerDeviceType Current) : IDisposable
 	{

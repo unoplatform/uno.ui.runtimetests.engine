@@ -62,7 +62,6 @@ public partial class InputInjectorHelper
 		public InjectedInputMouseInfo Press()
 			=> new()
 			{
-				TimeOffsetInMilliseconds = 1,
 				MouseOptions = InjectedInputMouseOptions.LeftDown,
 			};
 
@@ -72,7 +71,6 @@ public partial class InputInjectorHelper
 		public InjectedInputMouseInfo Release()
 			=> new()
 			{
-				TimeOffsetInMilliseconds = 1,
 				MouseOptions = InjectedInputMouseOptions.LeftUp,
 			};
 
@@ -116,7 +114,6 @@ public partial class InputInjectorHelper
 				? null
 				: new()
 				{
-					TimeOffsetInMilliseconds = 1,
 					MouseOptions = options
 				};
 		}
@@ -133,11 +130,7 @@ public partial class InputInjectorHelper
 			{
 				DeltaX = deltaX,
 				DeltaY = deltaY,
-				TimeOffsetInMilliseconds = 1,
-				// Move is required: MoveNoCoalesce alone is not valid on Windows.
-				// The Windows InputInjector API (backed by SendInput) requires MOUSEEVENTF_MOVE (0x1)
-				// to recognize the input as a movement event; MoveNoCoalesce (0x2000) is only a modifier.
-				MouseOptions = InjectedInputMouseOptions.Move | InjectedInputMouseOptions.MoveNoCoalesce,
+				MouseOptions = InjectedInputMouseOptions.Move,
 			};
 		}
 
