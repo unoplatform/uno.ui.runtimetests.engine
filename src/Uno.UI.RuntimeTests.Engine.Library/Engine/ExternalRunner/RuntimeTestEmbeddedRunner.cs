@@ -540,12 +540,15 @@ internal static partial class RuntimeTestEmbeddedRunner
 	{
 		using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 		if (timeout != default)
+		{
 			cts.CancelAfter(timeout);
+		}
 
-		var tcs = new TaskCompletionSource();
-		cts.Token.Register(() => tcs.TrySetCanceled(cts.Token));
-		await CoreApplication.MainView.Dispatcher.RunAsync(CoreDispatcherPriority.Idle, () => tcs.TrySetResult());
-		await tcs.Task;
+		var dispatcherTask = CoreApplication.MainView.Dispatcher
+			.RunAsync(CoreDispatcherPriority.Idle, () => { })
+			.AsTask(cts.Token);
+
+		await dispatcherTask.ConfigureAwait(false);
 	}
 
 	private static async Task<bool> WaitForCheckSafe(
@@ -664,7 +667,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 	private static UnitTestEngineConfig? TryParseConfig(string? maybeJson)
 	{
-		if (maybeJson.StartsWith('{'))
+		if (maybeJson?.TrimStart()?.StartsWith('{') == true)
 		{
 			try
 			{
