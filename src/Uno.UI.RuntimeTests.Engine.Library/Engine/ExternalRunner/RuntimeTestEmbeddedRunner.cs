@@ -131,7 +131,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 			}
 
 			// Final check with the latest Window.Current reference
-			if (Window.Current is not { Dispatcher: null } window)
+			if (Window.Current is not { Dispatcher: { } } window)
 			{
 				throw new InvalidOperationException("Window.Current is null or does not have any valid dispatcher after waiting for content");
 			}
