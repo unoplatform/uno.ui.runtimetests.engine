@@ -46,6 +46,14 @@ public partial class InputInjectorHelper
 
 		private Point CurrentPosition()
 			=> _trackedPosition;
+
+		/// <summary>
+		/// Resets the internally tracked position without injecting mouse movement.
+		/// On WinUI 3 (real Windows), injecting MoveTo(0,0) would actually move the OS cursor
+		/// to the upper-left corner of the screen, potentially triggering hot corners.
+		/// </summary>
+		internal void ResetTrackedPosition()
+			=> _trackedPosition = default;
 #endif
 
 		/// <summary>
@@ -97,10 +105,11 @@ public partial class InputInjectorHelper
 				options |= InjectedInputMouseOptions.XUp;
 			}
 #else
+			// XUp is intentionally excluded: the Windows InputInjector API requires MouseData
+			// to specify which X button to release, and we don't track X button state.
 			options = InjectedInputMouseOptions.LeftUp
 				| InjectedInputMouseOptions.MiddleUp
-				| InjectedInputMouseOptions.RightUp
-				| InjectedInputMouseOptions.XUp;
+				| InjectedInputMouseOptions.RightUp;
 #endif
 
 			return options is default(InjectedInputMouseOptions)

@@ -84,7 +84,14 @@ public partial class InputInjectorHelper
 	public void CleanupPointers()
 	{
 		InjectMouseInput(Mouse.ReleaseAny());
+#if HAS_UNO
 		InjectMouseInput(Mouse.MoveTo(0, 0));
+#else
+		// On WinUI 3 (real Windows), MoveTo(0, 0) injects relative mouse deltas that physically
+		// move the OS cursor to the upper-left corner, triggering hot corners or lock screen.
+		// Instead, just reset the tracked position so the next MoveTo starts from a clean baseline.
+		Mouse.ResetTrackedPosition();
+#endif
 	}
 
 	/// <summary>

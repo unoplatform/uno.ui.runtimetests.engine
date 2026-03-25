@@ -126,4 +126,52 @@ public class PointersInjectionTests
 		Assert.IsTrue(Math.Abs(totalDeltaY - 20) <= 2, $"Sequential deltaY should be ~20, was {totalDeltaY}");
 #endif
 	}
+
+	[TestMethod]
+	[InjectedPointer(PointerDeviceType.Mouse)]
+#if !HAS_UNO_SKIA && !WINDOWS
+	[ExpectedException(typeof(NotSupportedException))]
+#endif
+	public void When_ReleaseAny_DoesNotThrow()
+	{
+		var injector = InputInjectorHelper.Current;
+
+		// ReleaseAny should not throw ArgumentException on any platform.
+		// On Windows, sending XUp without MouseData caused ArgumentException.
+		injector.InjectMouseInput(injector.Mouse.ReleaseAny());
+	}
+
+	[TestMethod]
+	[InjectedPointer(PointerDeviceType.Mouse)]
+#if !HAS_UNO_SKIA && !WINDOWS
+	[ExpectedException(typeof(NotSupportedException))]
+#endif
+	public void When_CleanupPointers_DoesNotThrow()
+	{
+		var injector = InputInjectorHelper.Current;
+
+		// First simulate some activity: move and press/release
+		injector.InjectMouseInput(injector.Mouse.MoveTo(200, 200));
+		injector.InjectMouseInput(injector.Mouse.Press());
+		injector.InjectMouseInput(injector.Mouse.Release());
+
+		// CleanupPointers should not throw and should not move the OS cursor to (0,0)
+		injector.CleanupPointers();
+
+		// After cleanup, MoveTo should still generate correct deltas from reset position
+		var capturedMoves = new List<Windows.UI.Input.Preview.Injection.InjectedInputMouseInfo>();
+		var moves = injector.Mouse.MoveTo(50, 30).Select(m => { capturedMoves.Add(m); return m; });
+		injector.InjectMouseInput(moves);
+
+		Assert.IsTrue(capturedMoves.Count > 0, "Should generate moves after cleanup");
+
+#if !HAS_UNO
+		var totalDeltaX = capturedMoves.Sum(m => m.DeltaX);
+		var totalDeltaY = capturedMoves.Sum(m => m.DeltaY);
+
+		// After CleanupPointers, tracked position resets to (0,0), so deltas should be ~(50, 30)
+		Assert.IsTrue(Math.Abs(totalDeltaX - 50) <= 2, $"Post-cleanup deltaX should be ~50, was {totalDeltaX}");
+		Assert.IsTrue(Math.Abs(totalDeltaY - 30) <= 2, $"Post-cleanup deltaY should be ~30, was {totalDeltaY}");
+#endif
+	}
 }
