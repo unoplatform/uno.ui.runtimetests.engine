@@ -110,13 +110,40 @@ public partial class InputInjectorHelper
 	/// Injects some mouse infos to simulate mouse interaction on the application
 	/// </summary>
 	public void InjectMouseInput(IEnumerable<InjectedInputMouseInfo?> input)
-		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>().ToArray());
+	{
+#if HAS_UNO
+		Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>().ToArray());
+#else
+		// On WinUI 3 (real Windows), inject mouse events one at a time.
+		// Passing large batches through the WinRT InputInjector interop layer causes
+		// ArgumentException ("Value does not fall within the expected range").
+		foreach (var item in input)
+		{
+			if (item is not null)
+			{
+				Injector.InjectMouseInput(new[] { item });
+			}
+		}
+#endif
+	}
 
 	/// <summary>
 	/// Injects some mouse infos to simulate mouse interaction on the application
 	/// </summary>
 	public void InjectMouseInput(params InjectedInputMouseInfo?[] input)
-		=> Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>().ToArray());
+	{
+#if HAS_UNO
+		Injector.InjectMouseInput(input.Where(i => i is not null).Cast<InjectedInputMouseInfo>().ToArray());
+#else
+		foreach (var item in input)
+		{
+			if (item is not null)
+			{
+				Injector.InjectMouseInput(new[] { item });
+			}
+		}
+#endif
+	}
 
 	private sealed record PointerSubscription(InputInjectorHelper Injector, PointerDeviceType Previous, PointerDeviceType Current) : IDisposable
 	{
