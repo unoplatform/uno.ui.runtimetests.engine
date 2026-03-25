@@ -54,6 +54,14 @@ public partial class InputInjectorHelper
 		/// </summary>
 		internal void ResetTrackedPosition()
 			=> _trackedPosition = default;
+
+		/// <summary>
+		/// Sets the tracked position to the given window-client-relative coordinates.
+		/// Used after directly positioning the OS cursor via SetCursorPos so that
+		/// subsequent MoveTo calls compute correct relative deltas.
+		/// </summary>
+		internal void SetTrackedPosition(double x, double y)
+			=> _trackedPosition = new Point(x, y);
 #endif
 
 		/// <summary>

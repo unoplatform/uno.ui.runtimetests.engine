@@ -8,6 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+#if !HAS_UNO
+using System.Runtime.InteropServices;
+#endif
 using Windows.Foundation;
 using Windows.UI.Core;
 using Windows.UI.Input.Preview.Injection;
@@ -20,7 +23,27 @@ namespace Uno.UI.RuntimeTests;
 public static partial class InputInjectorHelperExtensions
 {
 	public static void Tap(this InputInjectorHelper injector, UIElement elt)
-		=> injector.TapCoordinates(GetAbsoluteCenter(elt));
+	{
+		var center = GetAbsoluteCenter(elt);
+#if !HAS_UNO
+		if (injector.CurrentPointerType == PointerDeviceType.Mouse)
+		{
+			// On WinUI 3, InputInjector uses relative mouse deltas from the physical OS cursor.
+			// The tracked position does not correspond to the physical cursor location, so
+			// MoveTo (which computes deltas from tracked position) misses the target.
+			// Use Win32 SetCursorPos to position the cursor at the exact element center,
+			// then inject Press/Release at that location.
+			var scale = elt.XamlRoot?.RasterizationScale ?? 1.0;
+			injector.InjectMouseInput(injector.Mouse.ReleaseAny());
+			PositionCursorAtClientCoordinates(center.X, center.Y, scale);
+			injector.Mouse.SetTrackedPosition(center.X, center.Y);
+			injector.InjectMouseInput(injector.Mouse.Press());
+			injector.InjectMouseInput(injector.Mouse.Release());
+			return;
+		}
+#endif
+		injector.TapCoordinates(center);
+	}
 
 	public static void TapCoordinates(this InputInjectorHelper injector, Point point)
 		=> injector.TapCoordinates(point.X, point.Y);
@@ -154,6 +177,45 @@ public static partial class InputInjectorHelperExtensions
 	private static NotSupportedException NotSupported([CallerMemberName] string operation = "")
 		=> new($"'{operation}' with type '{InputInjectorHelper.Current.CurrentPointerType}' is not supported yet on this platform. Feel free to contribute!");
 
+#if !HAS_UNO
+	[StructLayout(LayoutKind.Sequential)]
+	private struct POINT
+	{
+		public int x;
+		public int y;
+	}
+
+	[DllImport("user32.dll")]
+	private static extern bool SetCursorPos(int X, int Y);
+
+	[DllImport("user32.dll")]
+	private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+	[DllImport("user32.dll")]
+	private static extern IntPtr GetActiveWindow();
+
+	/// <summary>
+	/// Positions the OS cursor at the given window-client-relative DIP coordinates.
+	/// Converts from DIPs to physical pixels using the rasterization scale,
+	/// then from client coordinates to screen coordinates using ClientToScreen.
+	/// </summary>
+	private static void PositionCursorAtClientCoordinates(double dipX, double dipY, double rasterizationScale)
+	{
+		var hwnd = GetActiveWindow();
+		if (hwnd == IntPtr.Zero)
+		{
+			return;
+		}
+
+		var point = new POINT
+		{
+			x = (int)(dipX * rasterizationScale),
+			y = (int)(dipY * rasterizationScale)
+		};
+		ClientToScreen(hwnd, ref point);
+		SetCursorPos(point.x, point.y);
+	}
+#endif
 }
 
 #endif
