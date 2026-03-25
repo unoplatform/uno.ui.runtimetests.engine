@@ -500,10 +500,10 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private void EnableConfigPersistence()
 	{
-		if (ApplicationData.Current.LocalSettings.Values.TryGetValue("unitestcontrols_config", out var configRaw)
-			&& configRaw is string configStr)
+		try
 		{
-			try
+			if (ApplicationData.Current.LocalSettings.Values.TryGetValue("unitestcontrols_config", out var configRaw)
+				&& configRaw is string configStr)
 			{
 				var config = JsonSerializer.Deserialize<UnitTestEngineConfig>(configStr);
 
@@ -516,13 +516,15 @@ public sealed partial class UnitTestsControl : UserControl
 					testFilter.Text = config.Filter;
 				}
 			}
-			catch (Exception error)
-			{
-				_log.LogError(error, "Failed to restore runtime tests config.");
-			}
-		}
 
-		ListenConfigChanged();
+			ListenConfigChanged();
+		}
+		catch (Exception error)
+		{
+			// ApplicationData.Current throws InvalidOperationException on unpackaged
+			// WinUI 3 apps (no package identity). Config persistence is best-effort.
+			_log.LogError(error, "Failed to enable runtime tests config persistence.");
+		}
 	}
 
 	private void ListenConfigChanged()
@@ -539,8 +541,15 @@ public sealed partial class UnitTestsControl : UserControl
 
 		void StoreConfig()
 		{
-			var config = BuildConfig();
-			ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonSerializer.Serialize(config);
+			try
+			{
+				var config = BuildConfig();
+				ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonSerializer.Serialize(config);
+			}
+			catch (Exception error)
+			{
+				_log.LogError(error, "Failed to persist runtime tests config.");
+			}
 		}
 	}
 
