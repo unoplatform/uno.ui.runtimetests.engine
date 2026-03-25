@@ -140,15 +140,24 @@
 				Opacity="0.8"
 				IsTextSelectionEnabled="True" />
 		</ScrollViewer>
-		<Button
+		<StackPanel
 			Grid.Row="1"
 			HorizontalAlignment="Right"
 			VerticalAlignment="Top"
-			Margin="0,0,24,0"
-			Background="#66CCCCCC"
-			Click="CopyFailedTestDetails">
-			<TextBlock Text="Copy" Foreground="{StaticResource SystemControlForegroundAccentBrush}" />
-		</Button>
+			Orientation="Horizontal"
+			Spacing="4"
+			Margin="0,0,24,0">
+			<Button
+				Background="#66CCCCCC"
+				Click="CopyFailedTestDetails">
+				<TextBlock Text="Copy Log" Foreground="{StaticResource SystemControlForegroundAccentBrush}" />
+			</Button>
+			<Button
+				Background="#66CCCCCC"
+				Click="CopyTestResultsXml">
+				<TextBlock Text="Copy XML" Foreground="{StaticResource SystemControlForegroundAccentBrush}" />
+			</Button>
+		</StackPanel>
 
 		<Rectangle
 			Grid.Row="2"
