@@ -134,7 +134,10 @@ public partial class InputInjectorHelper
 				DeltaX = deltaX,
 				DeltaY = deltaY,
 				TimeOffsetInMilliseconds = 1,
-				MouseOptions = InjectedInputMouseOptions.MoveNoCoalesce,
+				// Move is required: MoveNoCoalesce alone is not valid on Windows.
+				// The Windows InputInjector API (backed by SendInput) requires MOUSEEVENTF_MOVE (0x1)
+				// to recognize the input as a movement event; MoveNoCoalesce (0x2000) is only a modifier.
+				MouseOptions = InjectedInputMouseOptions.Move | InjectedInputMouseOptions.MoveNoCoalesce,
 			};
 		}
 
