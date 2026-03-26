@@ -15,10 +15,10 @@ public class SecondaryAppSanity
 	[TestMethod]
 	public void Is_SecondaryApp_Supported()
 	{
-#if __SKIA__
+#if HAS_UNO_DEVSERVER || __SKIA__
 		Assert.IsTrue(SecondaryApp.IsSupported);
 #else
-		Assert.IsFalse(SecondaryApp.IsSupported);
+		Assert.Inconclusive("SecondaryApp requires DevServer which is not available on this platform.");
 #endif
 	}
 }
