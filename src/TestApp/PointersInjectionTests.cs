@@ -17,10 +17,18 @@ public class PointersInjectionTests
 {
 #if HAS_UNO_SKIA || WINDOWS
 	[TestInitialize]
-	public void Setup() => InputInjectorHelper.Current.CleanupPointers();
+	public void Setup()
+	{
+		try { InputInjectorHelper.Current.CleanupPointers(); }
+		catch { /* Ignore cleanup errors from a previous test's dirty state */ }
+	}
 
 	[TestCleanup]
-	public void Cleanup() => InputInjectorHelper.Current.CleanupPointers();
+	public void Cleanup()
+	{
+		try { InputInjectorHelper.Current.CleanupPointers(); }
+		catch { /* COMException can occur if the injector is in an unexpected state */ }
+	}
 #endif
 
 	[TestMethod]
@@ -39,13 +47,18 @@ public class PointersInjectionTests
 
 		await UnitTestsUIContentHelper.WaitForLoaded(elt);
 
+		var center = elt.TransformToVisual(null)
+			.TransformPoint(new Point(elt.ActualSize.X / 2.0, elt.ActualSize.Y / 2.0));
+
 		InputInjectorHelper.Current.Tap(elt);
 
 		// On WinUI 3, InputInjector queues events into the OS input queue.
-		// Yield to let the message loop process them before asserting.
-		await Task.Yield();
+		// WaitForIdle gives the dispatcher enough cycles to process them.
+		await UnitTestsUIContentHelper.WaitForIdle();
 
-		Assert.IsTrue(clicked);
+		Assert.IsTrue(clicked,
+			$"Button should have been clicked. Center=({center.X:F1},{center.Y:F1}), " +
+			$"Scale={elt.XamlRoot?.RasterizationScale ?? -1}");
 	}
 
 	[TestMethod]
@@ -77,13 +90,13 @@ public class PointersInjectionTests
 		var scale = button1.XamlRoot?.RasterizationScale ?? -1;
 
 		InputInjectorHelper.Current.Tap(button1);
-		await Task.Yield();
+		await UnitTestsUIContentHelper.WaitForIdle();
 		Assert.IsTrue(clicked1,
 			$"First button should have been clicked. " +
 			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}");
 
 		InputInjectorHelper.Current.Tap(button2);
-		await Task.Yield();
+		await UnitTestsUIContentHelper.WaitForIdle();
 		Assert.IsTrue(clicked2,
 			$"Second button should have been clicked. " +
 			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}");

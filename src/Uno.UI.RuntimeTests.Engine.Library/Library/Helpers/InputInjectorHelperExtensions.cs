@@ -27,6 +27,22 @@ public static partial class InputInjectorHelperExtensions
 	{
 		var center = GetAbsoluteCenter(elt);
 #if !HAS_UNO
+		// Bring the test app window to the foreground before injecting input.
+		// When a debugger (e.g., VS Code) is attached, its window may overlap
+		// the test app, causing injected clicks to land on the wrong window.
+		BringAppToForeground();
+
+		if (injector.CurrentPointerType == PointerDeviceType.Touch)
+		{
+			// On WinUI 3, InjectedInputTouchInfo.PixelLocation expects screen pixels,
+			// but GetAbsoluteCenter returns window-client-relative DIPs.
+			// Convert to screen pixels like we do for Mouse.
+			var touchScale = elt.XamlRoot?.RasterizationScale ?? 1.0;
+			var touchScreenPt = GetOnScreenPoint(center.X, center.Y, touchScale);
+			injector.TapCoordinates(touchScreenPt.x, touchScreenPt.y);
+			return;
+		}
+
 		if (injector.CurrentPointerType == PointerDeviceType.Mouse)
 		{
 			// On WinUI 3, InputInjector uses relative mouse deltas from the physical OS cursor.
@@ -77,30 +93,29 @@ public static partial class InputInjectorHelperExtensions
 		{
 			case PointerDeviceType.Touch:
 				injector.Injector.InitializeTouchInjection(InjectedInputVisualizationMode.Default);
-				injector.Injector.InjectTouchInput(new[]
+				var downInfo = new InjectedInputTouchInfo
 				{
-					new InjectedInputTouchInfo
+					PointerInfo = new()
 					{
-						PointerInfo = new()
-						{
-							PointerId = 42,
-							PixelLocation = new() { PositionX = (int)x, PositionY = (int)y },
-							PointerOptions = InjectedInputPointerOptions.New
-								| InjectedInputPointerOptions.FirstButton
-								| InjectedInputPointerOptions.PointerDown
-								| InjectedInputPointerOptions.InContact
-						}
-					},
-					new InjectedInputTouchInfo
-					{
-						PointerInfo = new()
-						{
-							PixelLocation = { PositionX = (int)x, PositionY = (int)y },
-							PointerOptions = InjectedInputPointerOptions.FirstButton
-								| InjectedInputPointerOptions.PointerUp
-						}
+						PointerId = 42,
+						PixelLocation = new() { PositionX = (int)x, PositionY = (int)y },
+						PointerOptions = InjectedInputPointerOptions.New
+							| InjectedInputPointerOptions.FirstButton
+							| InjectedInputPointerOptions.PointerDown
+							| InjectedInputPointerOptions.InContact
 					}
-				});
+				};
+				var upInfo = new InjectedInputTouchInfo
+				{
+					PointerInfo = new()
+					{
+						PointerId = 42,
+						PixelLocation = { PositionX = (int)x, PositionY = (int)y },
+						PointerOptions = InjectedInputPointerOptions.FirstButton
+							| InjectedInputPointerOptions.PointerUp
+					}
+				};
+				injector.Injector.InjectTouchInput(new[] { downInfo, upInfo });
 				injector.Injector.UninitializeTouchInjection();
 				break;
 
@@ -242,32 +257,46 @@ public static partial class InputInjectorHelperExtensions
 	[DllImport("user32.dll")]
 	private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
 
+	[DllImport("user32.dll")]
+	private static extern bool SetForegroundWindow(IntPtr hWnd);
+
 	private const uint GA_ROOT = 2;
 
 	private const uint SWP_NOSIZE = 0x0001;
 	private const uint SWP_NOZORDER = 0x0004;
 	private const uint SWP_NOACTIVATE = 0x0010;
+
 	private const int SM_XVIRTUALSCREEN = 76;
 	private const int SM_YVIRTUALSCREEN = 77;
 	private const int SM_CXVIRTUALSCREEN = 78;
 	private const int SM_CYVIRTUALSCREEN = 79;
 
 	/// <summary>
-	/// Converts window-client-relative DIP coordinates to screen pixel coordinates.
-	/// If the computed screen position falls outside the virtual screen bounds
-	/// (e.g., the window extends off-screen), the window is repositioned first
-	/// to ensure the point is reachable by cursor and touch input.
+	/// Converts XamlRoot-relative DIP coordinates to screen pixel coordinates.
+	/// Uses the main window HWND's client area as the reference frame, since
+	/// <c>TransformToVisual(null)</c> returns coordinates in the XamlRoot space
+	/// which corresponds to the main window's client area on WinUI 3.
 	/// </summary>
+	/// <remarks>
+	/// On WinUI 3, <c>GetActiveWindow()</c> returns a XAML island child HWND whose
+	/// client area origin may differ from the main window's client area origin.
+	/// Using such a child HWND for <c>ClientToScreen</c> produces incorrect screen
+	/// coordinates, causing <c>SetCursorPos</c> to place the cursor at the wrong position.
+	/// This method avoids that by always using <c>Process.MainWindowHandle</c>.
+	/// </remarks>
 	private static POINT GetOnScreenPoint(double clientDipX, double clientDipY, double scale)
 	{
-		var hwnd = GetActiveWindow();
+		// Use Process.MainWindowHandle to get the top-level window HWND.
+		// GetActiveWindow() can return a XAML island child HWND with a different
+		// client area origin, causing coordinate mismatches on WinUI 3.
+		var hwnd = Process.GetCurrentProcess().MainWindowHandle;
 		if (hwnd == IntPtr.Zero)
 		{
-			hwnd = GetForegroundWindow();
+			hwnd = GetActiveWindow();
 		}
 		if (hwnd == IntPtr.Zero)
 		{
-			hwnd = Process.GetCurrentProcess().MainWindowHandle;
+			hwnd = GetForegroundWindow();
 		}
 
 		var clientPixel = new POINT
@@ -310,17 +339,18 @@ public static partial class InputInjectorHelperExtensions
 	}
 
 	/// <summary>
-	/// Moves the top-level ancestor window so the given child HWND's client area
+	/// Moves the top-level window so the given HWND's client area
 	/// origin maps to screen (100, 100), ensuring elements near the top-left
 	/// of the client area are reachable by the OS cursor.
-	/// SetWindowPos on child windows only repositions them within their parent,
-	/// so we must find and move the root ancestor.
 	/// </summary>
 	private static void EnsureClientAreaOnScreen(IntPtr hwnd)
 	{
-		// Use Process.MainWindowHandle to reliably get the top-level window.
-		// GetActiveWindow returns a XAML-island child HWND, and GetAncestor(GA_ROOT)
-		// may not traverse the WinUI 3 HWND hierarchy correctly.
+		// Determine where the HWND's client (0,0) currently maps on screen.
+		var clientOrigin = new POINT();
+		ClientToScreen(hwnd, ref clientOrigin);
+
+		// Find the top-level window to reposition. If the caller already
+		// passed the top-level HWND, GetAncestor returns it unchanged.
 		var rootHwnd = Process.GetCurrentProcess().MainWindowHandle;
 		if (rootHwnd == IntPtr.Zero)
 		{
@@ -331,12 +361,9 @@ public static partial class InputInjectorHelperExtensions
 			return; // Cannot determine top-level window; skip repositioning.
 		}
 
-		var clientOrigin = new POINT();
-		ClientToScreen(hwnd, ref clientOrigin);
-
 		GetWindowRect(rootHwnd, out var windowRect);
 
-		// Shift the root window so the child's client area origin
+		// Shift the root window so the HWND's client area origin
 		// lands at screen (100, 100).
 		int newLeft = windowRect.left + (100 - clientOrigin.x);
 		int newTop = windowRect.top + (100 - clientOrigin.y);
@@ -347,6 +374,20 @@ public static partial class InputInjectorHelperExtensions
 		// Allow the OS to fully process the window position change
 		// before subsequent ClientToScreen calls read updated coordinates.
 		System.Threading.Thread.Sleep(500);
+	}
+
+	/// <summary>
+	/// Requests that the OS bring the test app's main window to the
+	/// foreground so that injected input reaches it rather than a
+	/// different window that currently owns the foreground lock.
+	/// </summary>
+	private static void BringAppToForeground()
+	{
+		var hwnd = Process.GetCurrentProcess().MainWindowHandle;
+		if (hwnd != IntPtr.Zero)
+		{
+			SetForegroundWindow(hwnd);
+		}
 	}
 #endif
 }
