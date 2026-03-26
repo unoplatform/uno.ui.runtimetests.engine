@@ -55,7 +55,10 @@ internal static partial class ProcessHelper
 		}
 
 		var pi = process.StartInfo;
-		log.LogDebug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
+		if (log.IsEnabled(LogLevel.Debug))
+		{
+			log.LogDebug("Started process (wd:{WorkingDirectory}): {FileName} {Arguments}", pi.WorkingDirectory, pi.FileName, string.Join(" ", pi.ArgumentList));
+		}
 
 		process.Start();
 
@@ -104,7 +107,10 @@ internal static partial class ProcessHelper
 		process.ErrorDataReceived += (sender, args) => log.LogError(args.Data ?? "<Empty>");
 
 		var pi = process.StartInfo;
-		log.LogDebug($"Started process (wd:{pi.WorkingDirectory}): {pi.FileName} {string.Join(" ", pi.ArgumentList)})");
+		if (log.IsEnabled(LogLevel.Debug))
+		{
+			log.LogDebug("Started process (wd:{WorkingDirectory}): {FileName} {Arguments}", pi.WorkingDirectory, pi.FileName, string.Join(" ", pi.ArgumentList));
+		}
 
 		process.Start();
 
