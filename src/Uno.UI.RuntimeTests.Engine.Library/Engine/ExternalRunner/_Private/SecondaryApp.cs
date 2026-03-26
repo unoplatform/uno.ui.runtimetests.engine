@@ -21,8 +21,17 @@ internal static partial class SecondaryApp
 	/// <summary>
 	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.
 	/// </summary>
+	/// <remarks>
+	/// This requires both a supported desktop OS and the DevServer to be available.
+	/// On Windows/WinUI 3, the DevServer NuGet package is empty (VS provides native Hot Reload),
+	/// so secondary app testing is not supported even though the OS check would pass.
+	/// </remarks>
 	public static bool IsSupported =>
+#if HAS_UNO_DEVSERVER
 		global::System.OperatingSystem.IsWindows() || global::System.OperatingSystem.IsLinux() || global::System.OperatingSystem.IsFreeBSD();
+#else
+		false;
+#endif
 
 	/// <summary>
 	/// Run the tests defined by the given configuration in another instance of the current application.
