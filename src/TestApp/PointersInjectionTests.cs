@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Devices.Input;
+using Windows.Foundation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Microsoft.UI.Xaml;
@@ -40,6 +41,10 @@ public class PointersInjectionTests
 
 		InputInjectorHelper.Current.Tap(elt);
 
+		// On WinUI 3, InputInjector queues events into the OS input queue.
+		// Yield to let the message loop process them before asserting.
+		await Task.Yield();
+
 		Assert.IsTrue(clicked);
 	}
 
@@ -65,11 +70,23 @@ public class PointersInjectionTests
 		await UnitTestsUIContentHelper.WaitForLoaded(button1);
 		await UnitTestsUIContentHelper.WaitForLoaded(button2);
 
+		var center1 = button1.TransformToVisual(null)
+			.TransformPoint(new Point(button1.ActualSize.X / 2.0, button1.ActualSize.Y / 2.0));
+		var center2 = button2.TransformToVisual(null)
+			.TransformPoint(new Point(button2.ActualSize.X / 2.0, button2.ActualSize.Y / 2.0));
+		var scale = button1.XamlRoot?.RasterizationScale ?? -1;
+
 		InputInjectorHelper.Current.Tap(button1);
-		Assert.IsTrue(clicked1, "First button should have been clicked");
+		await Task.Yield();
+		Assert.IsTrue(clicked1,
+			$"First button should have been clicked. " +
+			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}");
 
 		InputInjectorHelper.Current.Tap(button2);
-		Assert.IsTrue(clicked2, "Second button should have been clicked");
+		await Task.Yield();
+		Assert.IsTrue(clicked2,
+			$"Second button should have been clicked. " +
+			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}");
 	}
 
 	[TestMethod]
