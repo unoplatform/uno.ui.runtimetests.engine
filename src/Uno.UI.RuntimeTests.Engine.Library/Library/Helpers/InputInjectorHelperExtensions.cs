@@ -23,61 +23,119 @@ namespace Uno.UI.RuntimeTests;
 
 public static partial class InputInjectorHelperExtensions
 {
+#if !HAS_UNO
+	/// <summary>
+	/// Diagnostic info from the last touch/mouse tap, for assertion messages.
+	/// </summary>
+	internal static string? LastTapDiagnostics { get; private set; }
+#endif
+
 	public static void Tap(this InputInjectorHelper injector, UIElement elt)
 	{
 		var center = GetAbsoluteCenter(elt);
 #if !HAS_UNO
 		// Bring the test app window to the foreground before injecting input.
-		// When a debugger (e.g., VS Code) is attached, its window may overlap
-		// the test app, causing injected clicks to land on the wrong window.
 		BringAppToForeground();
+
+		var scale = elt.XamlRoot?.RasterizationScale ?? 1.0;
+		var screenPt = GetOnScreenPoint(center.X, center.Y, scale);
+		var hwnd = Process.GetCurrentProcess().MainWindowHandle;
+		GetWindowRect(hwnd, out var wndRect);
 
 		if (injector.CurrentPointerType == PointerDeviceType.Touch)
 		{
-			// On WinUI 3, InjectedInputTouchInfo.PixelLocation expects screen pixels,
-			// but GetAbsoluteCenter returns window-client-relative DIPs.
-			// Convert to screen pixels like we do for Mouse.
-			var touchScale = elt.XamlRoot?.RasterizationScale ?? 1.0;
-			var touchScreenPt = GetOnScreenPoint(center.X, center.Y, touchScale);
-			injector.TapCoordinates(touchScreenPt.x, touchScreenPt.y);
+			// Use Win32 Touch Injection API directly (user32.dll). The WinRT
+			// InputInjector.InjectTouchInput targets the UWP CoreWindow model and
+			// silently fails to deliver touch events to WinUI 3 windows (which use
+			// Win32 windowing). The Win32 API injects through the WM_POINTER
+			// message pipeline that WinUI 3 actually processes.
+			var initOk = Win32InitializeTouchInjection(1, TOUCH_FEEDBACK_DEFAULT);
+			var initErr = initOk ? 0 : Marshal.GetLastWin32Error();
+
+			// Match Microsoft's official touch injection sample exactly:
+			// https://learn.microsoft.com/en-us/windows/win32/input_touchinjection/touch-injection-sample
+			var contact = new PointerTouchInfo
+			{
+				pointerInfo = new PointerInfo
+				{
+					pointerType = PT_TOUCH,
+					pointerId = 0,
+					pointerFlags = POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT,
+					ptPixelLocation = new POINT { x = screenPt.x, y = screenPt.y },
+				},
+				touchFlags = TOUCH_FLAG_NONE,
+				touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION | TOUCH_MASK_PRESSURE,
+				rcContact = new RECT
+				{
+					left = screenPt.x - 2, top = screenPt.y - 2,
+					right = screenPt.x + 2, bottom = screenPt.y + 2,
+				},
+				orientation = 90,
+				pressure = 32000,
+			};
+
+			var downOk = Win32InjectTouchInput(1, ref contact);
+			var downErr = downOk ? 0 : Marshal.GetLastWin32Error();
+
+			System.Threading.Thread.Sleep(100);
+
+			contact.pointerInfo.pointerFlags = POINTER_FLAG_UP;
+			var upOk = Win32InjectTouchInput(1, ref contact);
+			var upErr = upOk ? 0 : Marshal.GetLastWin32Error();
+
+			var ptrSize = Marshal.SizeOf<PointerInfo>();
+			var touchSize = Marshal.SizeOf<PointerTouchInfo>();
+
+			LastTapDiagnostics =
+				$"Mode=Touch(Win32), DipCenter=({center.X:F1},{center.Y:F1}), " +
+				$"ScreenPt=({screenPt.x},{screenPt.y}), Scale={scale}, " +
+				$"Init={initOk}(err={initErr}), Down={downOk}(err={downErr}), Up={upOk}(err={upErr}), " +
+				$"StructSize=({ptrSize},{touchSize}), " +
+				$"WindowRect=({wndRect.left},{wndRect.top},{wndRect.right},{wndRect.bottom}), " +
+				$"HWND=0x{hwnd.ToInt64():X}";
 			return;
 		}
 
 		if (injector.CurrentPointerType == PointerDeviceType.Mouse)
 		{
-			// On WinUI 3, InputInjector uses relative mouse deltas from the physical OS cursor.
-			// Use Win32 SetCursorPos for absolute screen positioning, then inject a zero-delta
-			// Move so the WinUI input system registers the cursor at the target before button events.
-			var scale = elt.XamlRoot?.RasterizationScale ?? 1.0;
 			injector.InjectMouseInput(injector.Mouse.ReleaseAny());
-			var screenPt = GetOnScreenPoint(center.X, center.Y, scale);
-			SetCursorPos(screenPt.x, screenPt.y);
 
-			// Verify the cursor reached the target. SetCursorPos silently clamps
-			// to virtual screen bounds; if the cursor drifted, the click would miss.
-			GetCursorPos(out var actual);
-			if (Math.Abs(actual.x - screenPt.x) > 2 || Math.Abs(actual.y - screenPt.y) > 2)
-			{
-				var processHwnd = Process.GetCurrentProcess().MainWindowHandle;
-				var diagHwnd = GetActiveWindow();
-				GetWindowRect(processHwnd, out var procRect);
-				throw new InvalidOperationException(
-					$"Cannot tap element: cursor could not reach screen ({screenPt.x},{screenPt.y}). " +
-					$"Actual=({actual.x},{actual.y}). " +
-					$"Center DIPs=({center.X:F1},{center.Y:F1}), Scale={scale}. " +
-					$"ProcessHWND=0x{processHwnd.ToInt64():X}, ActiveHWND=0x{diagHwnd.ToInt64():X}. " +
-					$"ProcessRect=({procRect.left},{procRect.top},{procRect.right},{procRect.bottom}).");
-			}
+			// Use ABSOLUTE mouse positioning through the InputInjector.
+			// SetCursorPos only moves the OS cursor; the InputInjector maintains
+			// its own internal position for injected events. Press() and Release()
+			// carry DeltaX=DeltaY=0, meaning they land at the InputInjector's
+			// position — NOT the OS cursor. With Absolute|VirtualDesk, DeltaX/DeltaY
+			// become normalized [0..65535] screen coordinates for the virtual desktop.
+			var vLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+			var vTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+			var vWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+			var vHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+			var normalizedX = (int)((screenPt.x - vLeft) * 65535.0 / vWidth);
+			var normalizedY = (int)((screenPt.y - vTop) * 65535.0 / vHeight);
 
 			injector.InjectMouseInput(new InjectedInputMouseInfo
 			{
-				MouseOptions = InjectedInputMouseOptions.Move,
-				DeltaX = 0,
-				DeltaY = 0
+				MouseOptions = InjectedInputMouseOptions.Move
+					| InjectedInputMouseOptions.Absolute
+					| InjectedInputMouseOptions.VirtualDesk,
+				DeltaX = normalizedX,
+				DeltaY = normalizedY,
 			});
+			System.Threading.Thread.Sleep(50);
+
 			injector.Mouse.SetTrackedPosition(center.X, center.Y);
 			injector.InjectMouseInput(injector.Mouse.Press());
+			System.Threading.Thread.Sleep(50);
 			injector.InjectMouseInput(injector.Mouse.Release());
+
+			LastTapDiagnostics =
+				$"Mode=Mouse, DipCenter=({center.X:F1},{center.Y:F1}), " +
+				$"ScreenPt=({screenPt.x},{screenPt.y}), " +
+				$"Normalized=({normalizedX},{normalizedY}), " +
+				$"VDesk=({vLeft},{vTop},{vWidth},{vHeight}), Scale={scale}, " +
+				$"WindowRect=({wndRect.left},{wndRect.top},{wndRect.right},{wndRect.bottom}), " +
+				$"HWND=0x{hwnd.ToInt64():X}";
 			return;
 		}
 #endif
@@ -93,29 +151,45 @@ public static partial class InputInjectorHelperExtensions
 		{
 			case PointerDeviceType.Touch:
 				injector.Injector.InitializeTouchInjection(InjectedInputVisualizationMode.Default);
+
+				// Match Microsoft's official touch injection sample exactly:
+				// https://learn.microsoft.com/en-us/windows/uwp/design/input/input-injection
+				// Key flags: Down = PointerDown|InContact|New (NO FirstButton/InRange).
+				// Up = PointerUp only (NO coordinates, NO FirstButton).
+				// Contact area = 30px radius (larger than a pinpoint touch).
 				var downInfo = new InjectedInputTouchInfo
 				{
+					Contact = new InjectedInputRectangle { Left = 30, Top = 30, Right = 30, Bottom = 30 },
+					Pressure = 1.0,
+					TouchParameters = InjectedInputTouchParameters.Pressure | InjectedInputTouchParameters.Contact,
 					PointerInfo = new()
 					{
 						PointerId = 42,
 						PixelLocation = new() { PositionX = (int)x, PositionY = (int)y },
 						PointerOptions = InjectedInputPointerOptions.New
-							| InjectedInputPointerOptions.FirstButton
 							| InjectedInputPointerOptions.PointerDown
-							| InjectedInputPointerOptions.InContact
+							| InjectedInputPointerOptions.InContact,
+						TimeOffsetInMilliseconds = 0
 					}
 				};
+				injector.Injector.InjectTouchInput(new[] { downInfo });
+
+				// Separate OS timestamps for Down and Up events.
+				System.Threading.Thread.Sleep(100);
+
 				var upInfo = new InjectedInputTouchInfo
 				{
 					PointerInfo = new()
 					{
 						PointerId = 42,
-						PixelLocation = { PositionX = (int)x, PositionY = (int)y },
-						PointerOptions = InjectedInputPointerOptions.FirstButton
-							| InjectedInputPointerOptions.PointerUp
+						PointerOptions = InjectedInputPointerOptions.PointerUp
 					}
 				};
-				injector.Injector.InjectTouchInput(new[] { downInfo, upInfo });
+				injector.Injector.InjectTouchInput(new[] { upInfo });
+
+				// Allow the OS to finish processing the touch events
+				// before tearing down the injection session.
+				System.Threading.Thread.Sleep(50);
 				injector.Injector.UninitializeTouchInjection();
 				break;
 
@@ -270,6 +344,60 @@ public static partial class InputInjectorHelperExtensions
 	private const int SM_YVIRTUALSCREEN = 77;
 	private const int SM_CXVIRTUALSCREEN = 78;
 	private const int SM_CYVIRTUALSCREEN = 79;
+
+	// Win32 Touch Injection API (user32.dll) — delivers touch events through
+	// the WM_POINTER pipeline, which WinUI 3 processes. The WinRT
+	// InputInjector.InjectTouchInput targets CoreWindow and silently fails
+	// on WinUI 3's Win32 windowing model.
+	[DllImport("user32.dll", EntryPoint = "InitializeTouchInjection", SetLastError = true)]
+	private static extern bool Win32InitializeTouchInjection(uint maxCount, uint dwMode);
+
+	[DllImport("user32.dll", EntryPoint = "InjectTouchInput", SetLastError = true)]
+	private static extern bool Win32InjectTouchInput(uint count, ref PointerTouchInfo contacts);
+
+	private const uint TOUCH_FEEDBACK_DEFAULT = 0x1;
+	private const uint PT_TOUCH = 0x00000002;
+	private const uint POINTER_FLAG_INRANGE = 0x00000002;
+	private const uint POINTER_FLAG_INCONTACT = 0x00000004;
+	private const uint POINTER_FLAG_DOWN = 0x00010000;
+	private const uint POINTER_FLAG_UP = 0x00040000;
+	private const uint TOUCH_FLAG_NONE = 0x00000000;
+	private const uint TOUCH_MASK_CONTACTAREA = 0x00000001;
+	private const uint TOUCH_MASK_ORIENTATION = 0x00000002;
+	private const uint TOUCH_MASK_PRESSURE = 0x00000004;
+
+	[StructLayout(LayoutKind.Sequential)]
+	private struct PointerInfo
+	{
+		public uint pointerType;
+		public uint pointerId;
+		public uint frameId;
+		public uint pointerFlags;
+		public IntPtr sourceDevice;
+		public IntPtr hwndTarget;
+		public POINT ptPixelLocation;
+		public POINT ptHimetricLocation;
+		public POINT ptPixelLocationRaw;
+		public POINT ptHimetricLocationRaw;
+		public uint dwTime;
+		public uint historyCount;
+		public int inputData;
+		public uint dwKeyStates;
+		public ulong performanceCount;
+		public int buttonChangeType;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	private struct PointerTouchInfo
+	{
+		public PointerInfo pointerInfo;
+		public uint touchFlags;
+		public uint touchMask;
+		public RECT rcContact;
+		public RECT rcContactRaw;
+		public uint orientation;
+		public uint pressure;
+	}
 
 	/// <summary>
 	/// Converts XamlRoot-relative DIP coordinates to screen pixel coordinates.

@@ -17,10 +17,13 @@ public class PointersInjectionTests
 {
 #if HAS_UNO_SKIA || WINDOWS
 	[TestInitialize]
-	public void Setup()
+	public async Task Setup()
 	{
 		try { InputInjectorHelper.Current.CleanupPointers(); }
 		catch { /* Ignore cleanup errors from a previous test's dirty state */ }
+
+		// Temporary: give time to visually observe each test running
+		await Task.Delay(1500);
 	}
 
 	[TestCleanup]
@@ -41,7 +44,11 @@ public class PointersInjectionTests
 	{
 		var elt = new Button { Content = "Tap me" };
 		var clicked = false;
+		var pointerPressed = false;
+		var pointerReleased = false;
 		elt.Click += (snd, e) => clicked = true;
+		elt.PointerPressed += (s, e) => pointerPressed = true;
+		elt.PointerReleased += (s, e) => pointerReleased = true;
 
 		UnitTestsUIContentHelper.Content = elt;
 
@@ -57,8 +64,15 @@ public class PointersInjectionTests
 		await UnitTestsUIContentHelper.WaitForIdle();
 
 		Assert.IsTrue(clicked,
-			$"Button should have been clicked. Center=({center.X:F1},{center.Y:F1}), " +
-			$"Scale={elt.XamlRoot?.RasterizationScale ?? -1}");
+			$"Button should have been clicked. " +
+			$"Center=({center.X:F1},{center.Y:F1}), " +
+			$"Scale={elt.XamlRoot?.RasterizationScale ?? -1}, " +
+			$"Size=({elt.ActualSize.X:F0}x{elt.ActualSize.Y:F0}), " +
+			$"PointerPressed={pointerPressed}, PointerReleased={pointerReleased}"
+#if WINDOWS
+			+ $", {InputInjectorHelperExtensions.LastTapDiagnostics}"
+#endif
+		);
 	}
 
 	[TestMethod]
@@ -75,8 +89,16 @@ public class PointersInjectionTests
 		panel.Children.Add(button2);
 		var clicked1 = false;
 		var clicked2 = false;
+		var pp1 = false;
+		var pr1 = false;
+		var pp2 = false;
+		var pr2 = false;
 		button1.Click += (_, _) => clicked1 = true;
+		button1.PointerPressed += (_, _) => pp1 = true;
+		button1.PointerReleased += (_, _) => pr1 = true;
 		button2.Click += (_, _) => clicked2 = true;
+		button2.PointerPressed += (_, _) => pp2 = true;
+		button2.PointerReleased += (_, _) => pr2 = true;
 
 		UnitTestsUIContentHelper.Content = panel;
 
@@ -93,13 +115,23 @@ public class PointersInjectionTests
 		await UnitTestsUIContentHelper.WaitForIdle();
 		Assert.IsTrue(clicked1,
 			$"First button should have been clicked. " +
-			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}");
+			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}, " +
+			$"PP1={pp1}, PR1={pr1}"
+#if WINDOWS
+			+ $", {InputInjectorHelperExtensions.LastTapDiagnostics}"
+#endif
+		);
 
 		InputInjectorHelper.Current.Tap(button2);
 		await UnitTestsUIContentHelper.WaitForIdle();
 		Assert.IsTrue(clicked2,
 			$"Second button should have been clicked. " +
-			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}");
+			$"Btn1=({center1.X:F1},{center1.Y:F1}), Btn2=({center2.X:F1},{center2.Y:F1}), Scale={scale}, " +
+			$"PP2={pp2}, PR2={pr2}"
+#if WINDOWS
+			+ $", {InputInjectorHelperExtensions.LastTapDiagnostics}"
+#endif
+		);
 	}
 
 	[TestMethod]
