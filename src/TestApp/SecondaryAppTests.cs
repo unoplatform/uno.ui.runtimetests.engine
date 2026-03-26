@@ -15,7 +15,7 @@ public class SecondaryAppSanity
 	[TestMethod]
 	public void Is_SecondaryApp_Supported()
 	{
-#if __SKIA__
+#if HAS_UNO_DEVSERVER
 		Assert.IsTrue(SecondaryApp.IsSupported);
 #else
 		Assert.IsFalse(SecondaryApp.IsSupported);

@@ -26,6 +26,8 @@ public record UnitTestEngineConfig
 	public bool IsRunningIgnored { get; init; }
 
 	public bool? IsSecondaryAppVisible { get; init; }
+
+	public bool IsSecondaryApp { get; init; }
 }
 
 #endif

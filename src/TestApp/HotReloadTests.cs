@@ -28,7 +28,7 @@ public class HotReloadSanity
 }
 
 [TestClass]
-[RunsInSecondaryApp]
+[RunsInSecondaryApp(ignoreIfNotSupported: true)]
 public class HotReloadTests
 {
 	[TestMethod]
