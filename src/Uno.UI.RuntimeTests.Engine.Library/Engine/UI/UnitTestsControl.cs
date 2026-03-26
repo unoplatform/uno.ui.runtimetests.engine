@@ -734,14 +734,20 @@ public sealed partial class UnitTestsControl : UserControl
 				var testCases = tests.SelectMany(t => t.GetCases(ct)).ToList();
 				if (!SecondaryApp.IsSupported && secondaryApp.IgnoreIfNotSupported && !config.IsRunningIgnored)
 				{
-					foreach (var testCase in testCases)
+					foreach (var test in tests)
 					{
-						ReportTestResult(
-							testCase.ToString(),
-							TimeSpan.Zero,
-							TestResult.Skipped,
-							null,
-							$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
+						foreach (var testCase in test.GetCases(ct))
+						{
+							var fullTestName = string.IsNullOrWhiteSpace(testCase.DisplayName)
+								? test.Name + testCase.ToString()
+								: testCase.DisplayName!;
+							ReportTestResult(
+								fullTestName,
+								TimeSpan.Zero,
+								TestResult.Skipped,
+								null,
+								$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
+						}
 					}
 
 					return;
