@@ -29,7 +29,7 @@ public static partial class HotReloadHelper
 		{
 			var revert = Edition.Revert();
 
-			_log.LogInformation($"Reverting changes made on {revert.FilePath} (from: \"{StartEnd(revert.OldText)}\" to \"{StartEnd(revert.NewText)}\").");
+			_log.LogInformation("Reverting changes made on {FilePath} (from: \"{OldText}\" to \"{NewText}\").", revert.FilePath, StartEnd(revert.OldText), StartEnd(revert.NewText));
 
 			// Note: We also wait for metadata update here to ensure that the file is reverted before the test continues / we run another test.
 			if (await SendMessageCore(revert, WaitForMetadataUpdate, global::System.Threading.CancellationToken.None) is ReConnect reconnect)
@@ -173,7 +173,7 @@ public static partial class HotReloadHelper
 	/// <returns>An IAsyncDisposable object that will revert the change when disposed.</returns>
 	public static async global::System.Threading.Tasks.Task<global::System.IAsyncDisposable> UpdateSourceFile(FileEdit message, bool waitForMetadataUpdate, global::System.Threading.CancellationToken ct = default)
 	{
-		_log.LogTrace($"Waiting for connection in order to update file {message.FilePath} (from: \"{StartEnd(message.OldText)}\" to \"{StartEnd(message.NewText)}\") ...");
+		_log.LogTrace("Waiting for connection in order to update file {FilePath} (from: \"{OldText}\" to \"{NewText}\") ...", message.FilePath, StartEnd(message.OldText), StartEnd(message.NewText));
 		await _impl.EnsureReady(ct);
 
 		var revertMessage = new RevertFileEdit(message, waitForMetadataUpdate);
