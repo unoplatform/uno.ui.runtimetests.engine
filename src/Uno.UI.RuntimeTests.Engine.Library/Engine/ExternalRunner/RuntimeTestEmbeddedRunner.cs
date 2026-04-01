@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -92,6 +93,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 	private static async Task RunTestsAndExit(string testsConfigRaw, string? outputPath, string? outputUrl, TestResultKind outputKind, bool isSecondaryApp)
 	{
 		var cts = new CancellationTokenSource();
+		var exitCode = 0;
 
 		try
 		{
@@ -178,22 +180,25 @@ internal static partial class RuntimeTestEmbeddedRunner
 				.ConfigureAwait(false);
 
 			await tcs.Task.ConfigureAwait(false);
+
+			Log("Runtime-test completed, exiting app.");
 		}
 		catch (OperationCanceledException) when (cts.IsCancellationRequested)
 		{
 			LogError("Runtime-tests has been cancelled.");
-			ExitApplication(-1);
+			exitCode = -1;
 		}
 		catch (Exception error)
 		{
 			LogError("Failed to run runtime-test.");
 			LogError(error.ToString());
-			ExitApplication(1);
+			exitCode = 1;
 		}
 		finally
 		{
-			Log("Runtime-test completed, exiting app.");
-			ExitApplication(0);
+			// note: on linux, Application.Exit actually returns and the code after still gets executed.
+			// so we save the exit-code, and exit with it in the `finally` block.
+			ExitApplication(exitCode);
 		}
 	}
 
@@ -461,16 +466,22 @@ internal static partial class RuntimeTestEmbeddedRunner
 	{
 		if (OperatingSystem.IsLinux())
 		{
-			// Exit gracefully via Application.Current.Exit() on Linux
-			// to allow Skia/X11 to clean up properly and avoid segfaults.
-			Environment.ExitCode = exitCode;
-			Application.Current.Exit();
+			// Use _exit() on Linux to bypass all cleanup handlers.
+			// Application.Current.Exit() and Environment.Exit() both trigger
+			// Skia/X11 cleanup that causes a segfault, making CI report exit code 139.
+			// _exit() terminates immediately at the OS level without running finalizers.
+			Log($"Exiting via _exit({exitCode})");
+			LibcExit(exitCode);
 		}
 		else
 		{
+			Log($"Exiting via Environment.Exit({exitCode})");
 			Environment.Exit(exitCode);
 		}
 	}
+
+	[DllImport("libc", EntryPoint = "_exit")]
+	private static extern void LibcExit(int status);
 
 	/// <summary>
 	/// Gets a configuration value from environment variables, or from URL query parameters on WASM.
