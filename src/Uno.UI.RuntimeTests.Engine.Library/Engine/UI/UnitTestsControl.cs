@@ -341,7 +341,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 		foreach (var result in results)
 		{
-			_log.LogInformation($"Test completed '{result.TestName}'='{result.TestResult}'");
+			_log.LogInformation("Test completed '{TestName}'='{TestResult}'", result.TestName, result.TestResult);
 		}
 
 		void UpdateUI(TestCaseResult result)
