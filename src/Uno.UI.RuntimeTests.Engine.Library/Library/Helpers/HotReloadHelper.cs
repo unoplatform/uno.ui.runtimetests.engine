@@ -29,7 +29,10 @@ public static partial class HotReloadHelper
 		{
 			var revert = Edition.Revert();
 
-			_log.LogInformation("Reverting changes made on {FilePath} (from: \"{OldText}\" to \"{NewText}\").", revert.FilePath, StartEnd(revert.OldText), StartEnd(revert.NewText));
+			if (_log.IsEnabled(LogLevel.Information))
+			{
+				_log.LogInformation("Reverting changes made on {FilePath} (from: \"{OldText}\" to \"{NewText}\").", revert.FilePath, StartEnd(revert.OldText), StartEnd(revert.NewText));
+			}
 
 			// Note: We also wait for metadata update here to ensure that the file is reverted before the test continues / we run another test.
 			if (await SendMessageCore(revert, WaitForMetadataUpdate, global::System.Threading.CancellationToken.None) is ReConnect reconnect)

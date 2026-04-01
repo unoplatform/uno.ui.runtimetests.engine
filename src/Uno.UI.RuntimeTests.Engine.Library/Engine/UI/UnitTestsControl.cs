@@ -339,9 +339,12 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		});
 
-		foreach (var result in results)
+		if (_log.IsEnabled(LogLevel.Information))
 		{
-			_log.LogInformation("Test completed '{TestName}'='{TestResult}'", result.TestName, result.TestResult);
+			foreach (var result in results)
+			{
+				_log.LogInformation("Test completed '{TestName}'='{TestResult}'", result.TestName, result.TestResult);
+			}
 		}
 
 		void UpdateUI(TestCaseResult result)
