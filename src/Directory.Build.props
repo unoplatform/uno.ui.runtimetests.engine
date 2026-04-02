@@ -17,6 +17,8 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<NoWarn>$(NoWarn);CS1998</NoWarn> <!-- Lacks await in async -->
 		<NoWarn>$(NoWarn);NU1903</NoWarn> <!-- System.Private.Uri is transitively updated by the runtime -->
+		<NoWarn>$(NoWarn);CA1873</NoWarn> <!-- LogInformation with string interpolation; pre-existing across library -->
+		<NoWarn>$(NoWarn);CS8619</NoWarn> <!-- Nullability mismatch in return type; pre-existing -->
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TF_BUILD)' == 'true' or '$(GITHUB_ACTIONS)'=='true'">

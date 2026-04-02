@@ -66,11 +66,11 @@ namespace Uno.UI.RuntimeTests.Engine
 
 #if DEBUG
 		[TestMethod]
-		public async Task No_Longer_Sane() // expected to fail
+		public async Task No_Longer_Sane() // This test is EXPECTED to fail — it validates the runner reports errors correctly.
 		{
 			await Task.Delay(2000);
 
-			throw new Exception("Great works require a touch of insanity.");
+			throw new Exception("[EXPECTED FAILURE — validates test runner error reporting] Great works require a touch of insanity.");
 		}
 
 		[TestMethod, Ignore]

@@ -500,10 +500,10 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private void EnableConfigPersistence()
 	{
-		if (ApplicationData.Current.LocalSettings.Values.TryGetValue("unitestcontrols_config", out var configRaw)
-			&& configRaw is string configStr)
+		try
 		{
-			try
+			if (ApplicationData.Current.LocalSettings.Values.TryGetValue("unitestcontrols_config", out var configRaw)
+				&& configRaw is string configStr)
 			{
 				var config = JsonSerializer.Deserialize<UnitTestEngineConfig>(configStr);
 
@@ -516,13 +516,15 @@ public sealed partial class UnitTestsControl : UserControl
 					testFilter.Text = config.Filter;
 				}
 			}
-			catch (Exception error)
-			{
-				_log.LogError(error, "Failed to restore runtime tests config.");
-			}
-		}
 
-		ListenConfigChanged();
+			ListenConfigChanged();
+		}
+		catch (Exception error)
+		{
+			// ApplicationData.Current throws InvalidOperationException on unpackaged
+			// WinUI 3 apps (no package identity). Config persistence is best-effort.
+			_log.LogError(error, "Failed to enable runtime tests config persistence.");
+		}
 	}
 
 	private void ListenConfigChanged()
@@ -539,8 +541,15 @@ public sealed partial class UnitTestsControl : UserControl
 
 		void StoreConfig()
 		{
-			var config = BuildConfig();
-			ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonSerializer.Serialize(config);
+			try
+			{
+				var config = BuildConfig();
+				ApplicationData.Current.LocalSettings.Values["unitestcontrols_config"] = JsonSerializer.Serialize(config);
+			}
+			catch (Exception error)
+			{
+				_log.LogError(error, "Failed to persist runtime tests config.");
+			}
 		}
 	}
 
@@ -563,6 +572,7 @@ public sealed partial class UnitTestsControl : UserControl
 			IsRunningIgnored = isRunningIgnored,
 			IsSecondaryAppVisible = isSecondaryAppVisible,
 			Attempts = attempts,
+			IsSecondaryApp = IsSecondaryApp,
 		};
 	}
 
@@ -716,7 +726,7 @@ public sealed partial class UnitTestsControl : UserControl
 		_ = ReportMessage($"Running {tests.Length} test methods");
 
 		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp
-			&& !IsSecondaryApp
+			&& !config.IsSecondaryApp
 			&& (config.IsRunningIgnored || testClassInfo.Tests.Any(test => !test.IsIgnored(out _))))
 		{
 			try
@@ -724,14 +734,20 @@ public sealed partial class UnitTestsControl : UserControl
 				var testCases = tests.SelectMany(t => t.GetCases(ct)).ToList();
 				if (!SecondaryApp.IsSupported && secondaryApp.IgnoreIfNotSupported && !config.IsRunningIgnored)
 				{
-					foreach (var testCase in testCases)
+					foreach (var test in tests)
 					{
-						ReportTestResult(
-							testCase.ToString(),
-							TimeSpan.Zero,
-							TestResult.Skipped,
-							null,
-							$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
+						foreach (var testCase in test.GetCases(ct))
+						{
+							var fullTestName = string.IsNullOrWhiteSpace(testCase.DisplayName)
+								? test.Name + testCase.ToString()
+								: testCase.DisplayName!;
+							ReportTestResult(
+								fullTestName,
+								TimeSpan.Zero,
+								TestResult.Skipped,
+								null,
+								$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
+						}
 					}
 
 					return;
@@ -1122,8 +1138,26 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private void CopyFailedTestDetails(object sender, RoutedEventArgs e)
 	{
+		var sb = new StringBuilder();
+
+		if (runStatus.Text is { Length: > 0 } status)
+		{
+			sb.AppendLine($"Status: {status}");
+		}
+
+		if (_currentRun is not null)
+		{
+			sb.AppendLine($"Run: {_currentRun.Run} | Ignored: {_currentRun.Ignored} | Success: {_currentRun.Succeeded} | Failed: {_currentRun.Failed}");
+		}
+
+		if (failedTestDetails.Text is { Length: > 0 } details)
+		{
+			sb.AppendLine();
+			sb.Append(details);
+		}
+
 		var data = new DataPackage();
-		data.SetText(failedTestDetails.Text);
+		data.SetText(sb.ToString());
 
 		Clipboard.SetContent(data);
 	}
@@ -1131,9 +1165,83 @@ public sealed partial class UnitTestsControl : UserControl
 	private void CopyTestResults(object sender, RoutedEventArgs e)
 	{
 		var data = new DataPackage();
+		data.SetText(GenerateTestLog());
+
+		Clipboard.SetContent(data);
+	}
+
+	private void CopyTestResultsXml(object sender, RoutedEventArgs e)
+	{
+		var data = new DataPackage();
 		data.SetText(NUnitTestResultsDocument);
 
 		Clipboard.SetContent(data);
+	}
+
+	private string GenerateTestLog()
+	{
+		var sb = new StringBuilder();
+
+		if (_currentRun is not null)
+		{
+			sb.AppendLine($"Run: {_currentRun.Run} | Ignored: {_currentRun.Ignored} | Success: {_currentRun.Succeeded} | Failed: {_currentRun.Failed}");
+		}
+
+		if (runStatus.Text is { Length: > 0 } status)
+		{
+			sb.AppendLine($"Status: {status}");
+		}
+
+		if (failedTestDetails.Text is { Length: > 0 } details)
+		{
+			sb.AppendLine();
+			sb.AppendLine("Failed test details:");
+			sb.AppendLine(details);
+		}
+
+		sb.AppendLine();
+
+		string? currentClass = null;
+		foreach (var tc in _testCases)
+		{
+			var className = tc.TestName?.Contains('.') == true
+				? tc.TestName[..tc.TestName.LastIndexOf('.')]
+				: null;
+
+			if (className is not null && className != currentClass)
+			{
+				currentClass = className;
+				sb.AppendLine();
+				sb.AppendLine(className);
+			}
+
+			var icon = tc.TestResult switch
+			{
+				TestResult.Passed => "S",
+				TestResult.Skipped => "I",
+				_ => "F"
+			};
+
+			sb.Append($"  {icon} ({tc.Duration.TotalSeconds:F1}s) {tc.TestName}");
+			sb.AppendLine();
+
+			if (tc.Message is { Length: > 0 })
+			{
+				sb.AppendLine($"    ...{tc.Message}");
+			}
+
+			if (tc.Error is { } error)
+			{
+				sb.AppendLine($"    EXCEPTION>{error.Message}");
+			}
+
+			if (tc.ConsoleOutput is { Length: > 0 } console)
+			{
+				sb.AppendLine($"    OUT>{console}");
+			}
+		}
+
+		return sb.ToString();
 	}
 
 	/// <summary>
