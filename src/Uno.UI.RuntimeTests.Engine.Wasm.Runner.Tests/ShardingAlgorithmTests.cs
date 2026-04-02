@@ -18,9 +18,8 @@ public class ShardingAlgorithmTests
 	/// </summary>
 	private static int GetShardForTest(string testFullName, int totalShards)
 	{
-		using var sha1 = SHA1.Create();
 		var buffer = Encoding.UTF8.GetBytes(testFullName);
-		var hash = sha1.ComputeHash(buffer);
+		var hash = SHA1.HashData(buffer);
 		return (int)(BitConverter.ToUInt64(hash, 0) % (ulong)totalShards);
 	}
 
