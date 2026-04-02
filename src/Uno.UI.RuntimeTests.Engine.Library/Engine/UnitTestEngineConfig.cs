@@ -26,6 +26,18 @@ public record UnitTestEngineConfig
 	public bool IsRunningIgnored { get; init; }
 
 	public bool? IsSecondaryAppVisible { get; init; }
+
+	/// <summary>
+	/// Zero-based index of the current shard (0 to TotalShards-1).
+	/// When null, sharding is disabled and all tests run.
+	/// </summary>
+	public int? ShardIndex { get; init; }
+
+	/// <summary>
+	/// Total number of shards. Must be >= 1 when sharding is enabled.
+	/// When null, sharding is disabled and all tests run.
+	/// </summary>
+	public int? TotalShards { get; init; }
 }
 
 #endif

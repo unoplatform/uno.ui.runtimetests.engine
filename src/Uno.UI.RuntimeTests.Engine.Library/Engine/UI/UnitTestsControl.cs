@@ -339,9 +339,12 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		});
 
-		foreach (var result in results)
+		if (_log.IsEnabled(LogLevel.Information))
 		{
-			_log.LogInformation("Test completed '{TestName}'='{TestResult}'", result.TestName, result.TestResult);
+			foreach (var result in results)
+			{
+				_log.LogInformation("Test completed '{TestName}'='{TestResult}'", result.TestName, result.TestResult);
+			}
 		}
 
 		void UpdateUI(TestCaseResult result)
@@ -706,6 +709,14 @@ public sealed partial class UnitTestsControl : UserControl
 		var tests = config.Filter is null
 			? testClassInfo.Tests
 			: testClassInfo.Tests.Where(test => config.Filter.IsMatch(test.Method)).ToArray();
+
+		// Apply test-level sharding if configured
+		if (config is { ShardIndex: { } shardIndex, TotalShards: { } totalShards } && totalShards > 1 && testClassInfo.Type is not null)
+		{
+			tests = tests
+				.Where(test => IsTestInShard(testClassInfo.Type, test, shardIndex, totalShards))
+				.ToArray();
+		}
 
 		if (tests.Length <= 0 || testClassInfo.Type == null)
 		{
@@ -1088,6 +1099,20 @@ public sealed partial class UnitTestsControl : UserControl
 		var hash = _sha1.ComputeHash(buffer);
 
 		return (int)BitConverter.ToUInt64(hash, 0);
+	}
+
+	/// <summary>
+	/// Determines if a test method belongs to the specified shard using a deterministic
+	/// hash-based modulo assignment on the fully-qualified test method name.
+	/// </summary>
+	private static bool IsTestInShard(Type testClass, UnitTestMethodInfo test, int shardIndex, int totalShards)
+	{
+		var testFullName = $"{testClass.FullName}.{test.Name}";
+		var buffer = Encoding.UTF8.GetBytes(testFullName);
+		var hash = _sha1.ComputeHash(buffer);
+		var hashValue = (int)(BitConverter.ToUInt64(hash, 0) % (ulong)totalShards);
+
+		return hashValue == shardIndex;
 	}
 
 	private static UnitTestClassInfo BuildType(Type type)

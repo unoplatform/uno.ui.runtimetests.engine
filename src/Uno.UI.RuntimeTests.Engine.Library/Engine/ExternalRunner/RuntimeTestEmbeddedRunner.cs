@@ -150,6 +150,9 @@ internal static partial class RuntimeTestEmbeddedRunner
 				TryParseConfig(testsConfigRaw) ??
 				new UnitTestEngineConfig { Filter = testsConfigRaw };
 
+			// Apply sharding from env vars if not already set in JSON config
+			config = ApplyShardingFromEnvironment(config);
+
 			// Let continue on the dispatcher thread
 			var tcs = new TaskCompletionSource();
 			await window
@@ -677,6 +680,67 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 
 		return null;
+	}
+
+	private static UnitTestEngineConfig ApplyShardingFromEnvironment(UnitTestEngineConfig config)
+	{
+		// If sharding is already configured (e.g., from JSON config), don't override
+		if (config.ShardIndex is not null && config.TotalShards is not null)
+		{
+			return config;
+		}
+
+		// Try explicit env vars first
+		var shardIndexStr = GetConfigValue("UNO_RUNTIME_TESTS_SHARD_INDEX");
+		var totalShardsStr = GetConfigValue("UNO_RUNTIME_TESTS_TOTAL_SHARDS");
+
+		// Fallback to Azure Pipelines variables
+		if (string.IsNullOrEmpty(shardIndexStr) || string.IsNullOrEmpty(totalShardsStr))
+		{
+			var azureIndex = GetConfigValue("SYSTEM_JOBPOSITIONINPHASE");
+			var azureTotal = GetConfigValue("SYSTEM_TOTALJOBSINPHASE");
+
+			if (!string.IsNullOrEmpty(azureIndex) && !string.IsNullOrEmpty(azureTotal))
+			{
+				shardIndexStr ??= azureIndex;
+				totalShardsStr ??= azureTotal;
+				Log($"Using Azure Pipelines sharding: JobPositionInPhase={azureIndex}, TotalJobsInPhase={azureTotal}");
+			}
+		}
+
+		if (string.IsNullOrEmpty(shardIndexStr) || string.IsNullOrEmpty(totalShardsStr))
+		{
+			return config;
+		}
+
+		if (!int.TryParse(shardIndexStr, out var shardIndex) || !int.TryParse(totalShardsStr, out var totalShards))
+		{
+			LogError($"Invalid sharding configuration: ShardIndex='{shardIndexStr}', TotalShards='{totalShardsStr}'");
+			return config;
+		}
+
+		if (totalShards < 1)
+		{
+			LogError($"TotalShards must be >= 1, got {totalShards}");
+			return config;
+		}
+
+		// Convert 1-based (public API) to 0-based (internal)
+		var zeroBasedIndex = shardIndex - 1;
+
+		if (zeroBasedIndex < 0 || zeroBasedIndex >= totalShards)
+		{
+			LogError($"ShardIndex {shardIndex} (1-based) is out of range for TotalShards={totalShards}");
+			return config;
+		}
+
+		Log($"Sharding enabled: shard {shardIndex}/{totalShards} (0-based index: {zeroBasedIndex})");
+
+		return config with
+		{
+			ShardIndex = zeroBasedIndex,
+			TotalShards = totalShards
+		};
 	}
 
 	[Conditional("DEBUG")]
