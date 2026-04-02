@@ -85,9 +85,9 @@ public class ShardingAlgorithmTests
 	[TestMethod]
 	public void Distribution_RoughlyUniform()
 	{
-		// With 1000 tests and 4 shards, each shard should get ~250 tests.
-		// Allow a generous +-15% tolerance for hash distribution variance.
-		var testNames = GenerateTestNames(1000);
+		// With 5000 tests and 4 shards, each shard should get ~1250 tests.
+		// Allow +-10% tolerance — larger sample size gives tighter natural variance.
+		var testNames = GenerateTestNames(5000);
 		var totalShards = 4;
 		var counts = new int[totalShards];
 
@@ -96,8 +96,8 @@ public class ShardingAlgorithmTests
 			counts[GetShardForTest(name, totalShards)]++;
 		}
 
-		var expected = testNames.Count / totalShards; // 250
-		var tolerance = expected * 0.15; // +-37
+		var expected = testNames.Count / totalShards; // 1250
+		var tolerance = expected * 0.10; // +-125
 
 		for (var i = 0; i < totalShards; i++)
 		{
