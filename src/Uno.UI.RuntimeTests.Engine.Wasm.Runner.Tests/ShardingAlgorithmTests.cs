@@ -181,7 +181,7 @@ public class ShardingAlgorithmTests
 		for (var i = 0; i < count; i++)
 		{
 			// Simulate realistic fully-qualified test method names
-			var ns = i % 5 switch
+			var ns = (i % 5) switch
 			{
 				0 => "StudioLive.Worker.Tests",
 				1 => "StudioLive.Agent.Tests",
