@@ -8,6 +8,7 @@ This engine uses the MSTest attributes to perform the discovery of tests.
 - Using Data Rows
 - Running tests full screen
 - Generating an nunit report for CI publishing
+- [Test sharding](#test-sharding) for parallel CI execution
 
 ### Structure of the package
 
@@ -173,6 +174,8 @@ You can also define some other configuration variables:
 
 * **UNO_RUNTIME_TESTS_OUTPUT_KIND**: Selects the kind of the test result file, possible values are `NUnit` (default) or `UnoRuntimeTests` (cf. [`TestResultKind`](https://github.com/unoplatform/uno.ui.runtimetests.engine/blob/main/src/Uno.UI.RuntimeTests.Engine.Library/Engine/ExternalRunner/RuntimeTestEmbeddedRunner.cs#L41))
 * **UNO_RUNTIME_TESTS_OUTPUT_URL**: (For WebAssembly) An HTTP endpoint URL where results will be POSTed instead of written to a file. This is required for WASM targets since they cannot write files to disk.
+* **UNO_RUNTIME_TESTS_SHARD_INDEX**: 1-based index of the current shard (1 to N). Used for splitting tests across parallel CI jobs. See [Test Sharding](#test-sharding) below.
+* **UNO_RUNTIME_TESTS_TOTAL_SHARDS**: Total number of shards. Must be provided together with `UNO_RUNTIME_TESTS_SHARD_INDEX`.
 
 Currently, the easiest way to run runtime-tests on the CI is using the Desktop (Skia) target. Here is an example of a GitHub Actions workflow:
 
@@ -372,6 +375,8 @@ jobs:
 * `--timeout`: Timeout in seconds for test execution (default: 300)
 * `--port`: Port to serve the WASM app on (default: auto-assign)
 * `--headless`: Run browser in headless mode (default: true)
+* `--shard-index`: 1-based shard index for parallel test execution (optional, see [Test Sharding](#test-sharding))
+* `--total-shards`: Total number of shards (optional, must be provided with `--shard-index`)
 * `--aot-profile-output`: Path where AOT profile data will be written (optional, requires app built with AOT profiling enabled)
 
 **Important notes for WASM testing:**
@@ -449,6 +454,132 @@ or place the `aot.profile` file at the root of the `Platfoms/WebAssembly` folder
 * Profile extraction has a 30-second timeout independent of the test execution timeout.
 * If AOT profiling is not enabled in the build, a warning will be logged but tests will complete successfully.
 * The profile file will only be created if profile data is available.
+
+### Test Sharding
+
+Test sharding splits your test suite across multiple parallel CI jobs, reducing wall-clock time proportionally. The engine assigns each **individual test method** to a shard using a deterministic hash, so the same test always runs on the same shard regardless of discovery order.
+
+#### How it works
+
+Each test method's fully-qualified name (e.g., `MyNamespace.MyClass.MyMethod`) is hashed with SHA1 and assigned to a shard via `hash % totalShards`. This provides:
+- **Deterministic assignment**: the same test always lands on the same shard
+- **Uniform distribution**: shards get roughly equal numbers of tests
+- **Method-level granularity**: different methods in the same test class can run on different shards
+
+Data-driven tests (`[DataRow]`) keep all rows on the same shard as their parent method.
+
+#### Desktop (environment variables)
+
+Set `UNO_RUNTIME_TESTS_SHARD_INDEX` (1-based) and `UNO_RUNTIME_TESTS_TOTAL_SHARDS`:
+
+```bash
+UNO_RUNTIME_TESTS_SHARD_INDEX=1 UNO_RUNTIME_TESTS_TOTAL_SHARDS=4 \
+  UNO_RUNTIME_TESTS_RUN_TESTS='{}' \
+  UNO_RUNTIME_TESTS_OUTPUT_PATH=results-shard1.xml \
+  dotnet MyApp.dll
+```
+
+#### WASM Runner (CLI)
+
+```bash
+uno-runtimetests-wasm \
+  --app-path ./publish/wwwroot \
+  --output ./results-shard1.xml \
+  --shard-index 1 --total-shards 4
+```
+
+#### Azure Pipelines auto-detection
+
+When using `strategy: parallel: N` in Azure Pipelines, the engine automatically detects `System.JobPositionInPhase` and `System.TotalJobsInPhase` as a fallback, so you don't need to pass shard arguments explicitly:
+
+```yaml
+jobs:
+- job: Runtime_Tests
+  strategy:
+    parallel: 4
+
+  steps:
+  - script: dotnet build src/MyApp/MyApp.csproj -c Release -f net10.0-desktop
+    displayName: 'Build'
+
+  - script: |
+      xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' \
+        dotnet src/MyApp/bin/Release/net10.0-desktop/MyApp.dll
+    displayName: 'Run Runtime Tests (shard $(System.JobPositionInPhase)/$(System.TotalJobsInPhase))'
+    env:
+      UNO_RUNTIME_TESTS_RUN_TESTS: '{}'
+      UNO_RUNTIME_TESTS_OUTPUT_PATH: '$(Common.TestResultsDirectory)/runtime-tests-results.xml'
+
+  - task: PublishTestResults@2
+    condition: always()
+    inputs:
+      testRunTitle: 'Runtime Tests (shard $(System.JobPositionInPhase))'
+      testResultsFormat: 'NUnit'
+      testResultsFiles: '$(Common.TestResultsDirectory)/runtime-tests-results.xml'
+      failTaskOnFailedTests: true
+```
+
+#### GitHub Actions (WASM with matrix)
+
+```yaml
+jobs:
+  wasm-runtime-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Install tools
+      run: |
+        dotnet tool install -g Uno.UI.RuntimeTests.Engine.Wasm.Runner
+        npx playwright install chromium
+
+    - name: Build WASM app
+      run: dotnet publish src/MyApp/MyApp.csproj -c Release -f net10.0-browserwasm -p:PublishTrimmed=false
+
+    - name: Run WASM Runtime Tests (shard ${{ matrix.shard }}/4)
+      run: |
+        mkdir -p test-results
+        uno-runtimetests-wasm \
+          --app-path ./src/MyApp/bin/Release/net10.0-browserwasm/publish/wwwroot \
+          --output ./test-results/wasm-runtime-tests.xml \
+          --shard-index ${{ matrix.shard }} --total-shards 4 \
+          --timeout 600
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: 'WASM Runtime Tests (shard ${{ matrix.shard }})'
+        path: test-results/wasm-runtime-tests.xml
+        reporter: dotnet-nunit
+        fail-on-error: true
+```
+
+#### JSON config
+
+Sharding can also be configured via the JSON config passed in `UNO_RUNTIME_TESTS_RUN_TESTS`:
+
+```bash
+UNO_RUNTIME_TESTS_RUN_TESTS='{"ShardIndex":0,"TotalShards":4}' \
+  UNO_RUNTIME_TESTS_OUTPUT_PATH=results.xml dotnet MyApp.dll
+```
+
+Note: when using JSON config, `ShardIndex` is **0-based** (0 to N-1). The environment variables and CLI use **1-based** indexing (1 to N) and convert automatically.
+
+#### Edge cases
+
+* **Empty shard**: If a shard has no tests assigned (e.g., more shards than tests), it exits successfully with code 0.
+* **Single shard** (`--total-shards 1`): All tests run — sharding is effectively disabled.
+* **Combined with filters**: Filters are applied first, then sharding selects from the filtered set.
 
 ### Running the tests automatically during CI on mobile targets
 Alternatively, you can also run the runtime-tests on the CI using ["UI Tests"](https://github.com/unoplatform/Uno.UITest). Here is an example of how it's integrated in uno's core CI](https://github.com/unoplatform/uno/blob/master/src/SamplesApp/SamplesApp.UITests/RuntimeTests.cs#L32.
