@@ -111,6 +111,16 @@ class Program
 			description: "Path where AOT profile data will be written (requires app built with WasmShellGenerateAOTProfile=true)",
 			getDefaultValue: () => null);
 
+		var shardIndexOption = new Option<int?>(
+			name: "--shard-index",
+			description: "1-based shard index (1 to total-shards). Fallback: UNO_RUNTIME_TESTS_SHARD_INDEX env var, then Azure Pipelines SYSTEM_JOBPOSITIONINPHASE.",
+			getDefaultValue: () => null);
+
+		var totalShardsOption = new Option<int?>(
+			name: "--total-shards",
+			description: "Total number of shards. Fallback: UNO_RUNTIME_TESTS_TOTAL_SHARDS env var, then Azure Pipelines SYSTEM_TOTALJOBSINPHASE.",
+			getDefaultValue: () => null);
+
 		runCommand.AddOption(appPathOption);
 		runCommand.AddOption(outputOption);
 		runCommand.AddOption(filterOption);
@@ -122,6 +132,8 @@ class Program
 		runCommand.AddOption(queryParamOption);
 		runCommand.AddOption(browserLogLevelOption);
 		runCommand.AddOption(aotProfileOutputOption);
+		runCommand.AddOption(shardIndexOption);
+		runCommand.AddOption(totalShardsOption);
 
 		runCommand.SetHandler(async (context) =>
 		{
@@ -136,8 +148,10 @@ class Program
 			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
 			var browserLogLevel = context.ParseResult.GetValueForOption(browserLogLevelOption)!;
 			var aotProfileOutput = context.ParseResult.GetValueForOption(aotProfileOutputOption);
+			var shardIndex = context.ParseResult.GetValueForOption(shardIndexOption);
+			var totalShards = context.ParseResult.GetValueForOption(totalShardsOption);
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput, shardIndex, totalShards);
 			context.ExitCode = exitCode;
 		});
 
@@ -155,6 +169,8 @@ class Program
 		rootCommand.AddOption(queryParamOption);
 		rootCommand.AddOption(browserLogLevelOption);
 		rootCommand.AddOption(aotProfileOutputOption);
+		rootCommand.AddOption(shardIndexOption);
+		rootCommand.AddOption(totalShardsOption);
 
 		rootCommand.SetHandler(async (context) =>
 		{
@@ -176,13 +192,18 @@ class Program
 			var queryParams = context.ParseResult.GetValueForOption(queryParamOption) ?? [];
 			var browserLogLevel = context.ParseResult.GetValueForOption(browserLogLevelOption)!;
 			var aotProfileOutput = context.ParseResult.GetValueForOption(aotProfileOutputOption);
+			var shardIndex = context.ParseResult.GetValueForOption(shardIndexOption);
+			var totalShards = context.ParseResult.GetValueForOption(totalShardsOption);
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput, shardIndex, totalShards);
 			context.ExitCode = exitCode;
 		});
 
 		return await rootCommand.InvokeAsync(args);
 	}
+
+	static int? ParseIntOrNull(string? value)
+		=> int.TryParse(value, out var result) ? result : null;
 
 	static async Task<int> RunTests(
 		DirectoryInfo appPath,
@@ -195,7 +216,9 @@ class Program
 		string[] additionalBrowserArgs,
 		string[] queryParams,
 		string browserLogLevel,
-		FileInfo? aotProfileOutput)
+		FileInfo? aotProfileOutput,
+		int? shardIndex,
+		int? totalShards)
 	{
 		AnsiConsole.MarkupLine("[bold blue]Uno Platform WASM Runtime Tests Runner[/]");
 		AnsiConsole.WriteLine();
@@ -273,6 +296,22 @@ class Program
 			injectedEnvVars["UNO_RUNTIME_TESTS_AOT_PROFILE_OUTPUT_URL"] = $"http://localhost:{serverPort}/aot-profile";
 		}
 
+		// Resolve sharding configuration: CLI args > env vars > Azure Pipelines vars
+		var resolvedShardIndex = shardIndex
+			?? ParseIntOrNull(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_SHARD_INDEX"))
+			?? ParseIntOrNull(Environment.GetEnvironmentVariable("SYSTEM_JOBPOSITIONINPHASE"));
+
+		var resolvedTotalShards = totalShards
+			?? ParseIntOrNull(Environment.GetEnvironmentVariable("UNO_RUNTIME_TESTS_TOTAL_SHARDS"))
+			?? ParseIntOrNull(Environment.GetEnvironmentVariable("SYSTEM_TOTALJOBSINPHASE"));
+
+		if (resolvedShardIndex is not null && resolvedTotalShards is not null)
+		{
+			injectedEnvVars["UNO_RUNTIME_TESTS_SHARD_INDEX"] = resolvedShardIndex.Value.ToString();
+			injectedEnvVars["UNO_RUNTIME_TESTS_TOTAL_SHARDS"] = resolvedTotalShards.Value.ToString();
+			Log.Detail("Shard index", $"{resolvedShardIndex}/{resolvedTotalShards}");
+		}
+
 		server.SetInjectedEnvironmentVariables(injectedEnvVars);
 
 		Log.Success($"Server started on port {serverPort}");
@@ -285,6 +324,13 @@ class Program
 		testUrlBuilder.Append($"?_cb={cacheBuster}"); // Cache buster
 		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_RUN_TESTS={Uri.EscapeDataString(testConfig)}");
 		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_OUTPUT_URL={Uri.EscapeDataString($"http://localhost:{serverPort}/results")}");
+
+		// Add sharding query parameters for backward compatibility
+		if (resolvedShardIndex is not null && resolvedTotalShards is not null)
+		{
+			testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_SHARD_INDEX={resolvedShardIndex}");
+			testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_TOTAL_SHARDS={resolvedTotalShards}");
+		}
 
 		// Add any additional query parameters
 		foreach (var param in queryParams)
