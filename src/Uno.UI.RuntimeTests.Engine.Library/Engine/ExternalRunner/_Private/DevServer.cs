@@ -204,7 +204,7 @@ public sealed partial class DevServer : global::System.IAsyncDisposable
 			{
 				using var tcp = new global::System.Net.Sockets.TcpClient();
 				tcp.Connect(global::System.Net.IPAddress.Loopback, port);
-				_log.LogDebug($"Dev-server is listening on port {port} after {sw.ElapsedMilliseconds}ms");
+				global::Microsoft.Extensions.Logging.LoggerExtensions.LogDebug(_log, $"Dev-server is listening on port {port} after {sw.ElapsedMilliseconds}ms");
 				return;
 			}
 			catch (global::System.Net.Sockets.SocketException)
@@ -213,7 +213,7 @@ public sealed partial class DevServer : global::System.IAsyncDisposable
 			}
 		}
 
-		_log.LogWarning($"Dev-server port {port} not ready after {timeoutMs}ms, proceeding anyway");
+		global::Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(_log, $"Dev-server port {port} not ready after {timeoutMs}ms, proceeding anyway");
 	}
 
 	#region Misc helpers
