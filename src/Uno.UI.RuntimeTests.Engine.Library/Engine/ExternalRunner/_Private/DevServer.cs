@@ -186,7 +186,34 @@ public sealed partial class DevServer : global::System.IAsyncDisposable
 
 		process.StartAndLog(_log.Scope<DevServer>($"DEV_SERVER_{(global::System.Threading.Interlocked.Increment(ref _instance)):D2}"));
 
+		// Wait for the dev-server HTTP endpoint to be ready before returning.
+		// The dev-server process needs time to bind its HTTP port after startup.
+		// Without this, the child app may attempt to connect before the server is listening,
+		// and RemoteControlClient does not retry if the initial connection attempt fails.
+		WaitForPortReady(port);
+
 		return new DevServer(process, port);
+	}
+
+	private static void WaitForPortReady(int port, int timeoutMs = 30_000)
+	{
+		var sw = global::System.Diagnostics.Stopwatch.StartNew();
+		while (sw.ElapsedMilliseconds < timeoutMs)
+		{
+			try
+			{
+				using var tcp = new global::System.Net.Sockets.TcpClient();
+				tcp.Connect(global::System.Net.IPAddress.Loopback, port);
+				_log.LogDebug($"Dev-server is listening on port {port} after {sw.ElapsedMilliseconds}ms");
+				return;
+			}
+			catch (global::System.Net.Sockets.SocketException)
+			{
+				global::System.Threading.Thread.Sleep(100);
+			}
+		}
+
+		_log.LogWarning($"Dev-server port {port} not ready after {timeoutMs}ms, proceeding anyway");
 	}
 
 	#region Misc helpers
