@@ -1,6 +1,7 @@
 <Project Sdk="Uno.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.22621;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
+		<TargetFrameworks Condition=" '$(TargetFrameworksOverride)' != '' ">$(TargetFrameworksOverride)</TargetFrameworks>
+		<TargetFrameworks Condition=" '$(TargetFrameworks)' == '' ">net10.0-android;net10.0-ios;net10.0-windows10.0.22621;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
 
 		<!-- Required to build for a single target on Linux -->
 		<TargetFrameworks Condition="'$(TargetFrameworksOverride)' != ''">$(TargetFrameworksOverride)</TargetFrameworks>
@@ -22,6 +23,8 @@
 			Logging;
       		SkiaRenderer;
 		</UnoFeatures>
+
+		<VSTestTargets>$(MSBuildThisFileDirectory)TestApp_VSTest.targets</VSTestTargets>
 	</PropertyGroup>
 
 	<PropertyGroup>

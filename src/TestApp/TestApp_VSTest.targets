@@ -1,0 +1,15 @@
+<Project>
+
+    <Target Name="VSTest">
+        <Message Text="# jonp: can we run our own tests here?" />
+        <ItemGroup>
+            <_UnoRuntimeTestEnvVar Include="UNO_RUNTIME_TESTS_OUTPUT_PATH=$(MSBBuildThisFileDirectory)TestResults.xml" />
+            <_UnoRuntimeTestEnvVar Include="UNO_RUNTIME_TESTS_RUN_TESTS=true" />
+        </ItemGroup>
+        <Exec
+            Command="&quot;$(DOTNET_HOST_PATH)&quot; &quot;$(TargetPath)&quot;"
+            EnvironmentVariables="@(_UnoRuntimeTestEnvVar)"
+        />
+    </Target>
+
+</Project>
