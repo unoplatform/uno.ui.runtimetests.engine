@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Windows.Foundation;
-using Windows.UI.Input;
 using Windows.UI.Input.Preview.Injection;
 
 namespace Uno.UI.RuntimeTests;
@@ -31,12 +30,17 @@ public partial class InputInjectorHelper
 				?? throw new NotSupportedException("This version of uno is not supported for pointer injection.");
 
 			CurrentPosition = () => (Point)getCurrentPosition.Invoke(getCurrent.Invoke(input, null)!, null)!;
-			CurrentProperties = () => (PointerPointProperties)getCurrentProperties.Invoke(getCurrent.Invoke(input, null)!, null)!;
+			// The pointer-point properties type moved from Windows.UI.Input to Microsoft.UI.Input in Uno 7.0;
+			// read the button states reflectively so the engine stays compatible with both namespaces.
+			CurrentProperties = () => getCurrentProperties.Invoke(getCurrent.Invoke(input, null)!, null)!;
 		}
 
-		private Func<PointerPointProperties> CurrentProperties;
+		private Func<object> CurrentProperties;
 
 		private Func<Point> CurrentPosition;
+
+		private static bool IsButtonPressed(object properties, string propertyName)
+			=> (bool)properties.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public)!.GetValue(properties)!;
 #else
 		private Point _trackedPosition;
 
@@ -77,22 +81,22 @@ public partial class InputInjectorHelper
 
 #if HAS_UNO
 			var currentProps = CurrentProperties();
-			if (currentProps.IsLeftButtonPressed)
+			if (IsButtonPressed(currentProps, "IsLeftButtonPressed"))
 			{
 				options |= InjectedInputMouseOptions.LeftUp;
 			}
 
-			if (currentProps.IsMiddleButtonPressed)
+			if (IsButtonPressed(currentProps, "IsMiddleButtonPressed"))
 			{
 				options |= InjectedInputMouseOptions.MiddleUp;
 			}
 
-			if (currentProps.IsRightButtonPressed)
+			if (IsButtonPressed(currentProps, "IsRightButtonPressed"))
 			{
 				options |= InjectedInputMouseOptions.RightUp;
 			}
 
-			if (currentProps.IsXButton1Pressed)
+			if (IsButtonPressed(currentProps, "IsXButton1Pressed"))
 			{
 				options |= InjectedInputMouseOptions.XUp;
 			}
