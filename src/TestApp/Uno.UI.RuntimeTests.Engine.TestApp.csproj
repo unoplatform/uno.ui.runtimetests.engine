@@ -34,6 +34,18 @@
 		<PackageReference Include="MSTest.TestFramework" Version="$(MSTestVersion)" />
 	</ItemGroup>
 
+	<!-- Microsoft.Testing.Platform (MTP) support, desktop head only -->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
+		<IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+		<DefineConstants>$(DefineConstants);HAS_UNO_RUNTIMETESTS_MTP</DefineConstants>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
+		<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.1" />
+		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.1" />
+		<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.1" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute">
 			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
