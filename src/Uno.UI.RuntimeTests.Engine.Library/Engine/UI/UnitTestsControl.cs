@@ -1104,7 +1104,7 @@ public sealed partial class UnitTestsControl : UserControl
 		await tcs.Task;
 	}
 
-	private IEnumerable<UnitTestClassInfo> InitializeTests()
+	internal IEnumerable<UnitTestClassInfo> InitializeTests()
 	{
 		var testAssemblies = AppDomain.CurrentDomain.GetAssemblies()
 			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)
