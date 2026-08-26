@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -15,11 +16,12 @@ namespace Uno.UI.RuntimeTests.Engine
 		}
 
 		[TestMethod]
-		[Timeout(200)]
-		[ExpectedException(typeof(TimeoutException))]
-		public async Task When_Timeout_Is_Exceeded()
+		[Timeout(200, CooperativeCancellation = true)]
+		public async Task When_Timeout_Is_Exceeded_With_Cooperative_Cancellation(CancellationToken cancellationToken)
 		{
-			await Task.Delay(10_000);
+			// With CooperativeCancellation, the token passed to the test method is cancelled
+			// once the timeout elapses, instead of the runner racing and abandoning the test's task.
+			await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await Task.Delay(10_000, cancellationToken));
 		}
 
 		[TestMethod]

@@ -45,8 +45,8 @@ namespace Uno.UI.RuntimeTests.Engine
 		}
 
 		[TestMethod]
-		[DynamicData(nameof(DynamicData), DynamicDataSourceType.Property)]
-		[DynamicData(nameof(GetDynamicData), DynamicDataSourceType.Method)]
+		[DynamicData(nameof(DynamicData))]
+		[DynamicData(nameof(GetDynamicData))]
 		public void Is_Sane_With_DynamicData(string text)
 		{
 			Assert.IsTrue(new[] { "hello", "goodbye" }.Contains(text));

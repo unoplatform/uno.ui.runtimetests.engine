@@ -25,11 +25,16 @@ public class PointersInjectionTests
 	[TestMethod]
 	[InjectedPointer(PointerDeviceType.Mouse)]
 	[InjectedPointer(PointerDeviceType.Touch)]
-#if !HAS_UNO_SKIA && !WINDOWS
-	[ExpectedException(typeof(NotSupportedException))]
-#endif
 	public async Task When_TapCoordinates()
 	{
+		InputInjectorHelper injector = null!;
+#if !HAS_UNO_SKIA && !WINDOWS
+		Assert.ThrowsExactly<NotSupportedException>(() => injector = InputInjectorHelper.Current);
+		return;
+#else // HAS_UNO_SKIA || WINDOWS
+		injector = InputInjectorHelper.Current;
+#endif // !HAS_UNO_SKIA && !WINDOWS
+
 		var elt = new Button { Content = "Tap me" };
 		var clicked = false;
 		elt.Click += (snd, e) => clicked = true;
@@ -38,18 +43,23 @@ public class PointersInjectionTests
 
 		await UnitTestsUIContentHelper.WaitForLoaded(elt);
 
-		InputInjectorHelper.Current.Tap(elt);
+		injector.Tap(elt);
 
 		Assert.IsTrue(clicked);
 	}
 
 	[TestMethod]
 	[InjectedPointer(PointerDeviceType.Mouse)]
-#if !HAS_UNO_SKIA && !WINDOWS
-	[ExpectedException(typeof(NotSupportedException))]
-#endif
 	public async Task When_TapCoordinates_Sequential()
 	{
+		InputInjectorHelper injector = null!;
+#if !HAS_UNO_SKIA && !WINDOWS
+		Assert.ThrowsExactly<NotSupportedException>(() => injector = InputInjectorHelper.Current);
+		return;
+#else // HAS_UNO_SKIA || WINDOWS
+		injector = InputInjectorHelper.Current;
+#endif // !HAS_UNO_SKIA && !WINDOWS
+
 		var panel = new StackPanel { Spacing = 8 };
 		var button1 = new Button { Content = "Button 1", Width = 120, Height = 40 };
 		var button2 = new Button { Content = "Button 2", Width = 120, Height = 40 };
@@ -65,21 +75,24 @@ public class PointersInjectionTests
 		await UnitTestsUIContentHelper.WaitForLoaded(button1);
 		await UnitTestsUIContentHelper.WaitForLoaded(button2);
 
-		InputInjectorHelper.Current.Tap(button1);
+		injector.Tap(button1);
 		Assert.IsTrue(clicked1, "First button should have been clicked");
 
-		InputInjectorHelper.Current.Tap(button2);
+		injector.Tap(button2);
 		Assert.IsTrue(clicked2, "Second button should have been clicked");
 	}
 
 	[TestMethod]
 	[InjectedPointer(PointerDeviceType.Mouse)]
-#if !HAS_UNO_SKIA && !WINDOWS
-	[ExpectedException(typeof(NotSupportedException))]
-#endif
 	public void When_MoveTo_GeneratesCorrectDeltas()
 	{
-		var injector = InputInjectorHelper.Current;
+		InputInjectorHelper injector = null!;
+#if !HAS_UNO_SKIA && !WINDOWS
+		Assert.ThrowsExactly<NotSupportedException>(() => injector = InputInjectorHelper.Current);
+		return;
+#else // HAS_UNO_SKIA || WINDOWS
+		injector = InputInjectorHelper.Current;
+#endif // !HAS_UNO_SKIA && !WINDOWS
 
 		// Capture moves while injecting so position tracking updates between steps
 		var capturedMoves = new List<Windows.UI.Input.Preview.Injection.InjectedInputMouseInfo>();
@@ -100,12 +113,15 @@ public class PointersInjectionTests
 
 	[TestMethod]
 	[InjectedPointer(PointerDeviceType.Mouse)]
-#if !HAS_UNO_SKIA && !WINDOWS
-	[ExpectedException(typeof(NotSupportedException))]
-#endif
 	public void When_MoveTo_Sequential_PositionTracksCorrectly()
 	{
-		var injector = InputInjectorHelper.Current;
+		InputInjectorHelper injector = null!;
+#if !HAS_UNO_SKIA && !WINDOWS
+		Assert.ThrowsExactly<NotSupportedException>(() => injector = InputInjectorHelper.Current);
+		return;
+#else // HAS_UNO_SKIA || WINDOWS
+		injector = InputInjectorHelper.Current;
+#endif // !HAS_UNO_SKIA && !WINDOWS
 
 		// Move to (100, 100) first
 		injector.InjectMouseInput(injector.Mouse.MoveTo(100, 100));
