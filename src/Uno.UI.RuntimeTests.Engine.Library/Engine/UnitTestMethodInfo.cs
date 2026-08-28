@@ -30,15 +30,12 @@ public record UnitTestMethodInfo
 		RequiresFullWindow =
 			HasCustomAttribute<RequiresFullWindowAttribute>(method) ||
 			HasCustomAttribute<RequiresFullWindowAttribute>(method.DeclaringType);
-		ExpectedException = method
-			.GetCustomAttributes<ExpectedExceptionAttribute>()
-			.SingleOrDefault()
-			?.ExceptionType;
 
 		var timeoutAttr = method.GetCustomAttribute<TimeoutAttribute>();
 		Timeout = timeoutAttr is not null
 			? TimeSpan.FromMilliseconds(timeoutAttr.Timeout)
 			: null;
+		CooperativeCancellation = timeoutAttr?.CooperativeCancellation ?? false;
 
 		_casesParameters = method
 			.GetCustomAttributes()
@@ -57,9 +54,13 @@ public record UnitTestMethodInfo
 
 	public MethodInfo Method { get; }
 
-	public Type? ExpectedException { get; }
-
 	public TimeSpan? Timeout { get; }
+
+	/// <summary>
+	/// Whether the <see cref="TimeSpan"/> <see cref="Timeout"/> should be enforced by cancelling the
+	/// <see cref="CancellationToken"/> parameter of the test method, instead of racing against and abandoning it.
+	/// </summary>
+	public bool CooperativeCancellation { get; }
 
 	public bool RequiresFullWindow { get; }
 
@@ -118,6 +119,32 @@ public record UnitTestMethodInfo
 		}
 
 		return cases;
+	}
+
+	/// <summary>
+	/// Returns a copy of <paramref name="parameters"/> with the value of the <see cref="CancellationToken"/>
+	/// parameter (if any) replaced by <paramref name="token"/>. Used to substitute the run-level cancellation
+	/// token baked in by <see cref="GetCases"/> with one scoped to this invocation's <see cref="CooperativeCancellation"/> timeout.
+	/// </summary>
+	internal object[] WithCancellationToken(object[] parameters, CancellationToken token)
+	{
+		var methodParams = Method.GetParameters();
+		var result = parameters;
+
+		for (var i = 0; i < methodParams.Length && i < parameters.Length; i++)
+		{
+			if (methodParams[i].ParameterType == typeof(CancellationToken))
+			{
+				if (ReferenceEquals(result, parameters))
+				{
+					result = (object[])parameters.Clone();
+				}
+
+				result[i] = token;
+			}
+		}
+
+		return result;
 	}
 }
 #endif

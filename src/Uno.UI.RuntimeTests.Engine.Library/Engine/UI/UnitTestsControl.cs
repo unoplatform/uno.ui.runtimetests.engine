@@ -902,24 +902,29 @@ public sealed partial class UnitTestsControl : UserControl
 						{
 							sw.Start();
 							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
-							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution", test.Timeout);
+
+							var cooperative = test is { Timeout: not null, CooperativeCancellation: true } &&
+								test.Method.GetParameters().Any(p => p.ParameterType == typeof(CancellationToken));
+							using var timeoutCts = cooperative
+								? CancellationTokenSource.CreateLinkedTokenSource(ct)
+								: null;
+
+							var parameters = testCase.Parameters;
+
+							if (timeoutCts is not null)
+							{
+								timeoutCts.CancelAfter(test.Timeout!.Value);
+								parameters = test.WithCancellationToken(parameters, timeoutCts.Token);
+							}
+
+							await WaitResult(test.Method.Invoke(instance, parameters), "execution", test.Timeout, cooperative);
 							sw.Stop();
 						}
 
 						var console = consoleRecorder?.GetContentAndReset();
 
-						if (test.ExpectedException is null)
-						{
-							_currentRun.Succeeded++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, console: console);
-						}
-						else
-						{
-							_currentRun.Failed++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Failed,
-								message: $"Test did not throw the excepted exception of type {test.ExpectedException.Name}",
-								console: console);
-						}
+						_currentRun.Succeeded++;
+						ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, console: console);
 					}
 					catch (Exception ex)
 					{
@@ -944,7 +949,7 @@ public sealed partial class UnitTestsControl : UserControl
 							_currentRun.Ignored++;
 							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Skipped, message: e.Message, console: console);
 						}
-						else if (test.ExpectedException is null || !test.ExpectedException.IsInstanceOfType(e))
+						else
 						{
 							if (_currentRun.CurrentRepeatCount < config.Attempts - 1 && !Debugger.IsAttached)
 							{
@@ -958,11 +963,6 @@ public sealed partial class UnitTestsControl : UserControl
 								_currentRun.Failed++;
 								ReportTestResult(fullTestName, sw.Elapsed, TestResult.Failed, e, console: console);
 							}
-						}
-						else
-						{
-							_currentRun.Succeeded++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, e, console: console);
 						}
 					}
 					finally
@@ -1012,14 +1012,31 @@ public sealed partial class UnitTestsControl : UserControl
 			}
 		}
 
-		async ValueTask WaitResult(object? returnValue, string step, TimeSpan? timeout = null)
+		async ValueTask WaitResult(object? returnValue, string step, TimeSpan? timeout = null, bool cooperativeCancellation = false)
 		{
 			if (returnValue is Task asyncResult)
 			{
-				var effectiveTimeout = timeout ?? DefaultUnitTestTimeout;
-				var timeoutTask = Task.Delay(effectiveTimeout);
 				var cancelTcs = new TaskCompletionSource<object?>();
 				using var ctr = ct.Register(() => cancelTcs.TrySetResult(null));
+
+				if (cooperativeCancellation)
+				{
+					// The timeout is enforced by the CancellationToken passed to the test method itself
+					// (see DoInvoke), so we only need to watch for a run-level Stop request here, not race
+					// a separate hard timeout against the test's task.
+					var cooperativeResult = await Task.WhenAny(asyncResult, cancelTcs.Task);
+
+					if (cooperativeResult == cancelTcs.Task)
+					{
+						ct.ThrowIfCancellationRequested();
+					}
+
+					await cooperativeResult;
+					return;
+				}
+
+				var effectiveTimeout = timeout ?? DefaultUnitTestTimeout;
+				var timeoutTask = Task.Delay(effectiveTimeout);
 				var resultingTask = await Task.WhenAny(asyncResult, timeoutTask, cancelTcs.Task);
 
 				if (resultingTask == cancelTcs.Task)
