@@ -1,8 +1,11 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Testing.Extensions;
+
 using Uno.UI.Hosting;
+
+using Microsoft.Testing.Extensions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Uno.UI.RuntimeTests.Engine.Desktop;
 
@@ -21,54 +24,27 @@ public class Program
 			.UseWin32()
 			.Build();
 
-		var tests = Task.Run(async () =>
-		{
-			if (!args.Any(a => string.Compare("--dotnet-test-pipe", a, StringComparison.OrdinalIgnoreCase) == 0))
-			{
-				return;
-			}
-			var testsBuilder = await Microsoft.Testing.Platform.Builder.TestApplication.CreateBuilderAsync(args);
-			testsBuilder.AddUnoRuntimeTests();
-			testsBuilder.AddTrxReportProvider();
-			using var testsApp = await testsBuilder.BuildAsync();
-			try
-			{
-				Environment.ExitCode = await testsApp.RunAsync();
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Failed to run MTP-hosted runtime tests: {e}");
-				Environment.ExitCode = 1;
-				throw;
-			}
-			finally
-			{
-				Microsoft.UI.Xaml.Application.Current?.Exit();
-			}
-		});
-
-		Task.WaitAll(tests, host.RunAsync());
+		Task.WaitAll(RunTests(args), host.RunAsync());
 	}
 
-	static Task StartTestRunnerAsync(string[] args)
+	static async Task RunTests(string[] args)
 	{
-		// Opt-in Microsoft.Testing.Platform support (see specs/003-mtp-integration/spec.md).
-		// Only engage when launched with CLI args -- e.g. by `dotnet test` (which passes
-		// `--server dotnettestcli ...`) or directly with MTP switches like `--list-tests`.
-		// A plain launch (double-click, `dotnet TestApp.dll` with no args, or the existing
-		// UNO_RUNTIME_TESTS_* env-var flow) always has zero args, so this never hijacks it.
-		if (args.Any(a => string.Compare("--dotnet-test-pipe", a, StringComparison.OrdinalIgnoreCase) == 0))
+		if (!args.Any(a => string.Compare("--dotnet-test-pipe", a, StringComparison.OrdinalIgnoreCase) == 0))
 		{
-#if HAS_UNO_RUNTIMETESTS_MTP
-			return Uno.UI.RuntimeTests.Engine.MicrosoftTestingPlatformRunner.RunAsync(args);
-#else
-			return Task.CompletedTask;
-#endif
+			return;
 		}
-		else
-		{
-			return Task.CompletedTask;
-		}
-	}
 
+		var testsBuilder = await Microsoft.Testing.Platform.Builder.TestApplication.CreateBuilderAsync(args);
+		testsBuilder.AddUnoRuntimeTests();
+#if USE_UNO_MSTEST_ENGINE
+		// MSTest-native runtime-tests engine (opt-in via $(UseMSTest)=true): runs tests through
+		// MSTest's own engine instead of the hand-rolled one bridged by AddUnoRuntimeTests(),
+		// which uses Reflection to load all `*Tests.dll` assemblies.
+		// Explicitly mention the assemblies which contain tests.
+		testsBuilder.AddMSTest(() => [typeof(Program).Assembly]);
+		testsBuilder.AddTrxReportProvider();
+#endif // USE_UNO_MSTEST_ENGINE
+		using var testsApp = await testsBuilder.BuildAsync();
+		await testsApp.RunUnoAppAsync();
+	}
 }

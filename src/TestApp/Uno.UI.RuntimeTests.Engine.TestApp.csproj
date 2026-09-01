@@ -27,7 +27,9 @@
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);IS_UNO_RUNTIMETEST_PROJECT</DefineConstants>
 		<!-- Suppress warnings from the Library code -->
-		<NoWarn>$(NoWarn);CS8619;CS8602;Uno0001;IL2026;IL2070;IL2072;IL2075</NoWarn>
+		<NoWarn>$(NoWarn);
+			CS0436; <!-- The type 'GlobalStaticResources' in '…/GlobalStaticResources.cs' conflicts with the imported type 'GlobalStaticResources' in 'Uno.UI.RuntimeTests.Engine.MSTest, …'. Using the type defined in '…/GlobalStaticResources.cs'. -->
+			CS8619;CS8602;Uno0001;IL2026;IL2070;IL2072;IL2075</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -41,9 +43,30 @@
 		<DefineConstants>$(DefineConstants);HAS_UNO_RUNTIMETESTS_MTP</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
-		<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.1" />
-		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.1" />
-		<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.1" />
+		<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.3" />
+		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.3" />
+		<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3" />
+	</ItemGroup>
+
+	<!--
+		MSTest-native runtime-tests engine opt-in (Uno.UI.RuntimeTests.Engine.MSTest, see its README/the
+		003-mtp-integration follow-up spec). Needed on ALL TFMs, not just desktop, because the
+		env-var/CI flow on every platform now runs tests in-process via MSTest's own engine
+		(TestApplicationBuilderExtensions.AddMSTest), not just the desktop `dotnet test` CLI path.
+	-->
+	<PropertyGroup Condition=" '$(UseMSTest)' == 'true' ">
+		<EnableMSTestRunner>true</EnableMSTestRunner>
+		<DefineConstants>$(DefineConstants);USE_UNO_MSTEST_ENGINE</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(UseMSTest)' == 'true' And '$(TargetPlatformIdentifier)' == 'Desktop' ">
+		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+	</PropertyGroup>
+	<ItemGroup Condition=" '$(UseMSTest)' == 'true' ">
+		<PackageReference Include="MSTest" Version="$(MSTestVersion)" />
+	</ItemGroup>
+	<!-- Desktop already gets Microsoft.Testing.Platform from the MTP ItemGroup above. -->
+	<ItemGroup Condition="'$(UseMSTest)' == 'true' and '$(TargetFramework)' != 'net10.0-desktop'">
+		<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.3" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -56,6 +79,10 @@
 		</AssemblyAttribute>
 	</ItemGroup>
 
-	<!-- Import the RuntimeTests Engine Library -->
-	<Import Project="..\Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems" Label="Shared" />
+	<!-- Import exactly one runtime-tests engine: the default hand-rolled Library, or the MSTest-native
+	     one when opted into via $(UseMSTest)=true (see Uno.UI.RuntimeTests.Engine.MSTest). -->
+	<Import Project="..\Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems" Label="Shared" Condition="'$(UseMSTest)' != 'true'" />
+	<ItemGroup Condition=" '$(UseMSTest)' == 'true' ">
+		<ProjectReference Include="..\Uno.UI.RuntimeTests.Engine.MSTest\Uno.UI.RuntimeTests.Engine.MSTest.csproj" />
+	</ItemGroup>
 </Project>

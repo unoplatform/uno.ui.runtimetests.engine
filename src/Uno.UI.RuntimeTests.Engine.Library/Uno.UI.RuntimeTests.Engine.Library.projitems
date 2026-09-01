@@ -53,6 +53,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Library\RequiresFullWindowAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RunsInSecondaryAppAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RunsOnUIThreadAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\UnoTestClassAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.xaml">
