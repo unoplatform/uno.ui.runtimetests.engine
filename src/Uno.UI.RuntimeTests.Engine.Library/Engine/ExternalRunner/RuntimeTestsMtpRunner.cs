@@ -34,6 +34,24 @@ public static class RuntimeTestsMtpRunner
 			(capabilities, serviceProvider) => new UnoRuntimeTestsFramework(capabilities, serviceProvider));
 		return builder;
 	}
+
+	public static async Task RunUnoAppAsync(this ITestApplication app, CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			Environment.ExitCode = await app.RunAsync();
+		}
+		catch (Exception e)
+		{
+			Console.WriteLine($"Failed to run MTP-hosted runtime tests: {e}");
+			Environment.ExitCode = 1;
+			throw;
+		}
+		finally
+		{
+			Microsoft.UI.Xaml.Application.Current?.Exit();
+		}
+	}
 }
 
 /// <summary>

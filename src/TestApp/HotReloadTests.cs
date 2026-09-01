@@ -27,7 +27,7 @@ public class HotReloadSanity
 	}
 }
 
-[TestClass]
+[UnoTestClass]
 [RunsInSecondaryApp]
 public class HotReloadTests
 {

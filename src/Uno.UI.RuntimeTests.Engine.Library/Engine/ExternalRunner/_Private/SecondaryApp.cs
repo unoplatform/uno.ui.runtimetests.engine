@@ -16,7 +16,7 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 /// This class is intended to be used only by the the test engine itself and should not be used by applications.
 /// API contract is not guaranteed and might change in future releases.
 /// </remarks>
-internal static partial class SecondaryApp
+public static partial class SecondaryApp
 {
 	/// <summary>
 	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.
