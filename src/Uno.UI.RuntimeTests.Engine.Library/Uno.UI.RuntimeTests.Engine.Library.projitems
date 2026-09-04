@@ -26,6 +26,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\DevServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\ProcessHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestEmbeddedRunner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestsMtpRunner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\RuntimeTestsSourceProjectAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\SecondaryApp.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\_Private\WasmTestResultReporter.cs" />
@@ -52,6 +53,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Library\RequiresFullWindowAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RunsInSecondaryAppAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Library\RunsOnUIThreadAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Library\UnoTestClassAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.xaml">

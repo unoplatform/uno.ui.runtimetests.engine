@@ -1,48 +1,55 @@
-﻿#if !IS_UNO_RUNTIMETEST_PROJECT
+#if !IS_UNO_RUNTIMETEST_PROJECT
 #pragma warning disable
 #endif
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
 #nullable enable
 
-#if !UNO_RUNTIMETESTS_DISABLE_UI
+#if USE_UNO_MSTEST_ENGINE
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Testing.Platform.Builder;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Uno.UI.RuntimeTests.Internal.Helpers;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
-using Uno.UI.RuntimeTests.Engine;
-using Uno.UI.RuntimeTests.Internal.Helpers;
 
 using Windows.UI;
 using Windows.UI.Core;
-using Windows.UI.Text;
 using Windows.UI.ViewManagement;
 using Microsoft.UI.Text;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+
+using Uno.UI.RuntimeTests.Engine;
 
 using XamlWindow = Microsoft.UI.Xaml.Window;
 
 namespace Uno.UI.RuntimeTests;
 
+/// <summary>
+/// MSTest-engine-native counterpart of the hand-rolled <c>UnitTestsControl</c> from
+/// <c>Uno.UI.RuntimeTests.Engine.Library</c>. Discovery narrows a candidate set of test methods
+/// (filter/CI-group/sharding), which is then handed to MSTest's own engine (via
+/// <see cref="TestApplicationBuilderExtensions.AddMSTest"/>) as a <c>--filter</c> expression --
+/// actual test execution (including <see cref="UnoTestClassAttribute"/>/<see cref="UnoTestMethodAttribute"/>
+/// dispatch) happens inside MSTest's real pipeline, not in a hand-rolled loop.
+/// </summary>
 public sealed partial class UnitTestsControl : UserControl
 {
 #pragma warning disable CS0109
@@ -51,11 +58,6 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private Task? _runner;
 	private CancellationTokenSource? _cts = new CancellationTokenSource();
-#if DEBUG
-	private readonly TimeSpan DefaultUnitTestTimeout = TimeSpan.FromSeconds(300);
-#else
-	private readonly TimeSpan DefaultUnitTestTimeout = TimeSpan.FromSeconds(60);
-#endif
 
 	private readonly UnitTestDispatcherCompat _dispatcher;
 
@@ -126,7 +128,6 @@ public sealed partial class UnitTestsControl : UserControl
 		set { SetValue(IsRunningOnCIProperty, value); }
 	}
 
-	// Using a DependencyProperty as the backing store for IsRunningOnCI.  This enables animation, styling, binding, etc...
 	public static readonly DependencyProperty IsRunningOnCIProperty =
 		DependencyProperty.Register("IsRunningOnCI", typeof(bool), typeof(UnitTestsControl), new PropertyMetadata(false));
 
@@ -230,7 +231,6 @@ public sealed partial class UnitTestsControl : UserControl
 		_runner = Task.Run(() => RunTests(_cts!.Token, config));
 	}
 
-
 	private void OnStopTests(object sender, RoutedEventArgs e)
 	{
 		StopRunningTests();
@@ -238,6 +238,10 @@ public sealed partial class UnitTestsControl : UserControl
 
 	private void StopRunningTests()
 	{
+		// Note: under the MSTest-native engine, Stop can no longer preemptively abort an
+		// in-flight run -- Microsoft.Testing.Platform's ITestApplication.RunAsync() doesn't
+		// accept an external CancellationToken. This still prevents a *queued* run from
+		// starting and is checked before the MSTest host is built.
 		var cts = Interlocked.Exchange(ref _cts, null);
 		cts?.Cancel();
 	}
@@ -296,26 +300,6 @@ public sealed partial class UnitTestsControl : UserControl
 		await _dispatcher.RunAsync(Update);
 	}
 
-	private void ReportTestClass(TypeInfo testClass)
-	{
-		_dispatcher.Invoke(() =>
-		{
-			if (!IsRunningOnCI)
-			{
-				var testResultBlock = new TextBlock()
-				{
-					Text = $"{testClass.Name} ({testClass.Assembly.GetName().Name})",
-					Foreground = new SolidColorBrush(Colors.White),
-					FontSize = 16d,
-					IsTextSelectionEnabled = true
-				};
-
-				testResults.Children.Add(testResultBlock);
-				testResultBlock.StartBringIntoView();
-			}
-		});
-	}
-
 	private void ReportTestResult(string testName, TimeSpan duration, TestResult testResult, Exception? error = null, string? message = null, string? console = null)
 		=> ReportTestResult(
 			new TestCaseResult
@@ -368,19 +352,17 @@ public sealed partial class UnitTestsControl : UserControl
 				IsTextSelectionEnabled = true
 			};
 
-			var retriesText = _currentRun.CurrentRepeatCount != 0 ? $" (Retried {_currentRun.CurrentRepeatCount} time(s))" : "";
-
 			testResultBlock.Inlines.Add(new Run
 			{
-				Text = GetTestResultIcon(result.TestResult) + ' ' + result.TestName + retriesText,
+				Text = GetTestResultIcon(result.TestResult) + ' ' + result.TestName,
 				FontSize = 13.5d,
-				Foreground = new SolidColorBrush(UnitTestsControl.GetTestResultColor(result.TestResult)),
+				Foreground = new SolidColorBrush(GetTestResultColor(result.TestResult)),
 				FontWeight = FontWeights.ExtraBold
 			});
 
 			if (result.Message is { })
 			{
-				testResultBlock.Inlines.Add(new Run { Text = "\n  ..." + result.Message, FontStyle = FontStyle.Italic });
+				testResultBlock.Inlines.Add(new Run { Text = "\n  ..." + result.Message, FontStyle = Windows.UI.Text.FontStyle.Italic });
 			}
 
 			if (result.Error is { })
@@ -513,9 +495,7 @@ public sealed partial class UnitTestsControl : UserControl
 				if (config is not null)
 				{
 					consoleOutput.IsChecked = config.IsConsoleOutputEnabled;
-					runIgnored.IsChecked = config.IsRunningIgnored;
 					showSecondaryApp.IsChecked = config.IsSecondaryAppVisible;
-					retry.IsChecked = config.Attempts > 1;
 					testFilter.Text = config.Filter;
 				}
 			}
@@ -532,10 +512,6 @@ public sealed partial class UnitTestsControl : UserControl
 	{
 		consoleOutput.Checked += (snd, e) => StoreConfig();
 		consoleOutput.Unchecked += (snd, e) => StoreConfig();
-		runIgnored.Checked += (snd, e) => StoreConfig();
-		runIgnored.Unchecked += (snd, e) => StoreConfig();
-		retry.Checked += (snd, e) => StoreConfig();
-		retry.Unchecked += (snd, e) => StoreConfig();
 		showSecondaryApp.Checked += (snd, e) => StoreConfig();
 		showSecondaryApp.Unchecked += (snd, e) => StoreConfig();
 		testFilter.TextChanged += (snd, e) => StoreConfig();
@@ -547,12 +523,16 @@ public sealed partial class UnitTestsControl : UserControl
 		}
 	}
 
+	/// <remarks>
+	/// The MSTest-native engine has no equivalent of the old engine's "Auto retry" (<see cref="UnitTestEngineConfig.Attempts"/>)
+	/// or "Run [Ignore]" (<see cref="UnitTestEngineConfig.IsRunningIgnored"/>) toggles -- MSTest filters
+	/// [Ignore]d tests out before our hooks run, and there is no retry hook. Both toggles remain in the
+	/// shared XAML for visual/layout parity but aren't wired to any behavior here.
+	/// </remarks>
 	private UnitTestEngineConfig BuildConfig()
 	{
 		var isConsoleOutput = consoleOutput.IsChecked ?? false;
-		var isRunningIgnored = runIgnored.IsChecked ?? false;
 		var isSecondaryAppVisible = showSecondaryApp.IsChecked;
-		var attempts = (retry.IsChecked ?? true) ? UnitTestEngineConfig.DefaultRepeatCount : 1;
 		var filter = testFilter.Text.Trim();
 		if (string.IsNullOrEmpty(filter))
 		{
@@ -563,9 +543,7 @@ public sealed partial class UnitTestsControl : UserControl
 		{
 			Filter = filter,
 			IsConsoleOutputEnabled = isConsoleOutput,
-			IsRunningIgnored = isRunningIgnored,
 			IsSecondaryAppVisible = isSecondaryAppVisible,
-			Attempts = attempts,
 		};
 	}
 
@@ -610,65 +588,63 @@ public sealed partial class UnitTestsControl : UserControl
 
 		testResults.Children.Clear();
 
-		try
-		{
-			try
-			{
-				var testTypeInfo = BuildType(testClassInstance.GetType());
-				var engineConfig = BuildConfig();
+		var config = BuildConfig() with { Filter = testClassInstance.GetType().FullName };
 
-				await ExecuteTestsForInstance(_cts!.Token, testClassInstance, testTypeInfo, engineConfig);
-			}
-			catch (Exception e)
-			{
-				if (_currentRun is not null)
-				{
-					_currentRun.Failed = -1;
-				}
-
-				_ = ReportMessage($"Tests runner failed {e}");
-				ReportTestResult("Runtime exception", TimeSpan.Zero, TestResult.Failed, e);
-				ReportTestsResults();
-			}
-		}
-		finally
-		{
-			await _dispatcher.RunAsync(() =>
-			{
-				testFilter.IsEnabled = runButton.IsEnabled = true; // Disable the testFilter to avoid SIP to re-open
-				testResults.Visibility = Visibility.Visible;
-				stopButton.IsEnabled = false;
-			});
-		}
+		await RunTests(_cts!.Token, config);
 	}
 
 	public async Task RunTests(CancellationToken ct, UnitTestEngineConfig config)
 	{
 		_currentRun = new TestRun();
+		_testCases.Clear();
 
 		try
 		{
 			_ = ReportMessage("Enumerating tests");
 
-			var testTypes = InitializeTests();
+			var candidates = EnumerateTestMethods().ToArray();
 
-			_ = ReportMessage("Running tests...");
+			IEnumerable<(Type Type, MethodInfo Method, string Fqn)> selected = candidates;
 
-			foreach (var type in testTypes)
+			if (config.Filter is { } filter)
 			{
-				if (ct.IsCancellationRequested)
-				{
-					_ = ReportMessage("Stopped by user.", false);
-					break;
-				}
-
-				if (type.Type is not null)
-				{
-					var instance = Activator.CreateInstance(type: type.Type);
-
-					await ExecuteTestsForInstance(ct, instance!, type, config);
-				}
+				selected = selected.Where(c => filter.IsMatch(c.Method));
 			}
+
+			if (config is { ShardIndex: { } shardIndex, TotalShards: { } totalShards } && totalShards > 1)
+			{
+				selected = selected.Where(c => IsTestInShard(c.Fqn, shardIndex, totalShards));
+			}
+
+			var selectedArray = selected.ToArray();
+
+			if (ct.IsCancellationRequested)
+			{
+				_ = ReportMessage("Stopped by user.", false);
+				return;
+			}
+
+			if (selectedArray.Length == 0)
+			{
+				_ = ReportMessage("No tests match the current filter/shard.", isRunning: false);
+				ReportTestsResults();
+				return;
+			}
+
+			_ = ReportMessage($"Running {selectedArray.Length} test methods...");
+
+			var filterExpression = string.Join("|", selectedArray.Select(c => $"FullyQualifiedName={c.Fqn}"));
+			var assemblies = selectedArray.Select(c => c.Type.Assembly).Distinct().ToArray();
+
+			// Note: per-test console-output capture (the old engine's "Console Output" toggle) isn't
+			// carried over -- MSTest's real engine invokes tests outside of our control, so there's no
+			// single point left to wrap Console.Out per test case. Microsoft.Testing.Platform captures
+			// and reports process-level output separately when running under `dotnet test`.
+			await RunMSTestApplicationAsync(
+				args: ["--filter", filterExpression],
+				assemblies: assemblies,
+				onResult: RegisterExternalResult,
+				onInProgress: ReportInProgress);
 
 			_ = ReportMessage("Tests finished running.", isRunning: false);
 			ReportTestsResults();
@@ -684,7 +660,7 @@ public sealed partial class UnitTestsControl : UserControl
 		{
 			await _dispatcher.RunAsync(() =>
 			{
-				testFilter.IsEnabled = runButton.IsEnabled = true; // Disable the testFilter to avoid SIP to re-open
+				testFilter.IsEnabled = runButton.IsEnabled = true;
 				if (!IsRunningOnCI)
 				{
 					testResults.Visibility = Visibility.Visible;
@@ -696,424 +672,121 @@ public sealed partial class UnitTestsControl : UserControl
 		await GenerateTestResults();
 	}
 
-	private async Task ExecuteTestsForInstance(
-		CancellationToken ct,
-		object instance,
-		UnitTestClassInfo testClassInfo,
-		UnitTestEngineConfig config)
+	/// <summary>
+	/// Records one <see cref="TestCaseResult"/> reported live by a <see cref="UnitTestsMSTestReporter"/>
+	/// (whether from this instance's own <see cref="RunTests"/> or from an externally-driven run, e.g.
+	/// <c>MSTestRuntimeTestsRunner</c>'s <c>dotnet test</c> CLI flow), updating both the in-app UI and
+	/// the accumulated <see cref="Results"/>/<see cref="NUnitTestResultsDocument"/>.
+	/// </summary>
+	internal void RegisterExternalResult(TestCaseResult result)
 	{
-		using var consoleRecorder = config.IsConsoleOutputEnabled
-			? ConsoleOutputRecorder.Start()
-			: default;
-
-		var tests = config.Filter is null
-			? testClassInfo.Tests
-			: testClassInfo.Tests.Where(test => config.Filter.IsMatch(test.Method)).ToArray();
-
-		// Apply test-level sharding if configured
-		if (config is { ShardIndex: { } shardIndex, TotalShards: { } totalShards } && totalShards > 1 && testClassInfo.Type is not null)
+		_currentRun ??= new TestRun();
+		_currentRun.Run++;
+		switch (result.TestResult)
 		{
-			tests = tests
-				.Where(test => IsTestInShard(testClassInfo.Type, test, shardIndex, totalShards))
-				.ToArray();
+			case TestResult.Passed:
+				_currentRun.Succeeded++;
+				break;
+			case TestResult.Skipped:
+				_currentRun.Ignored++;
+				break;
+			default:
+				_currentRun.Failed++;
+				break;
 		}
 
-		if (tests.Length <= 0 || testClassInfo.Type == null)
+		ReportTestResult(result);
+	}
+
+	internal void ReportInProgress(string testName) => _ = ReportMessage($"Running test {testName}");
+
+	/// <summary>
+	/// Builds and runs a Microsoft.Testing.Platform <c>TestApplication</c> hosting MSTest's real
+	/// engine (<see cref="TestApplicationBuilderExtensions.AddMSTest"/>), reporting live results through
+	/// a <see cref="UnitTestsMSTestReporter"/>. Shared by the env-var/UI-driven flow (this file, with a
+	/// synthesized <c>--filter</c>) and the <c>dotnet test</c> CLI flow (<c>MSTestRuntimeTestsRunner</c>,
+	/// with the real process argv).
+	/// </summary>
+	internal static async Task<int> RunMSTestApplicationAsync(
+		string[] args,
+		IEnumerable<Assembly> assemblies,
+		Action<TestCaseResult> onResult,
+		Action<string>? onInProgress = null)
+	{
+		var builder = await TestApplication.CreateBuilderAsync(args);
+		builder.AddMSTest(() => assemblies);
+		builder.TestHost.AddDataConsumer(_ => new UnitTestsMSTestReporter());
+
+		using var app = await builder.BuildAsync();
+		return await app.RunAsync();
+	}
+
+	/// <summary>
+	/// Enumerates candidate test methods (metadata-only reflection, doesn't run anything) so that
+	/// filter/CI-group/sharding can narrow the set *before* handing a <c>--filter</c> expression to
+	/// MSTest's own engine, mirroring the discovery scan the hand-rolled engine used to do in
+	/// <c>InitializeTests()</c>.
+	/// </summary>
+	/// <summary>
+	/// Candidate assemblies that may contain runtime tests, mirroring the hand-rolled engine's own
+	/// heuristic (own assembly + any loaded assembly whose name ends with "Tests"). Shared with
+	/// <c>MSTestRuntimeTestsRunner</c> so the <c>dotnet test</c> CLI flow scans the same set.
+	/// </summary>
+	internal static IEnumerable<Assembly> GetCandidateTestAssemblies()
+		=> AppDomain.CurrentDomain.GetAssemblies()
+			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)
+			.Concat(new[] { typeof(UnitTestsControl).Assembly })
+			.Distinct();
+
+	private IEnumerable<(Type Type, MethodInfo Method, string Fqn)> EnumerateTestMethods()
+	{
+		foreach (var assembly in GetCandidateTestAssemblies())
 		{
-			return;
-		}
-
-		ReportTestClass(testClassInfo.Type.GetTypeInfo());
-		_ = ReportMessage($"Running {tests.Length} test methods");
-
-		if (testClassInfo.RunsInSecondaryApp is { } secondaryApp
-			&& !IsSecondaryApp
-			&& (config.IsRunningIgnored || testClassInfo.Tests.Any(test => !test.IsIgnored(out _))))
-		{
-			try
+			foreach (var type in SafeGetTypes(assembly))
 			{
-				var testCases = tests.SelectMany(t => t.GetCases(ct)).ToList();
-				if (!SecondaryApp.IsSupported && secondaryApp.IgnoreIfNotSupported && !config.IsRunningIgnored)
-				{
-					foreach (var testCase in testCases)
-					{
-						ReportTestResult(
-							testCase.ToString(),
-							TimeSpan.Zero,
-							TestResult.Skipped,
-							null,
-							$"Test of class {instance.GetType().Name} are expected to be run in a secondary app, but secondary app is not supported on this platform.");
-					}
-
-					return;
-				}
-
-				config = config with { Filter = $"{testClassInfo.Type.FullName} & ({config.Filter})" };
-
-				var results = await SecondaryApp.RunTest(config, ct, isAppVisible: config.IsSecondaryAppVisible ?? Debugger.IsAttached);
-				foreach (var result in results)
-				{
-					ReportTestResult(result);
-				}
-
-				if (results.Length != testCases.Count)
-				{
-					ReportTestResult(
-						instance.GetType().Name,
-						TimeSpan.Zero,
-						TestResult.Failed,
-						new InvalidOperationException($"Unexpected tests results, got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.\""),
-						$"Got {results.Length} test results from the secondary app for class {instance.GetType().Name} while we where expecting {testCases.Count}.");
-				}
-			}
-			catch (Exception error)
-			{
-				ReportTestResult(instance.GetType().Name, TimeSpan.Zero, TestResult.Failed, error, $"Failed to run tests in secondary app for test class {instance.GetType().Name}");
-			}
-
-			return;
-		}
-
-		foreach (var test in tests)
-		{
-			var testName = test.Name;
-
-			if (ct.IsCancellationRequested)
-			{
-				_ = ReportMessage("Stopped by user.", false);
-				return;
-			}
-
-			if (test.IsIgnored(out var ignoreMessage))
-			{
-				if (config.IsRunningIgnored)
-				{
-					ignoreMessage = $"\n--> [Ignored] IS BYPASSED...";
-				}
-
-				if (_currentRun is not null)
-				{
-					_currentRun.Ignored++;
-				}
-				ReportTestResult(testName, TimeSpan.Zero, TestResult.Skipped, message: ignoreMessage);
-
-				if (!config.IsRunningIgnored)
+				if (type.GetCustomAttribute(typeof(TestClassAttribute)) is null)
 				{
 					continue;
 				}
-			}
 
-			foreach (var testCase in test.GetCases(ct))
-			{
-				if (ct.IsCancellationRequested)
+				if (_ciTestsGroupCountCache != -1 && (GetTypeTestGroup(type.FullName ?? type.Name) % _ciTestsGroupCountCache) != _ciTestGroupCache)
 				{
-					_ = ReportMessage("Stopped by user.", false);
-					return;
+					continue;
 				}
 
-				await InvokeTestMethod(testCase);
-			}
-
-			async Task InvokeTestMethod(TestCase testCase)
-			{
-				var fullTestName = string.IsNullOrWhiteSpace(testCase.DisplayName) ? testName + testCase.ToString() : testCase.DisplayName!;
-
-				if (_currentRun is null)
+				foreach (var method in type.GetMethods())
 				{
-					throw new InvalidOperationException("Invalid current run state");
-				}
-
-				_currentRun.Run++;
-				_currentRun.CurrentRepeatCount = 0;
-
-
-				// We await this to make sure the UI is updated before running the test.
-				// This will help developpers to identify faulty tests when the app is crashing.
-				await ReportMessage($"Running test {fullTestName}");
-				ReportTestsResults();
-
-				var cleanupActions = new List<Func<CancellationToken, ValueTask>>();
-				var sw = new Stopwatch();
-				var canRetry = true;
-
-				while (canRetry)
-				{
-					canRetry = false;
-
-					try
+					if (method.GetCustomAttribute(typeof(TestMethodAttribute)) is null)
 					{
-						if (test.RequiresFullWindow)
-						{
-							await ExecuteOnDispatcher(() =>
-							{
-#if __ANDROID__
-								// Hide the systray!
-								ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
-#endif
-
-								UnitTestsUIContentHelper.UseActualWindowRoot = true;
-								UnitTestsUIContentHelper.SaveOriginalContent();
-							}, ct);
-							cleanupActions.Add(async _ =>
-							{
-								await ExecuteOnDispatcher(() =>
-								{
-#if __ANDROID__
-									// Restore the systray!
-									ApplicationView.GetForCurrentView().ExitFullScreenMode();
-#endif
-									UnitTestsUIContentHelper.RestoreOriginalContent();
-									UnitTestsUIContentHelper.UseActualWindowRoot = false;
-								}, CancellationToken.None);
-							});
-						}
-
-						// Configure pointers injection
-						await ExecuteOnDispatcher(() =>
-						{
-							if (InputInjectorHelper.TryGetCurrent() is not null)
-							{
-								InputInjectorHelper.Current.CleanupPointers();
-							}
-
-							if (testCase.Pointer is { } pt)
-							{
-								var ptSubscription = InputInjectorHelper.Current.SetPointerType(pt);
-								cleanupActions.Add(async ct2 => await ExecuteOnDispatcher(ptSubscription.Dispose, ct2));
-							}
-
-							if (instance.GetType().GetProperty("Pointers", BindingFlags.Instance | BindingFlags.Public) is { SetMethod: not null } pointerProp
-								&& pointerProp.PropertyType == typeof(InputInjectorHelper))
-							{
-								pointerProp.SetMethod.Invoke(instance, new[] { InputInjectorHelper.Current });
-							}
-						}, ct);
-
-						if (test.RunsOnUIThread)
-						{
-							await ExecuteOnDispatcher(DoInvoke, ct);
-						}
-						else
-						{
-							await DoInvoke();
-						}
-
-						async ValueTask DoInvoke()
-						{
-							sw.Start();
-							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
-
-							var cooperative = test is { Timeout: not null, CooperativeCancellation: true } &&
-								test.Method.GetParameters().Any(p => p.ParameterType == typeof(CancellationToken));
-							using var timeoutCts = cooperative
-								? CancellationTokenSource.CreateLinkedTokenSource(ct)
-								: null;
-
-							var parameters = testCase.Parameters;
-
-							if (timeoutCts is not null)
-							{
-								timeoutCts.CancelAfter(test.Timeout!.Value);
-								parameters = test.WithCancellationToken(parameters, timeoutCts.Token);
-							}
-
-							await WaitResult(test.Method.Invoke(instance, parameters), "execution", test.Timeout, cooperative);
-							sw.Stop();
-						}
-
-						var console = consoleRecorder?.GetContentAndReset();
-
-						_currentRun.Succeeded++;
-						ReportTestResult(fullTestName, sw.Elapsed, TestResult.Passed, console: console);
-					}
-					catch (Exception ex)
-					{
-						sw.Stop();
-
-						Exception? e = ex;
-
-						if (e is AggregateException agg)
-						{
-							e = agg.InnerExceptions.FirstOrDefault();
-						}
-
-						if (e is TargetInvocationException tie)
-						{
-							e = tie.InnerException;
-						}
-
-						var console = consoleRecorder?.GetContentAndReset();
-
-						if (e is AssertInconclusiveException inconclusiveException)
-						{
-							_currentRun.Ignored++;
-							ReportTestResult(fullTestName, sw.Elapsed, TestResult.Skipped, message: e.Message, console: console);
-						}
-						else
-						{
-							if (_currentRun.CurrentRepeatCount < config.Attempts - 1 && !Debugger.IsAttached)
-							{
-								_currentRun.CurrentRepeatCount++;
-								canRetry = true;
-
-								await RunCleanup(instance, testClassInfo, testName, test.RunsOnUIThread);
-							}
-							else
-							{
-								_currentRun.Failed++;
-								ReportTestResult(fullTestName, sw.Elapsed, TestResult.Failed, e, console: console);
-							}
-						}
-					}
-					finally
-					{
-						foreach (var cleanup in cleanupActions.Where(action => action is not null))
-						{
-							await cleanup(CancellationToken.None);
-						}
-					}
-				}
-			}
-
-			await RunCleanup(instance, testClassInfo, testName, test.RunsOnUIThread);
-
-			if (ct.IsCancellationRequested)
-			{
-				_ = ReportMessage("Stopped by user.", false);
-				return; // finish processing
-			}
-		}
-
-		async ValueTask RunCleanup(object instance, UnitTestClassInfo testClassInfo, string testName, bool runsOnUIThread)
-		{
-			async ValueTask DoCleanup()
-			{
-				try
-				{
-					await WaitResult(testClassInfo.Cleanup?.Invoke(instance, Array.Empty<object>()), "cleanup");
-				}
-				catch (Exception e)
-				{
-					if (_currentRun is not null)
-					{
-						_currentRun.Failed++;
-					}
-					ReportTestResult(testName + " Cleanup", TimeSpan.Zero, TestResult.Failed, e, console: consoleRecorder?.GetContentAndReset());
-				}
-			}
-
-			if (runsOnUIThread)
-			{
-				await ExecuteOnDispatcher(DoCleanup, CancellationToken.None); // No CT for cleanup!
-			}
-			else
-			{
-				await DoCleanup();
-			}
-		}
-
-		async ValueTask WaitResult(object? returnValue, string step, TimeSpan? timeout = null, bool cooperativeCancellation = false)
-		{
-			if (returnValue is Task asyncResult)
-			{
-				var cancelTcs = new TaskCompletionSource<object?>();
-				using var ctr = ct.Register(() => cancelTcs.TrySetResult(null));
-
-				if (cooperativeCancellation)
-				{
-					// The timeout is enforced by the CancellationToken passed to the test method itself
-					// (see DoInvoke), so we only need to watch for a run-level Stop request here, not race
-					// a separate hard timeout against the test's task.
-					var cooperativeResult = await Task.WhenAny(asyncResult, cancelTcs.Task);
-
-					if (cooperativeResult == cancelTcs.Task)
-					{
-						ct.ThrowIfCancellationRequested();
+						continue;
 					}
 
-					await cooperativeResult;
-					return;
+					yield return (type, method, $"{type.FullName}.{method.Name}");
 				}
-
-				var effectiveTimeout = timeout ?? DefaultUnitTestTimeout;
-				var timeoutTask = Task.Delay(effectiveTimeout);
-				var resultingTask = await Task.WhenAny(asyncResult, timeoutTask, cancelTcs.Task);
-
-				if (resultingTask == cancelTcs.Task)
-				{
-					ct.ThrowIfCancellationRequested();
-				}
-
-				if (resultingTask == timeoutTask)
-				{
-					throw new TimeoutException($"Test {step} timed out after {effectiveTimeout}");
-				}
-
-				// Rethrow exception if failed OR task cancelled if task **internally** raised
-				// a TaskCancelledException (we don't provide any cancellation token).
-				await resultingTask;
 			}
 		}
 	}
 
-	private async ValueTask ExecuteOnDispatcher(Action asyncAction, CancellationToken ct = default)
-		=> await ExecuteOnDispatcher(async () => asyncAction(), ct);
-
-	private async ValueTask ExecuteOnDispatcher(Func<ValueTask> asyncAction, CancellationToken ct = default)
+	private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
 	{
-		var tcs = new TaskCompletionSource<object?>();
-		await _dispatcher.RunAsync(async () =>
+		try
 		{
-			try
-			{
-				if (ct.IsCancellationRequested)
-				{
-					tcs.TrySetCanceled();
-				}
-
-				using var ctReg = ct.Register(() => tcs.TrySetCanceled());
-				await asyncAction();
-
-				tcs.TrySetResult(default);
-			}
-			catch (Exception e)
-			{
-				tcs.TrySetException(e);
-			}
-		});
-
-		await tcs.Task;
-	}
-
-	internal IEnumerable<UnitTestClassInfo> InitializeTests()
-	{
-		var testAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)
-			.Concat(new[] { GetType().GetTypeInfo().Assembly })
-			.Distinct();
-		var types = testAssemblies.SelectMany(x => x.GetTypes());
-
-		if (_ciTestGroupCache != -1)
-		{
-			Console.WriteLine($"Filtering with group #{_ciTestGroupCache} (Groups {_ciTestsGroupCountCache})");
+			return assembly.GetTypes();
 		}
-
-		return from type in types
-			   where type.GetTypeInfo().GetCustomAttribute(typeof(TestClassAttribute)) != null
-			   where _ciTestsGroupCountCache == -1 || (_ciTestsGroupCountCache != -1 && (UnitTestsControl.GetTypeTestGroup(type) % _ciTestsGroupCountCache) == _ciTestGroupCache)
-			   orderby type.Name
-			   let info = BuildType(type)
-			   where info.Type is { }
-			   select info;
+		catch (ReflectionTypeLoadException e)
+		{
+			return e.Types.Where(t => t is not null)!;
+		}
+		catch
+		{
+			return Array.Empty<Type>();
+		}
 	}
 
-	private static SHA1 _sha1 = SHA1.Create();
-
-	private static int GetTypeTestGroup(Type type)
+	private static int GetTypeTestGroup(string fullyQualifiedName)
 	{
-		// Compute a stable hash of the full metadata name
-		var buffer = Encoding.UTF8.GetBytes(type.FullName ?? "");
-		var hash = _sha1.ComputeHash(buffer);
+		var buffer = Encoding.UTF8.GetBytes(fullyQualifiedName);
+		var hash = SHA1.HashData(buffer);
 
 		return (int)BitConverter.ToUInt64(hash, 0);
 	}
@@ -1122,44 +795,19 @@ public sealed partial class UnitTestsControl : UserControl
 	/// Determines if a test method belongs to the specified shard using a deterministic
 	/// hash-based modulo assignment on the fully-qualified test method name.
 	/// </summary>
-	private static bool IsTestInShard(Type testClass, UnitTestMethodInfo test, int shardIndex, int totalShards)
+	private static bool IsTestInShard(string testFullName, int shardIndex, int totalShards)
 	{
-		var testFullName = $"{testClass.FullName}.{test.Name}";
 		var buffer = Encoding.UTF8.GetBytes(testFullName);
-		var hash = _sha1.ComputeHash(buffer);
+		var hash = SHA1.HashData(buffer);
 		var hashValue = (int)(BitConverter.ToUInt64(hash, 0) % (ulong)totalShards);
 
 		return hashValue == shardIndex;
 	}
 
-	private static UnitTestClassInfo BuildType(Type type)
-	{
-		try
-		{
-			return new UnitTestClassInfo(
-				type: type,
-				tests: GetMethodsWithAttribute(type, typeof(Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute)),
-				initialize: GetMethodsWithAttribute(type, typeof(Microsoft.VisualStudio.TestTools.UnitTesting.TestInitializeAttribute)).FirstOrDefault(),
-				cleanup: GetMethodsWithAttribute(type, typeof(Microsoft.VisualStudio.TestTools.UnitTesting.TestCleanupAttribute)).FirstOrDefault()
-			);
-		}
-		catch (Exception)
-		{
-			return new UnitTestClassInfo(null, null, null, null);
-		}
-	}
-
-	private static MethodInfo[] GetMethodsWithAttribute(Type type, Type attributeType)
-		=> (
-			from method in type.GetMethods()
-			where method.GetCustomAttribute(attributeType) != null
-			select method
-		).ToArray();
-
-	private void UpdateFailedTestDetailsSize(object sender, ManipulationDeltaRoutedEventArgs e)
+	private void UpdateFailedTestDetailsSize(object sender, Microsoft.UI.Xaml.Input.ManipulationDeltaRoutedEventArgs e)
 		=> failedTestDetailsRow.Height = new GridLength(Math.Max(0, failedTestDetailsRow.ActualHeight + e.Delta.Translation.Y));
 
-	private void UpdateOuputSize(object sender, ManipulationDeltaRoutedEventArgs e)
+	private void UpdateOuputSize(object sender, Microsoft.UI.Xaml.Input.ManipulationDeltaRoutedEventArgs e)
 		=> outputColumn.Width = new GridLength(Math.Max(0, outputColumn.ActualWidth + e.Delta.Translation.X));
 
 	private void CopyFailedTestDetails(object sender, RoutedEventArgs e)
@@ -1186,6 +834,4 @@ public sealed partial class UnitTestsControl : UserControl
 		public override Encoding Encoding => Encoding.UTF8;
 	}
 }
-
-
 #endif
