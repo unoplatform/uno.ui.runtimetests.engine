@@ -14,7 +14,7 @@ namespace Uno.UI.RuntimeTests.Engine.Droid;
 	Icon = "@mipmap/icon",
 	LargeHeap = true,
 	HardwareAccelerated = true,
-	Theme = "@style/Theme.App.Starting"
+	Theme = "@style/AppTheme"
 )]
 public class Application : Microsoft.UI.Xaml.NativeApplication
 {
