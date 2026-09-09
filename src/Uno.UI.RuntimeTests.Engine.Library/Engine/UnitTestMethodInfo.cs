@@ -58,7 +58,8 @@ public record UnitTestMethodInfo
 
 	/// <summary>
 	/// Whether the <see cref="TimeSpan"/> <see cref="Timeout"/> should be enforced by cancelling the
-	/// <see cref="CancellationToken"/> parameter of the test method, instead of racing against and abandoning it.
+	/// <see cref="TestContext.CancellationToken"/> of the test class' <c>TestContext</c> property,
+	/// instead of racing against and abandoning the test's task.
 	/// </summary>
 	public bool CooperativeCancellation { get; }
 
@@ -119,32 +120,6 @@ public record UnitTestMethodInfo
 		}
 
 		return cases;
-	}
-
-	/// <summary>
-	/// Returns a copy of <paramref name="parameters"/> with the value of the <see cref="CancellationToken"/>
-	/// parameter (if any) replaced by <paramref name="token"/>. Used to substitute the run-level cancellation
-	/// token baked in by <see cref="GetCases"/> with one scoped to this invocation's <see cref="CooperativeCancellation"/> timeout.
-	/// </summary>
-	internal object[] WithCancellationToken(object[] parameters, CancellationToken token)
-	{
-		var methodParams = Method.GetParameters();
-		var result = parameters;
-
-		for (var i = 0; i < methodParams.Length && i < parameters.Length; i++)
-		{
-			if (methodParams[i].ParameterType == typeof(CancellationToken))
-			{
-				if (ReferenceEquals(result, parameters))
-				{
-					result = (object[])parameters.Clone();
-				}
-
-				result[i] = token;
-			}
-		}
-
-		return result;
 	}
 }
 #endif

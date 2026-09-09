@@ -901,23 +901,23 @@ public sealed partial class UnitTestsControl : UserControl
 						async ValueTask DoInvoke()
 						{
 							sw.Start();
-							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
 
-							var cooperative = test is { Timeout: not null, CooperativeCancellation: true } &&
-								test.Method.GetParameters().Any(p => p.ParameterType == typeof(CancellationToken));
+							var cooperative = test is { Timeout: not null, CooperativeCancellation: true };
 							using var timeoutCts = cooperative
 								? CancellationTokenSource.CreateLinkedTokenSource(ct)
 								: null;
 
-							var parameters = testCase.Parameters;
-
 							if (timeoutCts is not null)
 							{
 								timeoutCts.CancelAfter(test.Timeout!.Value);
-								parameters = test.WithCancellationToken(parameters, timeoutCts.Token);
 							}
 
-							await WaitResult(test.Method.Invoke(instance, parameters), "execution", test.Timeout, cooperative);
+							var testContext = new UnitTestContext(fullTestName, testClassInfo.Type?.FullName ?? testClassInfo.TestClassName, cooperative ? timeoutCts : null);
+							testClassInfo.TestContextProperty?.SetValue(instance, testContext);
+
+							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
+
+							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution", test.Timeout, cooperative);
 							sw.Stop();
 						}
 
