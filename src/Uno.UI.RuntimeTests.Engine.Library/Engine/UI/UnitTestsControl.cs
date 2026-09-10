@@ -902,8 +902,23 @@ public sealed partial class UnitTestsControl : UserControl
 						{
 							sw.Start();
 
-							var cooperative = test is { Timeout: not null, CooperativeCancellation: true };
-							using var timeoutCts = cooperative
+							using var timeoutCts = SetTestContext(out var cooperative);
+
+							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
+
+							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution", test.Timeout, cooperative);
+							sw.Stop();
+						}
+
+						CancellationTokenSource? SetTestContext(out bool cooperative)
+						{
+							cooperative = false;
+							if (testClassInfo.TestContextProperty is null)
+							{
+								return null;
+							}
+							cooperative = test is { Timeout: not null, CooperativeCancellation: true };
+							var timeoutCts = cooperative
 								? CancellationTokenSource.CreateLinkedTokenSource(ct)
 								: null;
 
@@ -912,13 +927,10 @@ public sealed partial class UnitTestsControl : UserControl
 								timeoutCts.CancelAfter(test.Timeout!.Value);
 							}
 
-							var testContext = new UnitTestContext(fullTestName, testClassInfo.Type?.FullName ?? testClassInfo.TestClassName, cooperative ? timeoutCts : null);
-							testClassInfo.TestContextProperty?.SetValue(instance, testContext);
+							var testContext = new UnitTestContext(testName, fullTestName, testClassInfo.Type?.FullName ?? testClassInfo.TestClassName, timeoutCts);
+							testClassInfo.TestContextProperty.SetValue(instance, testContext);
 
-							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
-
-							await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution", test.Timeout, cooperative);
-							sw.Stop();
+							return timeoutCts;
 						}
 
 						var console = consoleRecorder?.GetContentAndReset();

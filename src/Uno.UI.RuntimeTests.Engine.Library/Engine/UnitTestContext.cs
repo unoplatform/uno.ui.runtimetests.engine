@@ -21,10 +21,11 @@ internal sealed class UnitTestContext : TestContext
 	private readonly Dictionary<string, object?> _properties = new();
 	private readonly CancellationTokenSource? _cancellationTokenSource;
 
-	public UnitTestContext(string testName, string fullyQualifiedTestClassName, CancellationTokenSource? cancellationTokenSource = null)
+	public UnitTestContext(string testName, string testDisplayName, string fullyQualifiedTestClassName, CancellationTokenSource? cancellationTokenSource = null)
 	{
 		TestName = testName;
 		FullyQualifiedTestClassName = fullyQualifiedTestClassName;
+		TestDisplayName = testDisplayName;
 		_cancellationTokenSource = cancellationTokenSource;
 	}
 

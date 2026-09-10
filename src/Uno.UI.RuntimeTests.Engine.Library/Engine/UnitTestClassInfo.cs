@@ -52,7 +52,7 @@ public class UnitTestClassInfo
 	/// The test class' settable <c>TestContext</c> property (if any), cached so it doesn't need
 	/// to be resolved via reflection for every test invocation.
 	/// </summary>
-	public PropertyInfo? TestContextProperty { get; }
+	internal PropertyInfo? TestContextProperty { get; }
 
 	public override string ToString() => TestClassName;
 
