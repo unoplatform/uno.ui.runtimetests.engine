@@ -18,6 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestEngineConfig.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestMethodInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnitTestContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\_Private\UnitTestDispatcherCompat.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.CustomConsoleOutput.cs" />
