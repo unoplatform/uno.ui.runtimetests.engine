@@ -6,6 +6,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Uno.UI.RuntimeTests;
 
@@ -26,6 +27,13 @@ public class UnitTestClassInfo
 		Cleanup = cleanup;
 
 		RunsInSecondaryApp = type?.GetCustomAttribute<RunsInSecondaryAppAttribute>();
+
+		TestContextProperty = type?.GetProperty("TestContext") is { SetMethod: not null } testContextProp &&
+			// string comparison?! It's what testfx does!
+			// https://github.com/microsoft/testfx/blob/3986221f7d14db927ac1c5975aeccad0dc35fe17/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestClassInfo.TestContext.cs#L34-L39
+			string.Equals(testContextProp.PropertyType.FullName, typeof(TestContext).FullName, StringComparison.Ordinal)
+			? testContextProp
+			: null;
 	}
 
 	public string TestClassName { get; }
@@ -39,6 +47,12 @@ public class UnitTestClassInfo
 	public MethodInfo? Cleanup { get; }
 
 	public RunsInSecondaryAppAttribute? RunsInSecondaryApp { get; }
+
+	/// <summary>
+	/// The test class' settable <c>TestContext</c> property (if any), cached so it doesn't need
+	/// to be resolved via reflection for every test invocation.
+	/// </summary>
+	internal PropertyInfo? TestContextProperty { get; }
 
 	public override string ToString() => TestClassName;
 

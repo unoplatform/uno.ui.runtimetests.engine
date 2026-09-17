@@ -901,24 +901,43 @@ public sealed partial class UnitTestsControl : UserControl
 						async ValueTask DoInvoke()
 						{
 							sw.Start();
-							await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
 
-							var cooperative = test is { Timeout: not null, CooperativeCancellation: true } &&
-								test.Method.GetParameters().Any(p => p.ParameterType == typeof(CancellationToken));
-							using var timeoutCts = cooperative
+							var (testContext, timeoutCts, cooperative) = SetTestContext();
+
+							try
+							{
+								await WaitResult(testClassInfo.Initialize?.Invoke(instance, Array.Empty<object>()), "initialization");
+
+								await WaitResult(test.Method.Invoke(instance, testCase.Parameters), "execution", test.Timeout, cooperative);
+							}
+							finally
+							{
+								testContext?.ResetCancellationTokenSource();
+							}
+
+							sw.Stop();
+						}
+
+						(UnitTestContext? TestContext, CancellationTokenSource? TokenSource, bool Cooperative) SetTestContext()
+						{
+							if (testClassInfo.TestContextProperty is null)
+							{
+								return (null, null, false);
+							}
+							var cooperative = test is { Timeout: not null, CooperativeCancellation: true };
+							var timeoutCts = cooperative
 								? CancellationTokenSource.CreateLinkedTokenSource(ct)
 								: null;
-
-							var parameters = testCase.Parameters;
 
 							if (timeoutCts is not null)
 							{
 								timeoutCts.CancelAfter(test.Timeout!.Value);
-								parameters = test.WithCancellationToken(parameters, timeoutCts.Token);
 							}
 
-							await WaitResult(test.Method.Invoke(instance, parameters), "execution", test.Timeout, cooperative);
-							sw.Stop();
+							var testContext = new UnitTestContext(testName, fullTestName, testClassInfo.Type?.FullName ?? testClassInfo.TestClassName, timeoutCts);
+							testClassInfo.TestContextProperty.SetValue(instance, testContext);
+
+							return (testContext, timeoutCts, cooperative);
 						}
 
 						var console = consoleRecorder?.GetContentAndReset();
