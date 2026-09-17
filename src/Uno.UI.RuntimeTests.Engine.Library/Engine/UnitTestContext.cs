@@ -19,7 +19,7 @@ namespace Uno.UI.RuntimeTests;
 internal sealed class UnitTestContext : TestContext
 {
 	private readonly Dictionary<string, object?> _properties = new();
-	private readonly CancellationTokenSource? _cancellationTokenSource;
+	private CancellationTokenSource? _cancellationTokenSource;
 
 	public UnitTestContext(string testName, string testDisplayName, string fullyQualifiedTestClassName, CancellationTokenSource? cancellationTokenSource = null)
 	{
@@ -36,6 +36,8 @@ internal sealed class UnitTestContext : TestContext
 	public override string FullyQualifiedTestClassName { get; }
 
 	public override CancellationTokenSource CancellationTokenSource => _cancellationTokenSource ?? base.CancellationTokenSource;
+
+	internal void ResetCancellationTokenSource() => _cancellationTokenSource = new();
 
 	public override void AddResultFile(string fileName)
 	{
