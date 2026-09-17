@@ -465,7 +465,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 #endif
 	}
 
-	private static void ExitApplication(int exitCode)
+	internal static void ExitApplication(int exitCode)
 	{
 		if (OperatingSystem.IsLinux())
 		{
@@ -495,7 +495,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 	/// due to browser/service worker caching. For the output URL specifically, we always
 	/// prefer the URL query parameter to ensure results are sent to the correct server.
 	/// </remarks>
-	private static string? GetConfigValue(string name)
+	internal static string? GetConfigValue(string name)
 	{
 #if __WASM__
 		// On WASM, check URL query parameters FIRST for output URL to avoid stale cached values.
@@ -550,7 +550,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		return null;
 	}
 
-	private static async Task WaitForIdle(CancellationToken ct = default, TimeSpan timeout = default)
+	internal static async Task WaitForIdle(CancellationToken ct = default, TimeSpan timeout = default)
 	{
 		using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 		if (timeout != default)
@@ -565,7 +565,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		await dispatcherTask.ConfigureAwait(false);
 	}
 
-	private static async Task<bool> WaitForCheckSafe(
+	internal static async Task<bool> WaitForCheckSafe(
 		Func<bool> condition,
 		CancellationToken ct = default,
 		TimeSpan? timeout = null,
@@ -679,7 +679,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		}
 	}
 
-	private static UnitTestEngineConfig? TryParseConfig(string? maybeJson)
+	internal static UnitTestEngineConfig? TryParseConfig(string? maybeJson)
 	{
 		if (maybeJson?.TrimStart()?.StartsWith('{') == true)
 		{
@@ -693,7 +693,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		return null;
 	}
 
-	private static UnitTestEngineConfig ApplyShardingFromEnvironment(UnitTestEngineConfig config)
+	internal static UnitTestEngineConfig ApplyShardingFromEnvironment(UnitTestEngineConfig config)
 	{
 		// If sharding is already configured (e.g., from JSON config), don't override
 		if (config.ShardIndex is not null && config.TotalShards is not null)
@@ -758,10 +758,10 @@ internal static partial class RuntimeTestEmbeddedRunner
 	private static void Trace(string text)
 		=> Console.WriteLine(text);
 
-	private static void Log(string text)
+	internal static void Log(string text)
 		=> Console.WriteLine(text);
 
-	private static void LogError(string text)
+	internal static void LogError(string text)
 		=> Console.Error.WriteLine(text);
 }
 #endif

@@ -23,7 +23,7 @@ public class SecondaryAppSanity
 	}
 }
 
-[TestClass]
+[UnoTestClass]
 [RunsInSecondaryApp(ignoreIfNotSupported: true)]
 public class SecondaryAppTests
 {

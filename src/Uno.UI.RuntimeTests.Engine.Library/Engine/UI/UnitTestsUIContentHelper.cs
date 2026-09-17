@@ -76,7 +76,7 @@ public static class UnitTestsUIContentHelper
 			? CurrentTestWindow.Content
 			: EmbeddedTestRoot.GetContent?.Invoke();
 
-		internal set
+		set
 		{
 			if (UseActualWindowRoot && CurrentTestWindow is not null)
 			{

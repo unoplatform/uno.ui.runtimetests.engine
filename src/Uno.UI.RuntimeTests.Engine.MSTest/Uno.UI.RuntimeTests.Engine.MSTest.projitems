@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>534a2e41-a80e-4a09-a98d-04ca02310486</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Uno.UI.RuntimeTests.Engine.MSTest</Import_RootNamespace>
+  </PropertyGroup>
+
+  <!-- Files new to the MSTest-native engine -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnoTestClassAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UnoTestMethodAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsMSTestReporter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\UI\UnitTestsControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Engine\ExternalRunner\MSTestRuntimeTestsRunner.cs" />
+  </ItemGroup>
+
+  <!--
+    Files reused, unmodified, from Uno.UI.RuntimeTests.Engine.Library: these have no dependency
+    on the hand-rolled reflection engine (UnitTestClassInfo/UnitTestMethodInfo/TestCase), only on
+    UnitTestsControl's public surface (RunTests/Results/NUnitTestResultsDocument) and/or plain data
+    types, so they work unchanged against this MSTest-native engine. Kept as a single physical copy
+    (referenced via relative path) to avoid drift between the two engines.
+  -->
+  <ItemGroup>
+    <!-- Behavior attributes -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\RunsOnUIThreadAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\InjectedPointerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\RequiresFullWindowAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\RunsInSecondaryAppAttribute.cs" />
+
+    <!-- Plain data types -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\TestCaseResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\TestResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UnitTestEngineConfig.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UnitTestFilter.cs" />
+
+    <!-- UI plumbing (UnitTestsControl partials + helpers), engine-agnostic -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UI\UnitTestsUIContentHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UI\_Private\UnitTestDispatcherCompat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UI\UnitTestsControl.CustomConsoleOutput.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UI\UnitTestsControl.TestRun.cs" />
+
+    <!-- External runner plumbing: env-var/CI/WASM flow, dev-server, secondary-app process launch -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\RuntimeTestsSourceProjectAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\RuntimeTestDevServerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\RuntimeTestEmbeddedRunner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\_Private\LogScope.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\_Private\DevServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\_Private\ProcessHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\_Private\SecondaryApp.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\ExternalRunner\_Private\WasmTestResultReporter.cs" />
+
+    <!-- Generic test-authoring helpers -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\AsyncAssert.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\HotReloadHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\HotReloadHelper.Local.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\HotReloadHelper.DevServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\HotReloadHelper.MetadataUpdateHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\HotReloadHelper.NotSupported.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\ImageAssert.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\ImageAssert.ExpectedPixels.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\ImageAssert.Validations.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\TestBitmap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\TestHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\UIHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\InputInjectorHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\InputInjectorHelper.MouseHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\Helpers\InputInjectorHelperExtensions.cs" />
+
+    <!-- Compat shims / small private helpers -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\_Compat\CallerArgumentExpressionAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\_Compat\MetadataUpdateHandlerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\_Private\ColorExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Library\_Private\ImageHelper.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UnitTestsControl.xaml itself is reused, unmodified, from the Library -->
+    <Page Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UI\UnitTestsControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <Link>Engine\UI\UnitTestsControl.xaml</Link>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Mark the files from this folder as being part of WinUI -->
+    <Page Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
+    <ApplicationDefinition Update="$(MSBuildThisFileDirectory)**/*.xaml" XamlRuntime="WinUI" />
+    <!-- Make sure XAML files force reevaluation of up-to-date checks -->
+    <UpToDateCheckInput Include="$(MSBuildThisFileDirectory)**/*.xaml" />
+  </ItemGroup>
+</Project>
