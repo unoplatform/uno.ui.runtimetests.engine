@@ -32,20 +32,24 @@
 			CS8619;CS8602;Uno0001;IL2026;IL2070;IL2072;IL2075</NoWarn>
 	</PropertyGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition=" '$(UseMSTest)' != 'true' ">
 		<PackageReference Include="MSTest.TestFramework" Version="$(MSTestVersion)" />
 	</ItemGroup>
 
-	<!-- Microsoft.Testing.Platform (MTP) support, desktop head only -->
-	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
-		<IsTestingPlatformApplication>true</IsTestingPlatformApplication>
-		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+	<!-- Microsoft.Testing.Platform (MTP) support -->
+	<PropertyGroup Condition=" '$(UseMSTest)' == 'true' ">
 		<DefineConstants>$(DefineConstants);HAS_UNO_RUNTIMETESTS_MTP</DefineConstants>
+		<IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+		<EnableMSTestRunner>true</EnableMSTestRunner>
+		<DefineConstants>$(DefineConstants);USE_UNO_MSTEST_ENGINE</DefineConstants>
+		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+		<GenerateProgramFile>false</GenerateProgramFile>
 	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
-		<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.3" />
-		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.3" />
-		<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3" />
+	<ItemGroup Condition=" '$(UseMSTest)' == 'true' ">
+		<PackageReference Include="MSTest" Version="$(MSTestVersion)" />
+		<PackageReference Include="Microsoft.Testing.Platform" Version="$(MTPVersion)" />
+		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="$(MTPVersion)" />
+		<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MTPVersion)" />
 	</ItemGroup>
 
 	<!--
@@ -54,21 +58,6 @@
 		env-var/CI flow on every platform now runs tests in-process via MSTest's own engine
 		(TestApplicationBuilderExtensions.AddMSTest), not just the desktop `dotnet test` CLI path.
 	-->
-	<PropertyGroup Condition=" '$(UseMSTest)' == 'true' ">
-		<EnableMSTestRunner>true</EnableMSTestRunner>
-		<DefineConstants>$(DefineConstants);USE_UNO_MSTEST_ENGINE</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(UseMSTest)' == 'true' And '$(TargetPlatformIdentifier)' == 'Desktop' ">
-		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
-	</PropertyGroup>
-	<ItemGroup Condition=" '$(UseMSTest)' == 'true' ">
-		<PackageReference Include="MSTest" Version="$(MSTestVersion)" />
-	</ItemGroup>
-	<!-- Desktop already gets Microsoft.Testing.Platform from the MTP ItemGroup above. -->
-	<ItemGroup Condition="'$(UseMSTest)' == 'true' and '$(TargetFramework)' != 'net10.0-desktop'">
-		<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.3" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute">
 			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
