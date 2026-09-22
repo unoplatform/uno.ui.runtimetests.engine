@@ -15,7 +15,7 @@
 		<OutputType>Library</OutputType>
 		<RootNamespace>Uno.UI.RuntimeTests.Engine</RootNamespace>
 
-		<DefineConstants>$(DefineConstants);IS_UNO_RUNTIMETEST_PROJECT;HAS_UNO_RUNTIMETESTS_MTP;USE_UNO_MSTEST_ENGINE</DefineConstants>
+		<DefineConstants>$(DefineConstants);USE_UNO_HOT_TESTING</DefineConstants>
 
 		<!-- Uno features -->
 		<UnoFeatures>
@@ -94,10 +94,10 @@
 
 	<ItemGroup>
 		<!-- UnitTestsControl.xaml itself is reused, unmodified, from the Library -->
-		<Page Include="$(MSBuildThisFileDirectory)..\Uno.UI.RuntimeTests.Engine.Library\Engine\UI\UnitTestsControl.xaml">
+		<Page Include="$(MSBuildThisFileDirectory)UI\UnitTestsControl.xaml">
 			<SubType>Designer</SubType>
 			<Generator>MSBuild:Compile</Generator>
-			<Link>Engine\UI\UnitTestsControl.xaml</Link>
+			<Link>UI\UnitTestsControl.xaml</Link>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>

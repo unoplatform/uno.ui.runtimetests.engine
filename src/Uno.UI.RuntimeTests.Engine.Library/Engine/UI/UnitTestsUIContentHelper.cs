@@ -34,7 +34,12 @@ using _DispatcherQueueHandler = Windows.UI.Core.DispatchedHandler;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting.Internal.Helpers;
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public static class UnitTestsUIContentHelper
 {

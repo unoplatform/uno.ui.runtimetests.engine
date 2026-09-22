@@ -43,7 +43,7 @@ using XamlWindow = Microsoft.UI.Xaml.Window;
 
 namespace Uno.UI.RuntimeTests;
 
-public sealed partial class UnitTestsControl : UserControl
+public partial class UnitTestsControl : UserControl
 {
 #pragma warning disable CS0109
 	private new readonly ILogger _log = Uno.Extensions.LogExtensionPoint.Log(typeof(UnitTestsControl));

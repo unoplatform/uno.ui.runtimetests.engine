@@ -26,16 +26,16 @@ public sealed class Program
 
 	static async Task RunTests(bool runTests, string[] args)
 	{
-#if !USE_UNO_MSTEST_ENGINE
+#if !USE_UNO_HOT_TESTING
 		return;
-#else // USE_UNO_MSTEST_ENGINE
+#else // USE_UNO_HOT_TESTING
 		if (!runTests && !args.Any(a => string.Compare("--dotnet-test-pipe", a, StringComparison.OrdinalIgnoreCase) == 0))
 		{
 			return;
 		}
 
 		var testsBuilder = await Microsoft.Testing.Platform.Builder.TestApplication.CreateBuilderAsync(args);
-		testsBuilder.AddUnoRuntimeTests();
+		testsBuilder.AddUnoHotTesting();
 		// MSTest-native runtime-tests engine (opt-in via $(UseMSTest)=true): runs tests through
 		// MSTest's own engine instead of the hand-rolled one bridged by AddUnoRuntimeTests(),
 		// which uses Reflection to load all `*Tests.dll` assemblies.
@@ -43,7 +43,7 @@ public sealed class Program
 		testsBuilder.AddMSTest(() => [typeof(Program).Assembly]);
 		// testsBuilder.AddTrxReportProvider();
 		using var testsApp = await testsBuilder.BuildAsync();
-		await testsApp.RunUnoAppAsync();
-#endif // USE_UNO_MSTEST_ENGINE
+		await testsApp.RunUnoHotTestingAppAsync();
+#endif // USE_UNO_HOT_TESTING
 	}
 }

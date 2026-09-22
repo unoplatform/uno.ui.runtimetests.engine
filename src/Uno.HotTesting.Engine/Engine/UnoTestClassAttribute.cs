@@ -5,7 +5,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Uno.UI.RuntimeTests;
+namespace Uno.HotTesting;
 
 /// <summary>
 /// Marks a test class whose test methods should be executed through <see cref="UnoTestMethodAttribute"/>

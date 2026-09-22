@@ -6,11 +6,11 @@ using Microsoft.Testing.Platform.Builder;
 
 using Uno.UI.RuntimeTests;
 
-namespace Uno.UI.RuntimeTests.Engine;
+namespace Uno.HotTesting;
 
 public static class UnoTestApplicationExtensions
 {
-    public static async Task RunUnoAppAsync(this ITestApplication app, CancellationToken cancellationToken = default)
+    public static async Task RunUnoHotTestingAppAsync(this ITestApplication app, CancellationToken cancellationToken = default)
     {
 		int exitCode = 1;
 		try
@@ -22,13 +22,13 @@ public static class UnoTestApplicationExtensions
 
 			await window.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
 			{
-				var engine = new UnitTestsControl();
+				var engine = new UI.UnitTestsControl();
 
 				onResult = engine.RegisterExternalResult;
 				onInProgress = engine.ReportInProgress;
 
-				UnitTestsMSTestReporter.OnTestCaseResult += onResult;
-				UnitTestsMSTestReporter.OnTestCaseInProgress += onInProgress;
+				UI.UnitTestsMSTestReporter.OnTestCaseResult += onResult;
+				UI.UnitTestsMSTestReporter.OnTestCaseInProgress += onInProgress;
 				window.Content = engine;
 			});
 
@@ -38,8 +38,8 @@ public static class UnoTestApplicationExtensions
 			}
 			finally
 			{
-				UnitTestsMSTestReporter.OnTestCaseResult -= onResult;
-				UnitTestsMSTestReporter.OnTestCaseInProgress -= onInProgress;
+				UI.UnitTestsMSTestReporter.OnTestCaseResult -= onResult;
+				UI.UnitTestsMSTestReporter.OnTestCaseInProgress -= onInProgress;
 			}
 		}
 		catch (Exception e)

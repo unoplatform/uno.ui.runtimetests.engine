@@ -4,9 +4,19 @@
 
 #if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
 
-[assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(global::Uno.UI.RuntimeTests.HotReloadHelper.MetadataUpdateHandler))]
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
+using Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
+[assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(HotReloadHelper.MetadataUpdateHandler))]
+
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 partial class HotReloadHelper
 {

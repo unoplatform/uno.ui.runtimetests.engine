@@ -1,10 +1,5 @@
-#if !IS_UNO_RUNTIMETEST_PROJECT
-#pragma warning disable
-#endif
-
 // This bridge references Microsoft.Testing.Platform types directly, so it can only compile where
 // those packages are actually referenced (i.e. when $(UseMSTest)=true, see TestApp.csproj).
-#if USE_UNO_MSTEST_ENGINE
 #nullable enable
 
 using System;
@@ -14,7 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Testing.Platform.Extensions;
 using Microsoft.Testing.Platform.Extensions.Messages;
 
-namespace Uno.UI.RuntimeTests;
+namespace Uno.HotTesting.UI;
 
 /// <summary>
 /// An <see cref="IDataConsumer"/> that subscribes to the <see cref="TestNodeUpdateMessage"/>s
@@ -84,4 +79,3 @@ internal sealed class UnitTestsMSTestReporter : IDataConsumer
 		return Task.CompletedTask;
 	}
 }
-#endif

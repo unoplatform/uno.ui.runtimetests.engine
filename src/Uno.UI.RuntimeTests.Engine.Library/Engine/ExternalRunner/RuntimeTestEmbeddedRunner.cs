@@ -20,7 +20,13 @@ using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
 
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting.UI;
+using Uno.UI.RuntimeTests.Engine;
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests.Engine;
+#endif // USE_UNO_HOT_TESTING
 
 /// <summary>
 /// A runtime-test runner that is embedded in applications that are referencing the runtime-test engine package.

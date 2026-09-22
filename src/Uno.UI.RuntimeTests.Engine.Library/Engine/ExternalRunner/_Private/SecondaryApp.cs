@@ -4,10 +4,19 @@
 
 using System;
 
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting;
+#endif // USE_UNO_HOT_TESTING
+
 #if !UNO_RUNTIMETESTS_DISABLE_UI
 #nullable enable
 
+#if USE_UNO_HOT_TESTING
+using Uno.UI.RuntimeTests.Internal.Helpers;
+namespace Uno.HotTesting.Internal.Helpers;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
+#endif // USE_UNO_HOT_TESTING
 
 /// <summary>
 /// Helper class to run tests in a secondary app.

@@ -10,9 +10,13 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting.UI
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests
+#endif // USE_UNO_HOT_TESTING
 {
-	public sealed partial class UnitTestsControl
+	public partial class UnitTestsControl
 	{
 		private sealed class ConsoleOutputRecorder : IDisposable
 		{

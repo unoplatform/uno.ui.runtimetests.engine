@@ -1,11 +1,8 @@
-#if !IS_UNO_RUNTIMETEST_PROJECT
-#pragma warning disable
-#endif
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
 #nullable enable
 
-#if USE_UNO_MSTEST_ENGINE
+// For improved performance, use the LoggerMessage delegates instead of calling 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])' (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1848)
+#pragma warning disable CA1848
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,11 +33,11 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 
-using Uno.UI.RuntimeTests.Engine;
+using Uno.HotTesting.Internal.Helpers;
 
 using XamlWindow = Microsoft.UI.Xaml.Window;
 
-namespace Uno.UI.RuntimeTests;
+namespace Uno.HotTesting.UI;
 
 /// <summary>
 /// MSTest-engine-native counterpart of the hand-rolled <c>UnitTestsControl</c> from
@@ -50,7 +47,7 @@ namespace Uno.UI.RuntimeTests;
 /// actual test execution (including <see cref="UnoTestClassAttribute"/>/<see cref="UnoTestMethodAttribute"/>
 /// dispatch) happens inside MSTest's real pipeline, not in a hand-rolled loop.
 /// </summary>
-public sealed partial class UnitTestsControl : UserControl
+public partial class UnitTestsControl : UserControl
 {
 #pragma warning disable CS0109
 	private new readonly ILogger _log = Uno.Extensions.LogExtensionPoint.Log(typeof(UnitTestsControl));
@@ -834,4 +831,3 @@ public sealed partial class UnitTestsControl : UserControl
 		public override Encoding Encoding => Encoding.UTF8;
 	}
 }
-#endif

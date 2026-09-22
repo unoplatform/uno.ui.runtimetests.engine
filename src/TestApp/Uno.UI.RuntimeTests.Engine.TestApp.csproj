@@ -14,6 +14,9 @@
 		<ApplicationPublisher>Uno Platform</ApplicationPublisher>
 		<RootNamespace>Uno.UI.RuntimeTests.Engine</RootNamespace>
 
+		<_EngineNamespace Condition=" '$(UseHotTesting)' != 'true' ">Uno.UI.RuntimeTests.Engine</_EngineNamespace>
+
+
 		<!-- Required otherwise lottie will not get included properly -->
 		<IsPackable>false</IsPackable>
 
@@ -32,24 +35,25 @@
 			CS8619;CS8602;Uno0001;IL2026;IL2070;IL2072;IL2075</NoWarn>
 	</PropertyGroup>
 
-	<ItemGroup Condition=" '$(UseMSTest)' != 'true' ">
+	<ItemGroup Condition=" '$(UseHotTesting)' != 'true' ">
 		<PackageReference Include="MSTest.TestFramework" Version="$(MSTestVersion)" />
 	</ItemGroup>
 
 	<!-- Microsoft.Testing.Platform (MTP) support -->
-	<PropertyGroup Condition=" '$(UseMSTest)' == 'true' ">
-		<DefineConstants>$(DefineConstants);HAS_UNO_RUNTIMETESTS_MTP</DefineConstants>
+	<PropertyGroup Condition=" '$(UseHotTesting)' == 'true' ">
+		<DefineConstants>$(DefineConstants);USE_UNO_HOT_TESTING</DefineConstants>
 		<IsTestingPlatformApplication>true</IsTestingPlatformApplication>
 		<EnableMSTestRunner>true</EnableMSTestRunner>
-		<DefineConstants>$(DefineConstants);USE_UNO_MSTEST_ENGINE</DefineConstants>
 		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
 		<GenerateProgramFile>false</GenerateProgramFile>
+		<_EngineNamespace>Uno.HotTesting</_EngineNamespace>
 	</PropertyGroup>
-	<ItemGroup Condition=" '$(UseMSTest)' == 'true' ">
+	<ItemGroup Condition=" '$(UseHotTesting)' == 'true' ">
 		<PackageReference Include="MSTest" Version="$(MSTestVersion)" />
 		<PackageReference Include="Microsoft.Testing.Platform" Version="$(MTPVersion)" />
 		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="$(MTPVersion)" />
 		<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MTPVersion)" />
+		<Using Include="Uno.HotTesting" />
 	</ItemGroup>
 
 	<!--
@@ -59,19 +63,19 @@
 		(TestApplicationBuilderExtensions.AddMSTest), not just the desktop `dotnet test` CLI path.
 	-->
 	<ItemGroup>
-		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute">
+		<AssemblyAttribute Include="$(_EngineNamespace).RuntimeTestsSourceProjectAttribute">
 			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
 		</AssemblyAttribute>
 
-		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute" Condition="'$(PkgUno_WinUI_DevServer)' != ''">
+		<AssemblyAttribute Include="$(_EngineNamespace).RuntimeTestDevServerAttribute" Condition="'$(PkgUno_WinUI_DevServer)' != ''">
 			<_Parameter1>$([System.IO.Path]::GetFileName(`$(PkgUno_WinUI_DevServer)`))</_Parameter1>
 		</AssemblyAttribute>
 	</ItemGroup>
 
 	<!-- Import exactly one runtime-tests engine: the default hand-rolled Library, or the MSTest-native
-	     one when opted into via $(UseMSTest)=true (see Uno.UI.RuntimeTests.Engine.MSTest). -->
-	<Import Project="..\Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems" Label="Shared" Condition="'$(UseMSTest)' != 'true'" />
-	<ItemGroup Condition=" '$(UseMSTest)' == 'true' ">
-		<ProjectReference Include="..\Uno.UI.RuntimeTests.Engine.MSTest\Uno.UI.RuntimeTests.Engine.MSTest.csproj" />
+	     one when opted into via $(UseHotTesting)=true (see Uno.HotTesting.Engine). -->
+	<Import Project="..\Uno.UI.RuntimeTests.Engine.Library\Uno.UI.RuntimeTests.Engine.Library.projitems" Label="Shared" Condition="'$(UseHotTesting)' != 'true'" />
+	<ItemGroup Condition=" '$(UseHotTesting)' == 'true' ">
+		<ProjectReference Include="..\Uno.HotTesting.Engine\Uno.HotTesting.Engine.csproj" />
 	</ItemGroup>
 </Project>

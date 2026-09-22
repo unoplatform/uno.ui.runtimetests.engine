@@ -21,7 +21,8 @@ using Windows.Devices.Input;
 // below always means our enum; the alias is used everywhere MSTest's class is meant.
 using MSTestResult = Microsoft.VisualStudio.TestTools.UnitTesting.TestResult;
 
-namespace Uno.UI.RuntimeTests;
+using Uno.HotTesting.Internal.Helpers;
+namespace Uno.HotTesting;
 
 /// <summary>
 /// Executes a test method through MSTest's real engine (<see cref="TestMethodAttribute.ExecuteAsync"/>),

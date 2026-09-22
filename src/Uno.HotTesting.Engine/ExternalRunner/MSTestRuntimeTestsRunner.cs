@@ -13,7 +13,9 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Windows.UI.Core;
 
-namespace Uno.UI.RuntimeTests.Engine;
+using Uno.HotTesting.UI;
+
+namespace Uno.HotTesting;
 
 /// <summary>
 /// Opt-in bridge that runs MSTest's real engine inside a Microsoft.Testing.Platform (MTP)
