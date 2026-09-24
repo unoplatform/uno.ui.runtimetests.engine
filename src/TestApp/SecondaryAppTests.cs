@@ -7,6 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Uno.UI.RuntimeTests.Internal.Helpers;
 
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting.Internal.Helpers;
+#endif
+
 namespace Uno.UI.RuntimeTests.Engine;
 
 [TestClass]
@@ -23,7 +27,7 @@ public class SecondaryAppSanity
 	}
 }
 
-[TestClass]
+[UnoTestClass]
 [RunsInSecondaryApp(ignoreIfNotSupported: true)]
 public class SecondaryAppTests
 {

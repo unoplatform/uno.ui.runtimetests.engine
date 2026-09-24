@@ -43,7 +43,7 @@ using XamlWindow = Microsoft.UI.Xaml.Window;
 
 namespace Uno.UI.RuntimeTests;
 
-public sealed partial class UnitTestsControl : UserControl
+public partial class UnitTestsControl : UserControl
 {
 #pragma warning disable CS0109
 	private new readonly ILogger _log = Uno.Extensions.LogExtensionPoint.Log(typeof(UnitTestsControl));
@@ -1104,7 +1104,7 @@ public sealed partial class UnitTestsControl : UserControl
 		await tcs.Task;
 	}
 
-	private IEnumerable<UnitTestClassInfo> InitializeTests()
+	internal IEnumerable<UnitTestClassInfo> InitializeTests()
 	{
 		var testAssemblies = AppDomain.CurrentDomain.GetAssemblies()
 			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)

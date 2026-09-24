@@ -56,6 +56,7 @@
 
 	<PropertyGroup>
 		<LangVersion>latest</LangVersion>
-		<MSTestVersion>4.3.3</MSTestVersion>
+		<MSTestVersion>4.4.1</MSTestVersion>
+		<MTPVersion>2.4.1</MTPVersion>
 	</PropertyGroup>
 </Project>

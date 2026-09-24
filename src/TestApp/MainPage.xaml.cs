@@ -9,3 +9,12 @@ public sealed partial class MainPage : Page
 		this.InitializeComponent();
 	}
 }
+
+public partial class UnitTestsControl
+#if USE_UNO_HOT_TESTING
+	: Uno.HotTesting.UI.UnitTestsControl
+#else
+	: Uno.UI.RuntimeTests.UnitTestsControl
+#endif
+{
+}

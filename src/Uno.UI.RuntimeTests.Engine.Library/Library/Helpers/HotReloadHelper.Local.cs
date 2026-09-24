@@ -3,7 +3,11 @@
 #endif
 
 #if !UNO_RUNTIMETESTS_DISABLE_LIBRARY
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 partial class HotReloadHelper
 {

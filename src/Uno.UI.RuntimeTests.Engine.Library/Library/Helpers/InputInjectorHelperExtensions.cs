@@ -15,7 +15,11 @@ using PointerDeviceType = Windows.Devices.Input.PointerDeviceType;
 
 using Microsoft.UI.Xaml;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public static partial class InputInjectorHelperExtensions
 {

@@ -15,12 +15,20 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Microsoft.UI.Xaml.Markup;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 /// <summary>
 /// Screen shot based assertions, to validate individual colors of an image
 /// </summary>
-public static partial class ImageAssert
+
+#if !USE_UNO_HOT_TESTING
+public
+#endif // !USE_UNO_HOT_TESTING
+static partial class ImageAssert
 {
 	#region HasColorAt
 	public static void HasColorAt(TestBitmap screenshot, Windows.Foundation.Point location, string expectedColorCode, byte tolerance = 0, [CallerLineNumber] int line = 0)

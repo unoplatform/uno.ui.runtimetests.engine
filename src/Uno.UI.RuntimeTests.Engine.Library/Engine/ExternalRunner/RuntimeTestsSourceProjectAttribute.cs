@@ -9,7 +9,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests.Engine;
+#endif // USE_UNO_HOT_TESTING
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false)]
 public sealed class RuntimeTestsSourceProjectAttribute : Attribute
