@@ -135,6 +135,15 @@ jobs:
         UNO_RUNTIME_TESTS_RUN_TESTS: '{"Filter": {"Value": "!HotReloadTests & !SecondaryAppTests & !Is_SecondaryApp_Supported"}}'
         UNO_RUNTIME_TESTS_OUTPUT_PATH: '${{ github.workspace }}/test-results/runtime-tests.xml'
 
+    - name: Build Uno.HotDesign.Engine Tests (Debug)
+      run: dotnet build src/Uno.HotTesting.Engine.Tests/Uno.HotTesting.Engine.Tests.csproj
+
+    - name: Run Uno.HotDesign.Engine Tests
+      run: |
+        # need to run from `src` so `src/global.json` is respected
+        cd src
+        dotnet test --project Uno.HotTesting.Engine.Tests/Uno.HotTesting.Engine.Tests.csproj --report-trx --results-directory "`pwd`/../test-results"
+
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
@@ -149,6 +158,15 @@ jobs:
         name: Runtime Tests
         path: test-results/runtime-tests.xml
         reporter: dotnet-nunit
+        fail-on-error: true
+
+    - name: Publish Uno.HotDesign.Engine Results
+      uses: dorny/test-reporter@v3.0.0
+      if: always()
+      with:
+        name: Uno.HotDesign.Engine Tests
+        path: test-results/*.trx
+        reporter: dotnet-trx
         fail-on-error: true
 
   test-wasm:
