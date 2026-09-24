@@ -16,6 +16,7 @@
 			<RowDefinition Height="0" x:Name="failedTestDetailsRow" />
 			<!--Will be set to height = 100 if any exception-->
 			<RowDefinition Height="Auto" />
+			<RowDefinition Height="2*" />
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
 		<Grid.ColumnDefinitions>
@@ -188,8 +189,53 @@
 		<ContentControl
 			x:Name="unitTestContentRoot"
 			Grid.Column="2"
-			Grid.RowSpan="4"
+			Grid.RowSpan="5"
 			HorizontalContentAlignment="Left"
 			VerticalAlignment="Top" />
+
+		<Grid Grid.Row="4" Grid.Column="0">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto" />
+				<RowDefinition Height="*" />
+			</Grid.RowDefinitions>
+
+			<TextBlock
+				Grid.Row="0"
+				Text="Discovered Tests"
+				FontWeight="Bold"
+				Margin="0,4,0,4" />
+
+			<TreeView
+				x:Name="discoveredTestsTree"
+				Grid.Row="1">
+				<TreeView.ItemTemplate>
+					<DataTemplate>
+						<TreeViewItem ItemsSource="{Binding Children}">
+							<Grid ColumnSpacing="8">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*" />
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="Auto" />
+								</Grid.ColumnDefinitions>
+								<TextBlock
+									Grid.Column="0"
+									Text="{Binding Name}"
+									VerticalAlignment="Center"
+									TextTrimming="CharacterEllipsis" />
+								<TextBlock
+									Grid.Column="1"
+									Text="{Binding Status}"
+									Opacity="0.7"
+									VerticalAlignment="Center" />
+								<Button
+									Grid.Column="2"
+									Content="Run"
+									Click="OnRunTestNodeClicked" />
+							</Grid>
+						</TreeViewItem>
+					</DataTemplate>
+				</TreeView.ItemTemplate>
+			</TreeView>
+		</Grid>
 	</Grid>
 </UserControl>

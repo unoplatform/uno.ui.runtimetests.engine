@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -18,7 +19,9 @@ using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Microsoft.Testing.Platform.Builder;
+using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Uno.HotTesting.Engine;
 using Uno.UI.RuntimeTests.Internal.Helpers;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -65,6 +68,19 @@ public partial class UnitTestsControl : UserControl
 	private readonly List<TestCaseResult> _testCases = new();
 	private TestRun? _currentRun;
 
+	private MSTestEngine? _mstestEngine;
+
+	private MSTestEngine MSTestEngine => _mstestEngine ??= new MSTestEngine(UnitTestAssemblies ?? []);
+
+
+	/// <summary>
+	/// Root nodes (one per assembly) of the discovered-tests tree, populated by
+	/// <see cref="DiscoverTestsAsync"/> from <see cref="MSTestEngine.DiscoverTestsAsync"/> -- a
+	/// discovery pass that enumerates tests without running any of them. Bound to
+	/// <c>discoveredTestsTree</c> in the XAML.
+	/// </summary>
+	internal ObservableCollection<TestTreeNode> DiscoveredTests { get; } = new();
+
 	// On WinUI/UWP dependency properties cannot be accessed outside of
 	// UI thread. This field caches the current value so it can be accessed
 	// asynchronously during test enumeration.
@@ -94,7 +110,18 @@ public partial class UnitTestsControl : UserControl
 		_applicationView = ApplicationView.GetForCurrentView();
 #endif
 
+		discoveredTestsTree.ItemsSource = DiscoveredTests;
+		Loaded += OnDiscoverTestsOnLoad;
+
 		ConstructPartial();
+	}
+
+	public IReadOnlyCollection<Assembly>? UnitTestAssemblies { get; set; }
+
+	private async void OnDiscoverTestsOnLoad(object sender, RoutedEventArgs e)
+	{
+		Loaded -= OnDiscoverTestsOnLoad;
+		await DiscoverTestsAsync();
 	}
 
 	partial void ConstructPartial();
@@ -729,15 +756,182 @@ public partial class UnitTestsControl : UserControl
 	/// heuristic (own assembly + any loaded assembly whose name ends with "Tests"). Shared with
 	/// <c>MSTestRuntimeTestsRunner</c> so the <c>dotnet test</c> CLI flow scans the same set.
 	/// </summary>
+	/*
 	internal static IEnumerable<Assembly> GetCandidateTestAssemblies()
 		=> AppDomain.CurrentDomain.GetAssemblies()
 			.Where(x => x.GetName()?.Name?.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ?? false)
 			.Concat(new[] { typeof(UnitTestsControl).Assembly })
 			.Distinct();
+	*/
+
+	/// <summary>
+	/// Runs <see cref="MSTestEngine.DiscoverTestsAsync"/> (a discovery-only pass -- no test executes)
+	/// and populates <see cref="DiscoveredTests"/> with the resulting assembly &gt; namespace &gt; test tree.
+	/// </summary>
+	private async Task DiscoverTestsAsync()
+	{
+		try
+		{
+			var discovered = await MSTestEngine.DiscoverTestsAsync();
+			var tree = BuildDiscoveredTestsTree(discovered);
+
+			await _dispatcher.RunAsync(() =>
+			{
+				DiscoveredTests.Clear();
+				foreach (var assemblyNode in tree)
+				{
+					DiscoveredTests.Add(assemblyNode);
+				}
+			});
+		}
+		catch (Exception error)
+		{
+			_log.LogError(error, "Failed to discover tests via MSTestEngine.");
+		}
+	}
+
+	/// <summary>
+	/// Groups discovered <see cref="TestNode"/>s into an assembly &gt; namespace &gt; test tree, using
+	/// the <see cref="TestMethodIdentifierProperty"/> MSTest's engine attaches to each discovered node.
+	/// </summary>
+	private static List<TestTreeNode> BuildDiscoveredTestsTree(IEnumerable<TestNode> tests)
+	{
+		var assemblies = new List<TestTreeNode>();
+
+		foreach (var test in tests)
+		{
+			var identifier = test.Properties.SingleOrDefault<TestMethodIdentifierProperty>();
+			var assemblyName = !string.IsNullOrEmpty(identifier?.AssemblyFullName) ? identifier.AssemblyFullName : "(unknown assembly)";
+			var @namespace = identifier?.Namespace ?? "(unknown namespace)";
+
+			var assemblyNode = GetOrAddChild(assemblies, assemblyName);
+			var namespaceNode = GetOrAddChild(assemblyNode.Children, @namespace);
+			namespaceNode.Children.Add(new TestTreeNode { Name = test.DisplayName, Test = test });
+		}
+
+		return assemblies;
+
+		static TestTreeNode GetOrAddChild(IList<TestTreeNode> nodes, string name)
+		{
+			foreach (var node in nodes)
+			{
+				if (node.Name == name)
+				{
+					return node;
+				}
+			}
+
+			var created = new TestTreeNode { Name = name };
+			nodes.Add(created);
+			return created;
+		}
+	}
+
+	/// <summary>
+	/// Handles a row's "Run" button: collects the <see cref="TestNode"/>(s) under the clicked
+	/// <see cref="TestTreeNode"/> (just the one test for a leaf row, every descendant test for an
+	/// assembly/namespace group row) and runs them via <see cref="MSTestEngine.RunTestsAsync(IEnumerable{TestNode})"/>
+	/// -- a separate, later request from the discovery pass that found them.
+	/// </summary>
+	private async void OnRunTestNodeClicked(object sender, RoutedEventArgs e)
+	{
+		if ((sender as FrameworkElement)?.DataContext is not TestTreeNode node)
+		{
+			return;
+		}
+
+		var tests = CollectTests(node).ToList();
+		if (tests.Count == 0)
+		{
+			return;
+		}
+
+		SetStatus(node, "Running…");
+
+		try
+		{
+			var results = await MSTestEngine.RunTestsAsync(tests);
+			ApplyRunResults(node, results);
+		}
+		catch (Exception error)
+		{
+			_log.LogError(error, "Failed to run selected test(s) via MSTestEngine.");
+			SetStatus(node, $"Error: {error.Message}");
+		}
+	}
+
+	private static IEnumerable<TestNode> CollectTests(TestTreeNode node)
+	{
+		if (node.Test is { } test)
+		{
+			yield return test;
+			yield break;
+		}
+
+		foreach (var child in node.Children)
+		{
+			foreach (var childTest in CollectTests(child))
+			{
+				yield return childTest;
+			}
+		}
+	}
+
+	private void ApplyRunResults(TestTreeNode node, IReadOnlyList<TestNode> results)
+	{
+		var lastStateByUid = results.GroupBy(r => r.Uid.Value).ToDictionary(g => g.Key, g => g.Last());
+
+		_dispatcher.Invoke(() => Apply(node));
+
+		void Apply(TestTreeNode n)
+		{
+			if (n.Test is { } test && lastStateByUid.TryGetValue(test.Uid.Value, out var resultNode))
+			{
+				n.Status = DescribeState(resultNode);
+			}
+
+			foreach (var child in n.Children)
+			{
+				Apply(child);
+			}
+		}
+	}
+
+	private void SetStatus(TestTreeNode node, string status)
+	{
+		_dispatcher.Invoke(() => Apply(node));
+
+		void Apply(TestTreeNode n)
+		{
+			if (n.Test is not null)
+			{
+				n.Status = status;
+			}
+
+			foreach (var child in n.Children)
+			{
+				Apply(child);
+			}
+		}
+	}
+
+	private static string DescribeState(TestNode node)
+	{
+		var state = node.Properties.SingleOrDefault<TestNodeStateProperty>();
+		return state switch
+		{
+			PassedTestNodeStateProperty => "Passed",
+			SkippedTestNodeStateProperty skipped => $"Skipped{(skipped.Explanation is { } m ? $": {m}" : "")}",
+			FailedTestNodeStateProperty failed => $"Failed: {failed.Explanation ?? failed.Exception?.Message}",
+			ErrorTestNodeStateProperty error => $"Error: {error.Explanation ?? error.Exception?.Message}",
+			InProgressTestNodeStateProperty => "Running…",
+			_ => "Unknown",
+		};
+	}
 
 	private IEnumerable<(Type Type, MethodInfo Method, string Fqn)> EnumerateTestMethods()
 	{
-		foreach (var assembly in GetCandidateTestAssemblies())
+		foreach (var assembly in UnitTestAssemblies ?? [])
 		{
 			foreach (var type in SafeGetTypes(assembly))
 			{

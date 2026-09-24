@@ -7,6 +7,9 @@ public sealed partial class MainPage : Page
 	public MainPage()
 	{
 		this.InitializeComponent();
+#if USE_UNO_HOT_TESTING
+		this.unitTestsControl.UnitTestAssemblies = [typeof(MainPage).Assembly];
+#endif // USE_UNO_HOT_TESTING
 	}
 }
 
