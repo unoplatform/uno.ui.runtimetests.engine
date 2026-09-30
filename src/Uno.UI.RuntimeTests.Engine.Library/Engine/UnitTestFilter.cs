@@ -2,12 +2,16 @@
 #pragma warning disable
 #endif
 
-#if !UNO_RUNTIMETESTS_DISABLE_UI || !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
+#if USE_UNO_HOT_TESTING || !UNO_RUNTIMETESTS_DISABLE_UI || !UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER
 using System;
 using System.Linq;
 using System.Reflection;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public record UnitTestFilter
 {

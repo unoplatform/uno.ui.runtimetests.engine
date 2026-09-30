@@ -19,7 +19,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 /// <summary>
 /// Represents a <see cref="RenderTargetBitmap"/> to be tested against.

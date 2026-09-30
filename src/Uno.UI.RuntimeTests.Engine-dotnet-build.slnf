@@ -3,6 +3,8 @@
     "path": "Uno.UI.RuntimeTests.Engine.sln",
     "projects": [
       "TestApp\\Uno.UI.RuntimeTests.Engine.TestApp.csproj",
+      "Uno.HotTesting.Engine\\Uno.HotTesting.Engine.csproj",
+      "Uno.HotTesting.Engine.Tests\\Uno.HotTesting.Engine.Tests.csproj",
       "Uno.UI.RuntimeTests.Engine.Library\\Uno.UI.RuntimeTests.Engine.Library.shproj",
       "Uno.UI.RuntimeTests.Engine.Package\\Uno.UI.RuntimeTests.Engine.Package.csproj",
       "Uno.UI.RuntimeTests.Engine.Wasm.Runner\\Uno.UI.RuntimeTests.Engine.Wasm.Runner.csproj",

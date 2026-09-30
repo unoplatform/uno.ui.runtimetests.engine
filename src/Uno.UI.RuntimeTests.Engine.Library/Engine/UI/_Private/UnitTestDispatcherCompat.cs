@@ -15,7 +15,11 @@ using _Impl = Microsoft.UI.Dispatching.DispatcherQueue;
 using _Handler = Microsoft.UI.Dispatching.DispatcherQueueHandler;
 using _Priority = Microsoft.UI.Dispatching.DispatcherQueuePriority;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting.Internal.Helpers;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
+#endif // USE_UNO_HOT_TESTING
 
 // the class name is prefixed to avoid potential name collision with the real `DispatcherCompat`
 
