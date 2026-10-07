@@ -1,4 +1,9 @@
 ﻿<Project>
+	<!-- The embedded runner calls JavaScript through [JSImport], whose generated code is unsafe -->
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'browserwasm' and '$(AllowUnsafeBlocks)' == ''">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<AssemblyAttribute Include="Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute" Condition="!$(DefineConstants.Contains('UNO_RUNTIMETESTS_DISABLE_EMBEDDEDRUNNER'))">
 			<_Parameter1>$(MSBuildProjectFullPath)</_Parameter1>
