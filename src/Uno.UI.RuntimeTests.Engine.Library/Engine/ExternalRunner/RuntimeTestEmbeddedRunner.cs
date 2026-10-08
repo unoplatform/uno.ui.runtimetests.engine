@@ -334,7 +334,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 			// Extract AOT profile data via JavaScript interop
 			// Check multiple possible locations for the profile data
-			var profileBase64 = Uno.Foundation.WebAssemblyRuntime.InvokeJS(@"
+			var profileBase64 = EvalJS(@"
 				(function() {
 					try {
 						// Helper function to convert data to base64
@@ -506,7 +506,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 			try
 			{
 				var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
-				var urlValue = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+				var urlValue = EvalJS(js);
 				if (!string.IsNullOrEmpty(urlValue))
 				{
 					Trace($"Got config value from URL query param (preferred for output): {name}");
@@ -534,7 +534,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		{
 			// Use inline JavaScript to get query parameter
 			var js = $"(new URLSearchParams(window.location.search)).get('{name}') || ''";
-			value = Uno.Foundation.WebAssemblyRuntime.InvokeJS(js);
+			value = EvalJS(js);
 			if (!string.IsNullOrEmpty(value))
 			{
 				Trace($"Got config value from URL query param: {name}");
@@ -763,5 +763,11 @@ internal static partial class RuntimeTestEmbeddedRunner
 
 	private static void LogError(string text)
 		=> Console.Error.WriteLine(text);
+#if __WASM__
+
+	// Uno.Foundation.WebAssemblyRuntime only reaches app heads in Uno 7.0, and this file is also compiled into browserwasm libraries
+	[System.Runtime.InteropServices.JavaScript.JSImport("globalThis.eval")]
+	private static partial string? EvalJS(string code);
+#endif
 }
 #endif

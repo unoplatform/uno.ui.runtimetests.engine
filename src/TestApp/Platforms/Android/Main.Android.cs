@@ -6,6 +6,7 @@ using Android.Runtime;
 using Android.Views;
 using Android.Widget;
 using Microsoft.UI.Xaml.Media;
+using Uno.UI.Hosting;
 
 namespace Uno.UI.RuntimeTests.Engine.Droid;
 
@@ -24,7 +25,13 @@ public class Application : Microsoft.UI.Xaml.NativeApplication
 	}
 
 	public Application(IntPtr javaReference, JniHandleOwnership transfer)
-		: base(() => new App(), javaReference, transfer)
+		: base(javaReference, transfer)
 	{
 	}
+
+	protected override UnoPlatformHost CreateHost() =>
+		UnoPlatformHostBuilder.Create()
+			.App(() => new App())
+			.UseAndroid()
+			.Build();
 }

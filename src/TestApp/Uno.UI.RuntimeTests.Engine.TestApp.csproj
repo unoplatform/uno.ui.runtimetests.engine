@@ -18,14 +18,19 @@
 		<IsPackable>false</IsPackable>
 
 		<!-- Uno features -->
-		<UnoFeatures>
-			Logging;
-      		SkiaRenderer;
-		</UnoFeatures>
+		<UnoFeatures>Logging</UnoFeatures>
+
+		<!-- Hot Design has no Uno 7.0 build yet: the 6.x one pulls SkiaSharp.Views.Uno.WinUI and fails with UNOB0023 -->
+		<UnoDisableHotDesign>true</UnoDisableHotDesign>
+
+		<!-- Uno 7.0 needs WinRT.Runtime >= 2.3.1; the .NET SDK default projection ships 2.2.0 -->
+		<WindowsSdkPackageVersion>10.0.22621.87</WindowsSdkPackageVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);IS_UNO_RUNTIMETEST_PROJECT</DefineConstants>
+		<!-- Same as the package targets: the embedded runner uses [JSImport] on browserwasm -->
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<!-- Suppress warnings from the Library code -->
 		<NoWarn>$(NoWarn);CS8619;CS8602;Uno0001;IL2026;IL2070;IL2072;IL2075</NoWarn>
 	</PropertyGroup>
