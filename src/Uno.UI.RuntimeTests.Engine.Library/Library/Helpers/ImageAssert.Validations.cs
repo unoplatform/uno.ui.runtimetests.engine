@@ -14,7 +14,11 @@ using Windows.Foundation;
 
 using Microsoft.UI;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 /// <summary>
 /// Screenshot based assertions, to validate individual colors of an image

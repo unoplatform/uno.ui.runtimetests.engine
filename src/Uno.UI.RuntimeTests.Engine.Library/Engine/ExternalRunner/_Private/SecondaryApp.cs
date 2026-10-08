@@ -4,10 +4,19 @@
 
 using System;
 
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting;
+#endif // USE_UNO_HOT_TESTING
+
 #if !UNO_RUNTIMETESTS_DISABLE_UI
 #nullable enable
 
+#if USE_UNO_HOT_TESTING
+using Uno.UI.RuntimeTests.Internal.Helpers;
+namespace Uno.HotTesting.Internal.Helpers;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
+#endif // USE_UNO_HOT_TESTING
 
 /// <summary>
 /// Helper class to run tests in a secondary app.
@@ -16,7 +25,7 @@ namespace Uno.UI.RuntimeTests.Internal.Helpers;
 /// This class is intended to be used only by the the test engine itself and should not be used by applications.
 /// API contract is not guaranteed and might change in future releases.
 /// </remarks>
-internal static partial class SecondaryApp
+public static partial class SecondaryApp
 {
 	/// <summary>
 	/// Gets a boolean indicating if the current platform supports running tests in a secondary app.

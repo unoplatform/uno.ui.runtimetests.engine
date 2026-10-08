@@ -13,7 +13,13 @@ using global::Uno.Extensions;
 
 using global::Microsoft.UI.Xaml;
 
+#if USE_UNO_HOT_TESTING
+using Uno.HotTesting.Internal.Helpers;
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
+using Uno.UI.RuntimeTests.Engine;
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public static partial class HotReloadHelper
 {
@@ -127,7 +133,7 @@ public static partial class HotReloadHelper
 	/// <returns>An IAsyncDisposable object that will revert the change when disposed.</returns>
 	public static async global::System.Threading.Tasks.ValueTask<global::System.IAsyncDisposable> UpdateSourceFile(string filPathRelativeToProject, string originalText, string replacementText, bool waitForMetadataUpdate, global::System.Threading.CancellationToken ct = default)
 	{
-		var projectFile = typeof(HotReloadHelper).Assembly.GetCustomAttribute<global::Uno.UI.RuntimeTests.Engine.RuntimeTestsSourceProjectAttribute>()?.ProjectFullPath;
+		var projectFile = typeof(HotReloadHelper).Assembly.GetCustomAttribute<RuntimeTestsSourceProjectAttribute>()?.ProjectFullPath;
 		if (projectFile is null or { Length: 0 })
 		{
 			throw new global::System.InvalidOperationException("The project file path could not be found.");

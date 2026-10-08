@@ -8,7 +8,11 @@ using System;
 using System.Linq;
 using Windows.UI;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 /// <remarks>
 /// This class is intended to be used only by the the test engine itself and should not be used by applications.
