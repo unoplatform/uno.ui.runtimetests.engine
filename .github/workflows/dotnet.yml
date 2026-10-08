@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "servicing/**" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "servicing/**" ]
     
 env:
   # uno.check 1.34.1 provisions wasm-tools for the 10.0.101 band; on a newer SDK the workload resolves
@@ -321,7 +321,7 @@ jobs:
 
   publish:
     name: Publish
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/servicing/') || startsWith(github.ref, 'refs/heads/release/')) }}
     runs-on: windows-2025
     needs:
       - build
