@@ -7,7 +7,9 @@ on:
     branches: [ "main" ]
     
 env:
-  DotNetVersion: '10.0.102'
+  # uno.check 1.34.1 provisions wasm-tools for the 10.0.101 band; on a newer SDK the workload resolves
+  # below it and the build fails with NETSDK1147. Bump both together.
+  DotNetVersion: '10.0.101'
   UnoCheck_Version: '1.34.1'
 
 jobs:
