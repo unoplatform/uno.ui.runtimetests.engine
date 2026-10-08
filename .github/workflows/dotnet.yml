@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "servicing/**" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "servicing/**" ]
     
 env:
   DotNetVersion: '10.0.100'
@@ -319,7 +319,7 @@ jobs:
 
   publish:
     name: Publish
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/servicing/') || startsWith(github.ref, 'refs/heads/release/')) }}
     runs-on: windows-2025
     needs:
       - build
