@@ -281,6 +281,67 @@ Notes:
 * We use `{}` for the `UNO_RUNTIME_TESTS_RUN_TESTS` in order to run all tests with default configuration.
 * If you want to test hot-reload scenarios (usually relevant only for library developers), you need to build your test project in debug (`-c Debug`).
 
+### Running the tests via `dotnet test` (Microsoft.Testing.Platform)
+
+As an alternative to the env-var flow above, the Desktop (Skia) head can opt in to [Microsoft.Testing.Platform](https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro) (MTP), so tests can be discovered and run via `dotnet test`, `dotnet run`, or an MTP-aware IDE Test Explorer, with per-test pass/fail results instead of a single aggregate NUnit-XML file. This is **opt-in and additive** — the env-var/NUnit-XML flow above (and the WASM runner below) keep working unchanged whether or not you enable this.
+
+This is currently supported for the **Desktop head only** — mobile and WASM heads aren't naturally invoked through `dotnet test`'s process model.
+
+**Setup** (in your Desktop head's `.csproj`, scoped to the desktop `TargetFramework`):
+
+```xml
+<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
+	<IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+	<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+	<DefineConstants>$(DefineConstants);HAS_UNO_RUNTIMETESTS_MTP</DefineConstants>
+</PropertyGroup>
+<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-desktop'">
+	<PackageReference Include="Microsoft.Testing.Platform" Version="2.3.1" />
+	<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.1" />
+	<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.1" />
+</ItemGroup>
+```
+
+And in your Desktop head's `Program.cs`, before the call that starts the native host loop (e.g. `host.Run()`):
+
+```csharp
+#if HAS_UNO_RUNTIMETESTS_MTP
+if (args.Length > 0)
+{
+	_ = Uno.UI.RuntimeTests.Engine.MicrosoftTestingPlatformRunner.RunAsync(args);
+}
+#endif
+```
+
+`args.Length > 0` is the opt-in gate: a plain launch (double-click, `dotnet TestApp.dll` with no args, or the classic `UNO_RUNTIME_TESTS_*` env-var flow) always has zero CLI args, so it's unaffected. `dotnet test` (which passes `--server dotnettestcli ...`) and direct MTP CLI switches (`--list-tests`, `--filter-uid`, `--report-trx`, etc.) both have non-empty args, so they engage MTP.
+
+Also add to your repo's `global.json` to use the newer, `dotnet test`-native MTP experience (requires the .NET 10 SDK):
+
+```json
+{
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}
+```
+
+**Usage:**
+
+```bash
+# Run all tests
+dotnet test --project src/MyApp/MyApp.csproj -f net10.0-desktop
+
+# With a trx report
+dotnet test --project src/MyApp/MyApp.csproj -f net10.0-desktop --report-trx
+```
+
+**Known limitations:**
+* Test selection (`--filter-uid` / IDE "run selected tests") operates at the *method* level, matching the engine's existing filter/[sharding](#test-sharding) granularity — selecting one `[DataRow]` case runs all rows for that method.
+* The underlying filter engine (`UnitTestFilter`) matches by substring containment (to support hierarchical filters like `Namespace & ClassName`), so a method whose name is a prefix of a sibling method's name (e.g. `Is_Sane` vs. `Is_Sane_With_DynamicData`) will match both — a pre-existing property of the filter engine, not specific to MTP.
+* Per-test results are reported once the full run completes, not streamed live as each test executes.
+
+See [`specs/003-mtp-integration/spec.md`](specs/003-mtp-integration/spec.md) for the full design and known open items.
+
 ### Running the tests automatically during CI on WebAssembly
 
 For WebAssembly targets, a dedicated .NET tool (`Uno.UI.RuntimeTests.Engine.Wasm.Runner`) is available that:

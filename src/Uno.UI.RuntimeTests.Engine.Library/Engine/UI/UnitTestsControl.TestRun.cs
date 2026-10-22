@@ -3,10 +3,14 @@
 #endif
 #pragma warning disable CA1852 // Make class final : unnecessary breaking change
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting.UI;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
-#if !UNO_RUNTIMETESTS_DISABLE_UI
-public sealed partial class UnitTestsControl
+#if USE_UNO_HOT_TESTING || !UNO_RUNTIMETESTS_DISABLE_UI
+public partial class UnitTestsControl
 {
 	private class TestRun
 	{

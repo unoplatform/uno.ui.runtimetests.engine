@@ -10,7 +10,14 @@ using System;
 using System.ComponentModel;
 using System.IO;
 
+#if USE_UNO_HOT_TESTING
+using Uno.UI.RuntimeTests.Internal.Helpers;
+namespace Uno.HotTesting.Internal.Helpers;
+#else // !USE_UNO_HOT_TESTING
+using Uno.UI.RuntimeTests.Engine;
 namespace Uno.UI.RuntimeTests.Internal.Helpers;
+#endif // USE_UNO_HOT_TESTING
+
 
 /// <summary>
 /// Helper class to start a dev server instance.
@@ -124,7 +131,7 @@ public sealed partial class DevServer : global::System.IAsyncDisposable
 					args.Add(match.Groups["version"].Value);
 				}
 				// Otherwise we use the version used to compile the test engine
-				else if (global::System.Reflection.CustomAttributeExtensions.GetCustomAttribute<global::Uno.UI.RuntimeTests.Engine.RuntimeTestDevServerAttribute>(typeof(DevServer).Assembly)?.Version is { Length: > 0 } version)
+				else if (global::System.Reflection.CustomAttributeExtensions.GetCustomAttribute<RuntimeTestDevServerAttribute>(typeof(DevServer).Assembly)?.Version is { Length: > 0 } version)
 				{
 					args.Add("--version");
 					args.Add(version);

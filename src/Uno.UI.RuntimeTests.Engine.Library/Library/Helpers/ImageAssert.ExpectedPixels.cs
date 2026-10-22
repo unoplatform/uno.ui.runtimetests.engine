@@ -16,7 +16,11 @@ using Windows.UI;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Markup;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public record struct ExpectedPixels
 {

@@ -22,7 +22,11 @@ using Uno.UI.RemoteControl.HotReload.Messages; // DevServer
 using Uno.UI.RemoteControl.HotReload.MetadataUpdater; // DevServer
 using RemoteFileEdit = Uno.UI.RemoteControl.HotReload.FileEdit;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 partial class HotReloadHelper
 {

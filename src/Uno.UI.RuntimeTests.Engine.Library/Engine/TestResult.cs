@@ -5,9 +5,13 @@
 using System;
 using System.Linq;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
-#if !UNO_RUNTIMETESTS_DISABLE_UI
+#if USE_UNO_HOT_TESTING || !UNO_RUNTIMETESTS_DISABLE_UI
 
 internal enum TestResult
 {
