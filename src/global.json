@@ -5,6 +5,6 @@
     "rollForward": "latestMinor"
   },
   "msbuild-sdks": {
-    "Uno.Sdk": "7.0.0-dev.40"
+    "Uno.Sdk.Private": "7.0.29"
   }
 }
