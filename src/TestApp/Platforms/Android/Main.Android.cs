@@ -17,7 +17,7 @@ namespace Uno.UI.RuntimeTests.Engine.Droid;
 	HardwareAccelerated = true,
 	Theme = "@style/AppTheme"
 )]
-public class Application : Microsoft.UI.Xaml.NativeApplication
+public class Application : Uno.UI.Runtime.Android.NativeApplication
 {
 	static Application()
 	{
