@@ -19,7 +19,7 @@ namespace Uno.UI.RuntimeTests;
 public record UnitTestMethodInfo
 {
 	private readonly List<ITestDataSource> _casesParameters;
-	private readonly IList<PointerDeviceType> _injectedPointerTypes;
+	private readonly List<PointerDeviceType> _injectedPointerTypes;
 
 	public UnitTestMethodInfo(MethodInfo method)
 	{
@@ -113,7 +113,7 @@ public record UnitTestMethodInfo
 			cases.AddRange(testCases);
 		}
 
-		if (_injectedPointerTypes.Any())
+		if (_injectedPointerTypes.Count > 0)
 		{
 			var currentCases = cases;
 			cases = _injectedPointerTypes.SelectMany(pointer => currentCases.Select(testCase => testCase with { Pointer = pointer })).ToList();
