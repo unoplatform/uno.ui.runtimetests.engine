@@ -19,7 +19,7 @@ namespace Uno.UI.RuntimeTests;
 public record UnitTestMethodInfo
 {
 	private readonly List<ITestDataSource> _casesParameters;
-	private readonly IList<PointerDeviceType> _injectedPointerTypes;
+	private readonly List<PointerDeviceType> _injectedPointerTypes;
 
 	public UnitTestMethodInfo(MethodInfo method)
 	{
