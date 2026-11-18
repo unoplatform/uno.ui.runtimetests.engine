@@ -113,7 +113,7 @@ public record UnitTestMethodInfo
 			cases.AddRange(testCases);
 		}
 
-		if (_injectedPointerTypes.Any())
+		if (_injectedPointerTypes.Count > 0)
 		{
 			var currentCases = cases;
 			cases = _injectedPointerTypes.SelectMany(pointer => currentCases.Select(testCase => testCase with { Pointer = pointer })).ToList();
