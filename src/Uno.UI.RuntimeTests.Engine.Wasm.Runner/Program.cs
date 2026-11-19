@@ -41,7 +41,15 @@ internal static class Log
 
 class Program
 {
-	static async Task<int> Main(string[] args)
+	/// <summary>
+	/// Delay granted to an in-flight results POST when the browser exits before results are received.
+	/// </summary>
+	static readonly TimeSpan BrowserExitGracePeriod = TimeSpan.FromSeconds(5);
+
+	static Task<int> Main(string[] args)
+		=> CreateRootCommand().InvokeAsync(args);
+
+	internal static RootCommand CreateRootCommand()
 	{
 		var rootCommand = new RootCommand("Uno Platform WASM Runtime Tests Runner\n\nPrerequisites:\n  - Install Playwright: npx playwright install chromium\n  - Or: dotnet tool install -g Microsoft.Playwright.CLI && playwright install chromium");
 
@@ -69,8 +77,16 @@ class Program
 
 		var timeoutOption = new Option<int>(
 			name: "--timeout",
-			description: "Timeout in seconds for test execution",
+			description: "Timeout in seconds for test execution (0 = no timeout)",
 			getDefaultValue: () => 300);
+		timeoutOption.AddValidator(result =>
+		{
+			// Non-integer values (e.g. "--timeout abc") are already reported by the parser; reading the value here would throw.
+			if (result.Tokens is [var token] && int.TryParse(token.Value, out var timeoutSeconds))
+			{
+				result.ErrorMessage = RunnerTimeout.Validate(timeoutSeconds);
+			}
+		});
 
 		var portOption = new Option<int>(
 			name: "--port",
@@ -151,7 +167,7 @@ class Program
 			var shardIndex = context.ParseResult.GetValueForOption(shardIndexOption);
 			var totalShards = context.ParseResult.GetValueForOption(totalShardsOption);
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput, shardIndex, totalShards);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput, shardIndex, totalShards, context.GetCancellationToken());
 			context.ExitCode = exitCode;
 		});
 
@@ -195,15 +211,31 @@ class Program
 			var shardIndex = context.ParseResult.GetValueForOption(shardIndexOption);
 			var totalShards = context.ParseResult.GetValueForOption(totalShardsOption);
 
-			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput, shardIndex, totalShards);
+			var exitCode = await RunTests(appPath, output, filter, timeout, port, headless, browserPath, browserArgs, queryParams, browserLogLevel, aotProfileOutput, shardIndex, totalShards, context.GetCancellationToken());
 			context.ExitCode = exitCode;
 		});
 
-		return await rootCommand.InvokeAsync(args);
+		return rootCommand;
 	}
 
 	static int? ParseIntOrNull(string? value)
 		=> int.TryParse(value, out var result) ? result : null;
+
+	/// <summary>
+	/// Waits for the test results, but stops waiting if the browser exits first (after a grace period for an in-flight
+	/// results POST), otherwise a crashed browser would only be detected once the timeout elapses, or never with --timeout 0.
+	/// </summary>
+	/// <returns>The results, or null if none were received.</returns>
+	internal static async Task<string?> WaitForResultsOrBrowserExitAsync(Task<string?> resultsTask, Task browserExitTask, TimeSpan gracePeriod, CancellationToken ct)
+	{
+		// browserExitTask is canceled (not completed) when ct is canceled: no grace period in that case.
+		if (await Task.WhenAny(resultsTask, browserExitTask) == browserExitTask && browserExitTask.IsCompletedSuccessfully)
+		{
+			await Task.WhenAny(resultsTask, Task.Delay(gracePeriod, ct));
+		}
+
+		return resultsTask.IsCompleted ? await resultsTask : null;
+	}
 
 	static async Task<int> RunTests(
 		DirectoryInfo appPath,
@@ -218,14 +250,15 @@ class Program
 		string browserLogLevel,
 		FileInfo? aotProfileOutput,
 		int? shardIndex,
-		int? totalShards)
+		int? totalShards,
+		CancellationToken cancellationToken)
 	{
 		AnsiConsole.MarkupLine("[bold blue]Uno Platform WASM Runtime Tests Runner[/]");
 		AnsiConsole.WriteLine();
 		Log.Detail("App path", appPath.FullName);
 		Log.Detail("Output", output.FullName);
 		Log.Detail("Filter", filter ?? "(none)");
-		Log.Detail("Timeout", $"{timeoutSeconds}s");
+		Log.Detail("Timeout", timeoutSeconds == 0 ? "(never)" : $"{timeoutSeconds}s");
 		Log.Detail("Headless", headless.ToString());
 		Log.Detail("Browser log level", browserLogLevel);
 		if (aotProfileOutput is not null)
@@ -401,7 +434,8 @@ class Program
 			"--no-sandbox", // Required for CI environments (GitHub Actions, Docker, etc.)
 			"--disable-dev-shm-usage", // Use /tmp instead of /dev/shm (helps in containerized environments)
 			"--disable-application-cache", // Disable application cache
-			"--disk-cache-size=0" // No disk cache
+			"--disk-cache-size=0", // No disk cache
+			"--do-not-de-elevate" // Windows: don't relaunch de-elevated when running as admin, so the browser stays our child process
 		};
 
 		// Add Chrome logging flags based on browser log level
@@ -421,8 +455,8 @@ class Program
 
 		Log.Info($"Launching browser with {browserArgs.Count} arguments...");
 
-		// Create cancellation token for timeout
-		using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+		// Create cancellation token for timeout and cancellation (Ctrl+C / SIGTERM)
+		using var cts = RunnerTimeout.CreateCancellationTokenSource(timeoutSeconds, cancellationToken);
 		var ct = cts.Token;
 
 		Process? browserProcess = null;
@@ -472,7 +506,7 @@ class Program
 			}, ct);
 
 			// Wait for results, but also monitor if browser exits early
-			Log.Info($"Waiting for test results (timeout: {timeoutSeconds}s)...");
+			Log.Info(timeoutSeconds == 0 ? "Waiting for test results (no timeout)..." : $"Waiting for test results (timeout: {timeoutSeconds}s)...");
 			AnsiConsole.WriteLine();
 
 			// Start a task to monitor browser exit
@@ -498,20 +532,29 @@ class Program
 				}
 			}, ct);
 
-			var results = await server.WaitForResultsAsync(ct);
+			var results = await WaitForResultsOrBrowserExitAsync(server.WaitForResultsAsync(ct), browserExitTask, BrowserExitGracePeriod, ct);
 
 			if (results is null)
 			{
 				AnsiConsole.WriteLine();
 				Log.Error($"No results received");
 				AnsiConsole.MarkupLine($"[grey]Total HTTP requests received:[/] [yellow]{server.RequestCount}[/]");
-				// Check if browser already exited
-				if (browserProcess.HasExited)
+				// Checked first: on Linux/macOS, Ctrl+C also terminates the browser (same process group)
+				if (cancellationToken.IsCancellationRequested)
+				{
+					Log.Warning("Test execution was canceled");
+				}
+				else if (browserProcess.HasExited)
 				{
 					Log.Error($"Browser exited with code {browserProcess.ExitCode} before providing results");
+					if (browserPathOverride is not null)
+					{
+						Log.Warning("--browser-path must point to the browser executable, not to a launcher that exits after starting it");
+					}
 				}
 				else
 				{
+					Log.Error($"Test execution timed out after {timeoutSeconds} seconds");
 					Log.Warning("Browser is still running - possible hang or navigation failure");
 				}
 				return 1;
@@ -521,7 +564,7 @@ class Program
 
 			// Write results to output file
 			Log.Info($"Writing results to {output.FullName}...");
-			await File.WriteAllTextAsync(output.FullName, results, ct);
+			await File.WriteAllTextAsync(output.FullName, results, CancellationToken.None); // Results are received, don't truncate them on cancellation
 
 			// If AOT profile output is requested, wait for and save the profile data
 			if (aotProfileOutput is not null)
@@ -533,6 +576,7 @@ class Program
 				try
 				{
 					var profileData = await server.WaitForAotProfileAsync(linkedCts.Token);
+					cancellationToken.ThrowIfCancellationRequested(); // Canceled (e.g. Ctrl+C), not a missing profile
 					if (profileData is not null && profileData.Length > 0)
 					{
 						aotProfileOutput.Directory?.Create();
@@ -564,10 +608,17 @@ class Program
 			}
 			return exitCodeFromResults;
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			AnsiConsole.WriteLine();
-			Log.Error($"Test execution timed out after {timeoutSeconds} seconds");
+			if (cancellationToken.IsCancellationRequested)
+			{
+				Log.Warning("Test execution was canceled");
+			}
+			else
+			{
+				Log.Error($"Test execution timed out after {timeoutSeconds} seconds");
+			}
 			AnsiConsole.MarkupLine($"[grey]Total HTTP requests received:[/] [yellow]{server.RequestCount}[/]");
 			return 2;
 		}

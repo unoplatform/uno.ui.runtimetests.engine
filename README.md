@@ -372,9 +372,10 @@ jobs:
 * `--app-path`: Path to the published WASM app directory (required)
 * `--output`: Path where test results will be written (required)
 * `--filter`: Test filter expression (optional)
-* `--timeout`: Timeout in seconds for test execution (default: 300)
+* `--timeout`: Timeout in seconds for test execution (default: 300). Use `0` to disable the timeout: the runner then waits until results are received, the browser exits, or the run is canceled (e.g. Ctrl+C). In CI, consider keeping a job-level timeout (e.g. `timeout-minutes`) in case the app hangs.
 * `--port`: Port to serve the WASM app on (default: auto-assign)
 * `--headless`: Run browser in headless mode (default: true)
+* `--browser-path`: Path to the Chromium-based browser executable (default: auto-detected). It must be the browser itself, not a launcher that exits after starting it: the run fails if the browser process exits before posting results.
 * `--shard-index`: 1-based shard index for parallel test execution (optional, see [Test Sharding](#test-sharding))
 * `--total-shards`: Total number of shards (optional, must be provided with `--shard-index`)
 * `--aot-profile-output`: Path where AOT profile data will be written (optional, requires app built with AOT profiling enabled)

@@ -131,7 +131,7 @@ uno-runtimetests-wasm \
 - `--app-path`: Path to the published WASM app directory (required)
 - `--output`: Path where test results will be written (required)
 - `--filter`: Test filter expression (optional)
-- `--timeout`: Timeout in seconds for test execution (default: 300)
+- `--timeout`: Timeout in seconds for test execution (default: 300, `0` = never)
 - `--port`: Port to serve the WASM app on (default: auto-assign)
 - `--headless`: Run browser in headless mode (default: true)
 
