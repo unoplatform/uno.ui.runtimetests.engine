@@ -102,6 +102,16 @@ public sealed partial class UnitTestsControl : UserControl
 
 	internal IEnumerable<TestCaseResult> Results => _testCases;
 
+	/// <summary>
+	/// Invoked with the full name of each test case before it runs.
+	/// </summary>
+	internal Action<string>? TestCaseStarted { get; set; }
+
+	/// <summary>
+	/// Invoked for each test result, as soon as it is reported.
+	/// </summary>
+	internal Action<TestCaseResult>? TestCaseCompleted { get; set; }
+
 	private static void OverrideDebugProviderAsserts()
 	{
 #if NETSTANDARD2_0 || NET5_0_OR_GREATER
@@ -331,6 +341,14 @@ public sealed partial class UnitTestsControl : UserControl
 	private void ReportTestResult(params TestCaseResult[] results)
 	{
 		_testCases.AddRange(results);
+		if (TestCaseCompleted is { } onCompleted)
+		{
+			foreach (var result in results)
+			{
+				onCompleted(result);
+			}
+		}
+
 		_dispatcher.Invoke(() =>
 		{
 			foreach (var result in results)
@@ -825,7 +843,7 @@ public sealed partial class UnitTestsControl : UserControl
 
 				_currentRun.Run++;
 				_currentRun.CurrentRepeatCount = 0;
-
+				TestCaseStarted?.Invoke(fullTestName);
 
 				// We await this to make sure the UI is updated before running the test.
 				// This will help developpers to identify faulty tests when the app is crashing.

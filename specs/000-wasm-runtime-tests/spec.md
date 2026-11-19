@@ -25,8 +25,29 @@ Based on the pattern used in [Uno Platform's WASM test script](https://github.co
 | Variable | Description |
 |----------|-------------|
 | `UNO_RUNTIME_TESTS_OUTPUT_URL` | HTTP endpoint URL where results will be POSTed |
+| `UNO_RUNTIME_TESTS_PROGRESS_URL` | HTTP endpoint URL where the results are streamed while the tests run (optional) |
 
 When set, results are POSTed to this URL instead of (or in addition to) writing to a file.
+
+### Progress Reporting
+
+When `UNO_RUNTIME_TESTS_PROGRESS_URL` is set, `TestRunProgressReporter` POSTs the test results to it as soon as they are reported, so that the runner can still write the results of the completed tests when the run does not complete (issue [#220](https://github.com/unoplatform/uno.ui.runtimetests.engine/issues/220)).
+
+Each request is a JSON object with the results reported since the previous request, and the test case that is currently running:
+
+```json
+{
+  "assembly": "My.App",
+  "running": "When_Something()",
+  "results": [
+    { "name": "Is_Sane()", "result": "Passed", "duration": 0.002, "message": null }
+  ]
+}
+```
+
+- At most one request is in flight: the results reported meanwhile are sent together by the next one.
+- A failed request is sent again after 1 second, with the results reported meanwhile. After 3 consecutive failures, the progress is no longer reported, and the run continues.
+- Secondary apps do not report their progress: the primary app reports their results.
 
 ## Implementation
 
@@ -85,10 +106,12 @@ A .NET global tool that orchestrates WASM test execution:
 
 **Responsibilities:**
 1. Serve the WASM app via embedded HTTP server (HttpListener)
-2. Provide an endpoint to receive POSTed results (`/results`)
+2. Provide an endpoint to receive POSTed results (`/results`), and one to receive the results streamed while the tests run (`/progress`)
 3. Launch headless Chromium browser to run tests
 4. Write results to disk when received
 5. Exit with appropriate code based on test results
+
+If the run does not complete (timeout, browser exited before posting the results, or canceled), the runner writes the streamed results of the completed tests, followed by a failed `WasmRunner.Timeout`, `WasmRunner.BrowserExited` or `WasmRunner.Canceled` test case naming the test that was running, and exits with code `1`.
 
 **Key Features:**
 - Distributed as a standalone .NET global tool

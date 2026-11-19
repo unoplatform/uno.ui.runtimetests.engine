@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Spectre.Console;
 
 namespace Uno.UI.RuntimeTests.Engine.Wasm.Runner;
@@ -237,6 +238,40 @@ class Program
 		return resultsTask.IsCompleted ? await resultsTask : null;
 	}
 
+	/// <summary>
+	/// Describes why the run did not complete, as the name and message of the failed test case written with the results of the completed tests.
+	/// </summary>
+	/// <param name="browserExitCode">The exit code of the browser if it exited before providing the results, null if it is still running.</param>
+	/// <param name="runningTest">The test case that was running, if known.</param>
+	internal static (string Name, string Message) DescribeIncompleteRun(bool isCanceled, int? browserExitCode, int timeoutSeconds, string? runningTest)
+	{
+		var (name, message) = (isCanceled, browserExitCode) switch
+		{
+			(true, _) => ("WasmRunner.Canceled", "Test execution was canceled"),
+			(_, { } exitCode) => ("WasmRunner.BrowserExited", $"Browser exited with code {exitCode} before providing results"),
+			_ => ("WasmRunner.Timeout", $"Test execution timed out after {timeoutSeconds} seconds"),
+		};
+
+		return (name, runningTest is null ? $"{message}." : $"{message}, while '{runningTest}' was running.");
+	}
+
+	/// <summary>
+	/// Writes the results of the tests that completed before the run stopped, plus a failed test case describing why it did not complete,
+	/// so that CI still gets a results file.
+	/// </summary>
+	static async Task WriteIncompleteRunResultsAsync(FileInfo output, TestRunProgress progress, string failureName, string failureMessage)
+	{
+		try
+		{
+			Log.Info($"Writing the results of the {progress.CompletedCount} completed test(s) and a '{failureName}' failure to {output.FullName}...");
+			await File.WriteAllTextAsync(output.FullName, progress.ToNUnitXml(failureName, failureMessage), CancellationToken.None);
+		}
+		catch (Exception ex)
+		{
+			Log.Error($"Failed to write the results to {output.FullName}: {ex.Message}");
+		}
+	}
+
 	static async Task<int> RunTests(
 		DirectoryInfo appPath,
 		FileInfo output,
@@ -320,7 +355,9 @@ class Program
 		var injectedEnvVars = new Dictionary<string, string>
 		{
 			["UNO_RUNTIME_TESTS_RUN_TESTS"] = testConfig,
-			["UNO_RUNTIME_TESTS_OUTPUT_URL"] = $"http://localhost:{serverPort}/results"
+			["UNO_RUNTIME_TESTS_OUTPUT_URL"] = $"http://localhost:{serverPort}/results",
+			// The app streams the results to this URL while the tests are running, so they can be written even if the run doesn't complete
+			["UNO_RUNTIME_TESTS_PROGRESS_URL"] = $"http://localhost:{serverPort}/progress"
 		};
 
 		// If AOT profile output is requested, configure the profile extraction URL
@@ -357,6 +394,7 @@ class Program
 		testUrlBuilder.Append($"?_cb={cacheBuster}"); // Cache buster
 		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_RUN_TESTS={Uri.EscapeDataString(testConfig)}");
 		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_OUTPUT_URL={Uri.EscapeDataString($"http://localhost:{serverPort}/results")}");
+		testUrlBuilder.Append($"&UNO_RUNTIME_TESTS_PROGRESS_URL={Uri.EscapeDataString($"http://localhost:{serverPort}/progress")}");
 
 		// Add sharding query parameters for backward compatibility
 		if (resolvedShardIndex is not null && resolvedTotalShards is not null)
@@ -528,7 +566,8 @@ class Program
 					var currentRequests = server.RequestCount;
 					var newRequests = currentRequests - lastRequestCount;
 					lastRequestCount = currentRequests;
-					Log.Status($"{elapsed.TotalSeconds:F0}s elapsed | {currentRequests} requests (+{newRequests}) | browser: {(browserProcess.HasExited ? "exited" : "running")}");
+					var runningTest = server.Progress.RunningTest is { } name ? $" | running: {name}" : "";
+					Log.Status($"{elapsed.TotalSeconds:F0}s elapsed | {currentRequests} requests (+{newRequests}) | {server.Progress.CompletedCount} test results received{runningTest} | browser: {(browserProcess.HasExited ? "exited" : "running")}");
 				}
 			}, ct);
 
@@ -539,24 +578,31 @@ class Program
 				AnsiConsole.WriteLine();
 				Log.Error($"No results received");
 				AnsiConsole.MarkupLine($"[grey]Total HTTP requests received:[/] [yellow]{server.RequestCount}[/]");
+
 				// Checked first: on Linux/macOS, Ctrl+C also terminates the browser (same process group)
-				if (cancellationToken.IsCancellationRequested)
+				var isCanceled = cancellationToken.IsCancellationRequested;
+				int? browserExitCode = !isCanceled && browserProcess.HasExited ? browserProcess.ExitCode : null;
+				var runningTest = server.Progress.RunningTest;
+				var (failureName, failureMessage) = DescribeIncompleteRun(isCanceled, browserExitCode, timeoutSeconds, runningTest);
+
+				if (isCanceled)
 				{
-					Log.Warning("Test execution was canceled");
-				}
-				else if (browserProcess.HasExited)
-				{
-					Log.Error($"Browser exited with code {browserProcess.ExitCode} before providing results");
-					if (browserPathOverride is not null)
-					{
-						Log.Warning("--browser-path must point to the browser executable, not to a launcher that exits after starting it");
-					}
+					Log.Warning(failureMessage);
 				}
 				else
 				{
-					Log.Error($"Test execution timed out after {timeoutSeconds} seconds");
-					Log.Warning("Browser is still running - possible hang or navigation failure");
+					Log.Error(failureMessage);
+					if (browserExitCode is not null && browserPathOverride is not null)
+					{
+						Log.Warning("--browser-path must point to the browser executable, not to a launcher that exits after starting it");
+					}
+					else if (browserExitCode is null)
+					{
+						Log.Warning("Browser is still running - possible hang or navigation failure");
+					}
 				}
+
+				await WriteIncompleteRunResultsAsync(output, server.Progress, failureName, failureMessage);
 				return 1;
 			}
 
@@ -664,6 +710,11 @@ internal sealed class TestServer : IDisposable
 
 	public int RequestCount => _requestCount;
 
+	/// <summary>
+	/// Gets the test results streamed by the app while the tests are running.
+	/// </summary>
+	public TestRunProgress Progress { get; } = new();
+
 	public TestServer(string appPath, int port)
 	{
 		_appPath = appPath;
@@ -729,11 +780,30 @@ internal sealed class TestServer : IDisposable
 		var response = context.Response;
 
 		var count = Interlocked.Increment(ref _requestCount);
-		Log.Server($"#{count} {request.HttpMethod} {request.Url?.AbsolutePath}");
+		var isProgress = request.HttpMethod == "POST" && request.Url?.AbsolutePath == "/progress";
+		if (!isProgress) // Up to one per test: summarized by the periodic status instead
+		{
+			Log.Server($"#{count} {request.HttpMethod} {request.Url?.AbsolutePath}");
+		}
 
 		try
 		{
-			if (request.HttpMethod == "POST" && request.Url?.AbsolutePath == "/results")
+			if (isProgress)
+			{
+				using var reader = new StreamReader(request.InputStream, Encoding.UTF8);
+				var update = await reader.ReadToEndAsync();
+				try
+				{
+					Progress.Apply(update);
+					response.StatusCode = 200;
+				}
+				catch (JsonException ex)
+				{
+					Log.ServerError($"Invalid test progress update: {ex.Message}");
+					response.StatusCode = 400;
+				}
+			}
+			else if (request.HttpMethod == "POST" && request.Url?.AbsolutePath == "/results")
 			{
 				// Receive test results
 				using var reader = new StreamReader(request.InputStream, Encoding.UTF8);

@@ -206,6 +206,29 @@ jobs:
           --filter '!HotReloadTests & !SecondaryAppTests & !Is_SecondaryApp_Supported' \
           --timeout 600
 
+    - name: Check the results of a run that times out
+      # Times out while When_Timeout_Is_Higher_Than_Default (65s) is running, after the sanity tests completed: the runner
+      # must still write their results, followed by a WasmRunner.Timeout failure naming the running test (issue #220).
+      # Not in test-results/, as this run is expected to fail.
+      run: |
+        exit_code=0
+        uno-runtimetests-wasm \
+          --app-path ./src/TestApp/bin/Release/net10.0-browserwasm/publish/wwwroot \
+          --output ./timeout-check/results.xml \
+          --filter 'SanityTests | When_Timeout_Is_Higher_Than_Default' \
+          --timeout 40 || exit_code=$?
+        if [ "$exit_code" -ne 1 ]; then
+          echo "::error::Expected exit code 1 when the run times out, got $exit_code"
+          exit 1
+        fi
+        if ! grep -q '<test-case name="Is_Sane()"[^>]*result="Passed"' ./timeout-check/results.xml \
+          || ! grep -q "<test-case name=\"WasmRunner.Timeout\"" ./timeout-check/results.xml \
+          || ! grep -q "while 'When_Timeout_Is_Higher_Than_Default()' was running" ./timeout-check/results.xml; then
+          echo "::error::The results of the timed out run are missing the completed tests or the timeout failure"
+          cat ./timeout-check/results.xml
+          exit 1
+        fi
+
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
