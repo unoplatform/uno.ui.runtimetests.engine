@@ -258,7 +258,7 @@ class Program
 		Log.Detail("App path", appPath.FullName);
 		Log.Detail("Output", output.FullName);
 		Log.Detail("Filter", filter ?? "(none)");
-		Log.Detail("Timeout", timeoutSeconds == 0 ? "(none)" : $"{timeoutSeconds}s");
+		Log.Detail("Timeout", timeoutSeconds == 0 ? "(never)" : $"{timeoutSeconds}s");
 		Log.Detail("Headless", headless.ToString());
 		Log.Detail("Browser log level", browserLogLevel);
 		if (aotProfileOutput is not null)
