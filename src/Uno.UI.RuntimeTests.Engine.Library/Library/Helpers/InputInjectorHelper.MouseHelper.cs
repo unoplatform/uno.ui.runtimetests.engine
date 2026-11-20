@@ -11,7 +11,11 @@ using System.Reflection;
 using Windows.Foundation;
 using Windows.UI.Input.Preview.Injection;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public partial class InputInjectorHelper
 {

@@ -5,7 +5,12 @@
 
 using System;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
+
 
 using Windows.Devices.Input;
 

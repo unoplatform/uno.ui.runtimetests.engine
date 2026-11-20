@@ -5,7 +5,11 @@
 
 using System;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 #if !UNO_RUNTIMETESTS_DISABLE_LIBRARY && !UNO_RUNTIMETESTS_DISABLE_RUNSONUITHREADATTRIBUTE
 /// <summary>

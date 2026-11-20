@@ -14,7 +14,11 @@ using Windows.UI.Core;
 using Windows.UI.Input.Preview.Injection;
 using PointerDeviceType = Windows.Devices.Input.PointerDeviceType;
 
+#if USE_UNO_HOT_TESTING
+namespace Uno.HotTesting;
+#else // !USE_UNO_HOT_TESTING
 namespace Uno.UI.RuntimeTests;
+#endif // USE_UNO_HOT_TESTING
 
 public partial class InputInjectorHelper
 {

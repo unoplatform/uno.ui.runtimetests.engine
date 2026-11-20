@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Uno.UI.RuntimeTests.Engine;
 
-[TestClass]
+[UnoTestClass]
 [RunsOnUIThread]
 public class PointersInjectionTests
 {

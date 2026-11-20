@@ -27,7 +27,7 @@ public class HotReloadSanity
 	}
 }
 
-[TestClass]
+[UnoTestClass]
 [RunsInSecondaryApp]
 public class HotReloadTests
 {
@@ -82,6 +82,10 @@ public class HotReloadTests
 
 		await using var _ = await HotReloadHelper.UpdateSourceFile<HotReloadTests_Subject>("Original text", "Updated text", ct);
 
+#if USE_UNO_HOT_TESTING
+		await Assert.AreEqualAsync("Updated text", () => UIHelper.GetChild<TextBlock>().Text, ct);
+#else
 		await AsyncAssert.AreEqual("Updated text", () => UIHelper.GetChild<TextBlock>().Text, ct);
+#endif
 	}
 }
