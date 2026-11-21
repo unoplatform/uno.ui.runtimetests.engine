@@ -100,14 +100,26 @@ internal sealed class TestRunProgress
 	}
 
 	private static string? GetString(JsonElement element, string propertyName)
-		=> element.TryGetProperty(propertyName, out var value)
-			? value.ValueKind switch
-			{
-				JsonValueKind.String => value.GetString(),
-				JsonValueKind.Null => null,
-				_ => throw new JsonException($"'{propertyName}' must be a string."),
-			}
-			: null;
+	{
+		if (!element.TryGetProperty(propertyName, out var value) || value.ValueKind == JsonValueKind.Null)
+		{
+			return null;
+		}
+
+		if (value.ValueKind != JsonValueKind.String)
+		{
+			throw new JsonException($"'{propertyName}' must be a string.");
+		}
+
+		try
+		{
+			return value.GetString();
+		}
+		catch (InvalidOperationException error) // e.g. an escaped lone surrogate, which cannot be converted to a string
+		{
+			throw new JsonException($"'{propertyName}' is not a valid string: {error.Message}", error);
+		}
+	}
 
 	/// <summary>
 	/// Gets the results of the completed tests plus a failed test case describing why the run did not complete,

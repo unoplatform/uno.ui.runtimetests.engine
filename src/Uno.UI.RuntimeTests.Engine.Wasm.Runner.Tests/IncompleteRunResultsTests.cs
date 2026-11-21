@@ -47,6 +47,8 @@ public class IncompleteRunResultsTests
 	[DataRow("""{ "results": [ { "name": "Test_D()", "result": "Passed" }, { "result": "Passed" } ] }""")]
 	[DataRow("""{ "results": [ { "name": "Test_D()" } ] }""")]
 	[DataRow("""{ "running": 42 }""")]
+	[DataRow("""{ "running": "Test_\ud83d()" }""")] // Escaped lone surrogate
+	[DataRow("""{ "results": [ { "name": "Test_\ud83d()", "result": "Passed" } ] }""")]
 	public void Apply_InvalidUpdate_ThrowsAndChangesNothing(string update)
 	{
 		var progress = new TestRunProgress();

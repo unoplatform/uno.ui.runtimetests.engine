@@ -85,6 +85,7 @@ public class TestRunProgressReporterTests
 		await reporter.Idle;
 
 		Assert.AreEqual(3, calls, "Reporting must stop after 3 consecutive failures instead of retrying for the rest of the run");
+		Assert.AreEqual(0, reporter.PendingCount, "Once reporting stopped, the results must not be kept, as nothing would ever send them");
 	}
 
 	[TestMethod]

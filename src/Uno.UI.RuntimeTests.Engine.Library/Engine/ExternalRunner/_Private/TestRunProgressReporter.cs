@@ -55,10 +55,29 @@ internal sealed class TestRunProgressReporter
 	/// </summary>
 	internal Task Idle { get; private set; } = Task.CompletedTask;
 
+	/// <summary>
+	/// Gets the number of results waiting to be sent.
+	/// </summary>
+	internal int PendingCount
+	{
+		get
+		{
+			lock (_gate)
+			{
+				return _pending.Count;
+			}
+		}
+	}
+
 	public void OnTestCaseStarted(string testName)
 	{
 		lock (_gate)
 		{
+			if (_isDisabled)
+			{
+				return;
+			}
+
 			_runningTest = testName;
 			_hasChanges = true;
 		}
@@ -70,6 +89,11 @@ internal sealed class TestRunProgressReporter
 	{
 		lock (_gate)
 		{
+			if (_isDisabled)
+			{
+				return; // Nothing would ever send it
+			}
+
 			_pending.Add(result);
 			if (_runningTest == result.TestName)
 			{
