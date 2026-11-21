@@ -217,6 +217,16 @@ internal static partial class RuntimeTestEmbeddedRunner
 		try
 		{
 			var engine = new UnitTestsControl { IsSecondaryApp = isSecondaryApp };
+
+			// Stream the results while the tests are running, so the runner can still report them if the run doesn't complete
+			if (!isSecondaryApp && GetConfigValue("UNO_RUNTIME_TESTS_PROGRESS_URL") is { Length: > 0 } progressUrl)
+			{
+				Log($"RunTests: Reporting the test progress to {progressUrl}.");
+				var progress = new TestRunProgressReporter(progressUrl, typeof(UnitTestsControl).Assembly.GetName().Name);
+				engine.TestCaseStarted = progress.OnTestCaseStarted;
+				engine.TestCaseCompleted = progress.OnTestCaseCompleted;
+			}
+
 			Log("RunTests: UnitTestsControl created, setting as window content...");
 			// Use Window.Current to ensure we're setting content on the active window
 			var activeWindow = Window.Current ?? window;
@@ -501,7 +511,7 @@ internal static partial class RuntimeTestEmbeddedRunner
 		// On WASM, check URL query parameters FIRST for output URL to avoid stale cached values.
 		// The uno-config.js environment variables may be cached by the browser or service worker
 		// with an old server port, causing results to be sent to the wrong destination.
-		if (name == "UNO_RUNTIME_TESTS_OUTPUT_URL" || name == "UNO_RUNTIME_TESTS_OUTPUT_PATH")
+		if (name is "UNO_RUNTIME_TESTS_OUTPUT_URL" or "UNO_RUNTIME_TESTS_OUTPUT_PATH" or "UNO_RUNTIME_TESTS_PROGRESS_URL")
 		{
 			try
 			{

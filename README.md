@@ -372,7 +372,7 @@ jobs:
 * `--app-path`: Path to the published WASM app directory (required)
 * `--output`: Path where test results will be written (required)
 * `--filter`: Test filter expression (optional)
-* `--timeout`: Timeout in seconds for test execution (default: 300). Use `0` to disable the timeout: the runner then waits until results are received, the browser exits, or the run is canceled (e.g. Ctrl+C). In CI, consider keeping a job-level timeout (e.g. `timeout-minutes`) in case the app hangs.
+* `--timeout`: Timeout in seconds for test execution (default: 300). Use `0` to disable the timeout: the runner then waits until results are received, the browser exits, or the run is canceled (e.g. Ctrl+C). In CI, consider keeping a job-level timeout (e.g. `timeout-minutes`) in case the app hangs. When the timeout elapses, the results of the completed tests are still written (see [Results of incomplete runs](#results-of-incomplete-runs)).
 * `--port`: Port to serve the WASM app on (default: auto-assign)
 * `--headless`: Run browser in headless mode (default: true)
 * `--browser-path`: Path to the Chromium-based browser executable (default: auto-detected). It must be the browser itself, not a launcher that exits after starting it: the run fails if the browser process exits before posting results.
@@ -383,6 +383,18 @@ jobs:
 **Important notes for WASM testing:**
 * Trimming must be disabled (`-p:PublishTrimmed=false`) when building the WASM app for runtime tests. The test engine uses reflection to discover and run tests, which is incompatible with trimming.
 * A Chromium-based browser (Chrome, Chromium, or Edge) must be installed. Use `npx playwright install chromium` to install one.
+
+#### Results of incomplete runs
+
+The app streams the test results to the runner while the tests run. If the run does not complete, the runner still writes the `--output` file, so that CI can publish it. The file contains the results of the completed tests, followed by a failed test case that says why the run did not complete, and which test was running at that time:
+
+| Test case | Reason |
+|-----------|--------|
+| `WasmRunner.Timeout` | The `--timeout` elapsed |
+| `WasmRunner.BrowserExited` | The browser exited before posting the results |
+| `WasmRunner.Canceled` | The run was canceled (Ctrl+C or SIGTERM) |
+
+The runner still exits with code `1`. The file uses the NUnit format of the results of a complete run. If the app was built with an older version of the engine, which does not stream its results, the file only contains the failed test case.
 
 #### AOT Profile Extraction
 

@@ -170,6 +170,37 @@ internal static class WasmTestResultReporter
 		return false;
 	}
 
+	/// <summary>
+	/// Posts a test progress update (JSON) to the specified URL, once and without logging on success.
+	/// </summary>
+	/// <returns>True if successful, false otherwise.</returns>
+	public static async Task<bool> TryPostProgressAsync(string url, byte[] content, CancellationToken ct = default)
+	{
+		try
+		{
+			using var httpContent = new ByteArrayContent(content);
+			httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+			using var response = await _httpClient.Value.PostAsync(url, httpContent, ct);
+
+			if (response.IsSuccessStatusCode)
+			{
+				return true;
+			}
+
+			LogError($"POST to {url} failed with status {(int)response.StatusCode} {response.ReasonPhrase}");
+		}
+		catch (HttpRequestException ex)
+		{
+			LogError($"HTTP request failed: {ex.Message}");
+		}
+		catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+		{
+			LogError($"Request timed out: {ex.Message}");
+		}
+
+		return false;
+	}
+
 	private static void Log(string message) => Console.WriteLine($"[WasmTestResultReporter] {message}");
 	private static void LogError(string message) => Console.Error.WriteLine($"[WasmTestResultReporter] {message}");
 }
